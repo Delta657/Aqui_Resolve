@@ -1,0 +1,369 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_color">
+
+    <!-- Header do Prestador -->
+    <LinearLayout
+        android:id="@+id/headerSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:orientation="vertical"
+        android:background="@color/secondary_color"
+        android:elevation="4dp">
+
+        <!-- Barra superior -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical">
+
+            <!-- Botão voltar -->
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_arrow_back"
+                android:tint="@android:color/white"
+                android:contentDescription="Voltar" />
+
+            <!-- Informações do cliente -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="16dp">
+
+                <TextView
+                    android:id="@+id/tvClientName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nome do Cliente"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white" />
+
+                <TextView
+                    android:id="@+id/tvClientStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🟢 Online"
+                    android:textSize="14sp"
+                    android:textColor="@android:color/white" />
+
+            </LinearLayout>
+
+            <!-- Foto do cliente -->
+            <ImageView
+                android:id="@+id/ivClientPhoto"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/circle_background"
+                android:src="@drawable/ic_person"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <!-- Botão de informações -->
+            <ImageButton
+                android:id="@+id/btnClientInfo"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_info"
+                android:tint="@android:color/white"
+                android:contentDescription="Informações" />
+
+        </LinearLayout>
+
+        <!-- Informações do serviço -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@color/secondary_dark">
+
+            <TextView
+                android:id="@+id/tvOrderTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Título do Serviço"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:id="@+id/tvOrderDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Descrição do serviço"
+                android:textSize="14sp"
+                android:textColor="@android:color/white"
+                android:alpha="0.8" />
+
+            <TextView
+                android:id="@+id/tvOrderBudget"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Orçamento: R$ 0,00"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/warning_color" />
+
+            <TextView
+                android:id="@+id/tvProviderInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Você está atendendo este cliente"
+                android:textSize="14sp"
+                android:textColor="@android:color/white"
+                android:alpha="0.8" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Botões de ação do prestador -->
+    <LinearLayout
+        android:id="@+id/actionButtonsSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/headerSection"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="@color/surface_color"
+        android:elevation="2dp">
+
+        <!-- Primeira linha de botões -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <!-- Botão de orçamento -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSendQuote"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="💰 Orçamento"
+                android:textSize="12sp"
+                app:cornerRadius="20dp"
+                app:backgroundTint="@color/warning_color"
+                style="@style/Widget.Material3.Button" />
+
+            <!-- Botão de agendar -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnScheduleVisit"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:text="📅 Agendar"
+                android:textSize="12sp"
+                app:cornerRadius="20dp"
+                app:backgroundTint="@color/info_color"
+                style="@style/Widget.Material3.Button" />
+
+            <!-- Botão de iniciar -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnStartService"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="▶️ Iniciar"
+                android:textSize="12sp"
+                app:cornerRadius="20dp"
+                app:backgroundTint="@color/success_color"
+                style="@style/Widget.Material3.Button" />
+
+        </LinearLayout>
+
+        <!-- Segunda linha de botões -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <!-- Botão de finalizar -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnFinishService"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="✅ Finalizar"
+                android:textSize="12sp"
+                app:cornerRadius="20dp"
+                app:backgroundTint="@color/success_color"
+                style="@style/Widget.Material3.Button" />
+
+            <!-- Espaço vazio para manter layout -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="2" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Botões de resposta rápida -->
+    <LinearLayout
+        android:id="@+id/quickResponseSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/actionButtonsSection"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:background="@color/surface_color"
+        android:elevation="1dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Respostas Rápidas:"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_secondary"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnQuickResponse1"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="Olá! Vou analisar..."
+                android:textSize="10sp"
+                app:cornerRadius="16dp"
+                app:backgroundTint="@color/primary_color"
+                style="@style/Widget.Material3.Button" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnQuickResponse2"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                android:text="Posso fazer visita..."
+                android:textSize="10sp"
+                app:cornerRadius="16dp"
+                app:backgroundTint="@color/primary_color"
+                style="@style/Widget.Material3.Button" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnQuickResponse3"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="Qual horário..."
+                android:textSize="10sp"
+                app:cornerRadius="16dp"
+                app:backgroundTint="@color/primary_color"
+                style="@style/Widget.Material3.Button" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Lista de mensagens -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewMessages"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/quickResponseSection"
+        android:layout_above="@id/inputSection"
+        android:background="@color/background_color"
+        android:padding="8dp"
+        android:scrollbars="vertical"
+        android:clipToPadding="false" />
+
+    <!-- Seção de input -->
+    <LinearLayout
+        android:id="@+id/inputSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="vertical"
+        android:background="@color/surface_color"
+        android:elevation="8dp">
+
+        <!-- Input de mensagem -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:gravity="center_vertical">
+
+            <!-- Botão de anexo -->
+            <ImageButton
+                android:id="@+id/btnAttach"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_attach"
+                android:tint="@color/secondary_color"
+                android:contentDescription="Anexar" />
+
+            <!-- Campo de texto -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:hint="Digite sua mensagem..."
+                app:boxStrokeColor="@color/secondary_color"
+                app:hintTextColor="@color/secondary_color"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etMessage"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine"
+                    android:maxLines="4"
+                    android:textColor="@color/text_primary" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- Botão de enviar -->
+            <ImageButton
+                android:id="@+id/btnSend"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/circle_secondary_background"
+                android:src="@drawable/ic_send"
+                android:tint="@android:color/white"
+                android:enabled="false"
+                android:contentDescription="Enviar" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>

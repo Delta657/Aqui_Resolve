@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Permissões -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- Permissões para Google Maps -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
+    <!-- Permissões para Google Play Services -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LoginApp"
+        tools:targetApi="31">
+        
+        <!-- Google Play Services Version -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+        
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/google_maps_key" />
+            
+        <!-- Firebase Configuration -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="default_channel" />
+            
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.LoginApp">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".SignUpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".HomeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".ProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".NotificationSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".PersonalDataActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".ProviderSignUpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".ClientSignUpActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".CreateOrderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".AddressManagementActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".ClientOrdersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".ProviderOrdersActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".OrderDetailsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".QuotesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+            
+        <activity
+            android:name=".ClientChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+            
+        <activity
+            android:name=".ProviderChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".RatingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+        <activity
+            android:name=".ImagePreviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp" />
+
+        <!-- Admin Activities -->
+
+
+        
+            
+
+            
+        <activity
+            android:name=".ForgotPasswordActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+            
+
+        <activity
+            android:name=".ClientHomeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ProviderHomeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ServicesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        
+        <!-- Privacy and Terms Activities -->
+        <activity
+            android:name=".PrivacyPolicyActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        
+        <activity
+            android:name=".TermsOfServiceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        
+        <activity
+            android:name=".PrivacySettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        
+        <activity
+            android:name=".UserDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ImagePickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".DocumentUploadActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ProviderDashboardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        
+        <!-- Firebase Messaging Service -->
+        <service
+            android:name=".FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        
+        <!-- FileProvider para compartilhar arquivos -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+</manifest>

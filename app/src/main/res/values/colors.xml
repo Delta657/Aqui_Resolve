@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Colors - Laranja -->
+    <color name="primary_color">#FF7A00</color>
+    <color name="primary_dark">#E56A00</color>
+    <color name="primary_light">#FF8F1A</color>
+    
+    <!-- Secondary Colors -->
+    <color name="secondary_color">#10B981</color>
+    <color name="secondary_dark">#059669</color>
+    <color name="secondary_light">#34D399</color>
+    
+    <!-- Background Colors -->
+    <color name="background_primary">#FFFFFF</color>
+    <color name="background_secondary">#F8FAFC</color>
+    <color name="background_tertiary">#F1F5F9</color>
+    <color name="background_color">#F8FAFC</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#1E293B</color>
+    <color name="text_secondary">#64748B</color>
+    <color name="text_tertiary">#94A3B8</color>
+    
+    <!-- Gray Colors -->
+    <color name="gray_100">#F1F5F9</color>
+    <color name="gray_200">#E2E8F0</color>
+    <color name="gray_300">#CBD5E1</color>
+    <color name="gray_400">#94A3B8</color>
+    <color name="gray_500">#64748B</color>
+    <color name="gray_600">#475569</color>
+    
+    <!-- Transparent -->
+    <color name="transparent">#00000000</color>
+    
+    <!-- White Variations -->
+    <color name="white">#FFFFFF</color>
+    <color name="white_90">#E6FFFFFF</color>
+    <color name="white_70">#B3FFFFFF</color>
+    <color name="white_50">#80FFFFFF</color>
+    <color name="white_30">#4DFFFFFF</color>
+    
+    <!-- Black Variations -->
+    <color name="black">#000000</color>
+    <color name="black_90">#E6000000</color>
+    <color name="black_70">#B3000000</color>
+    <color name="black_50">#80000000</color>
+    
+    <!-- Status Colors -->
+    <color name="success">#10B981</color>
+    <color name="success_color">#10B981</color>
+    <color name="success_green">#10B981</color>
+    <color name="warning">#F59E0B</color>
+    <color name="warning_color">#F59E0B</color>
+    <color name="warning_orange">#F59E0B</color>
+    <color name="error">#EF4444</color>
+    <color name="error_color">#F44336</color>
+    <color name="error_red">#EF4444</color>
+    <color name="info">#3B82F6</color>
+    <color name="info_color">#3B82F6</color>
+    <color name="info_blue">#3B82F6</color>
+    
+    <!-- Surface Colors -->
+    <color name="surface_color">#FFFFFF</color>
+    
+    <!-- Divider and Border -->
+    <color name="divider_color">#E2E8F0</color>
+    <color name="border_color">#CBD5E1</color>
+    
+    <!-- Social Media Colors -->
+    <color name="google_color">#DB4437</color>
+    <color name="facebook_color">#1877F2</color>
+    
+    <!-- Gradient Colors -->
+    <color name="gradient_start">#FF7A00</color>
+    <color name="gradient_end">#FF8F1A</color>
+    
+    <!-- Material Design Colors -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#9C27B0</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="orange_500">#FF9800</color>
+    <color name="orange_600">#FB8C00</color>
+    <color name="green_500">#4CAF50</color>
+    <color name="blue_500">#2196F3</color>
+    
+    <!-- Service Niche Colors -->
+    <color name="electrical_color">#FF6B35</color>
+    <color name="plumbing_color">#4A90E2</color>
+    <color name="painting_color">#F5A623</color>
+    <color name="carpentry_color">#8B4513</color>
+    <color name="cleaning_color">#7ED321</color>
+    <color name="gardening_color">#50C878</color>
+    <color name="pest_control_color">#8B0000</color>
+    <color name="hvac_color">#00CED1</color>
+    <color name="appliances_color">#FF69B4</color>
+    <color name="it_color">#6A5ACD</color>
+    <color name="locksmith_color">#2F4F4F</color>
+    <color name="automation_color">#FF1493</color>
+    <color name="moving_color">#FF8C00</color>
+    <color name="repairs_color">#32CD32</color>
+    
+    <!-- Additional Colors -->
+    <color name="red_500">#F44336</color>
+    <color name="green_600">#43A047</color>
+    <color name="blue_600">#1E88E5</color>
+    <color name="yellow_500">#FFC107</color>
+    <color name="brown_500">#795548</color>
+    
+    <!-- Admin Colors -->
+    <color name="admin_primary">#1E3A8A</color>
+    <color name="admin_primary_dark">#1E40AF</color>
+    <color name="admin_secondary">#7C3AED</color>
+    <color name="admin_success">#059669</color>
+    <color name="admin_warning">#D97706</color>
+    <color name="admin_error">#DC2626</color>
+    <color name="admin_info">#0891B2</color>
+    
+    <!-- Admin Background Colors -->
+    <color name="admin_background">#F8FAFC</color>
+    <color name="admin_welcome_card">#1E3A8A</color>
+    <color name="admin_card_primary">#3B82F6</color>
+    <color name="admin_card_success">#10B981</color>
+    <color name="admin_card_warning">#F59E0B</color>
+    <color name="admin_card_info">#06B6D4</color>
+    
+    <!-- Admin Text Colors -->
+    <color name="admin_text_primary">#1F2937</color>
+    <color name="admin_text_secondary">#6B7280</color>
+    <color name="admin_text_secondary_light">#E5E7EB</color>
+    
+    <!-- Admin Bottom Navigation Colors -->
+    <color name="admin_bottom_nav_selected">#1E3A8A</color>
+    <color name="admin_bottom_nav_unselected">#9CA3AF</color>
+    
+    <!-- Document Upload Colors -->
+    <color name="light_gray">#F1F5F9</color>
+    <color name="light_blue">#EFF6FF</color>
+</resources>
+

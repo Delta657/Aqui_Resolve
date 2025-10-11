@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/white"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <!-- Document Icon -->
+        <ImageView
+            android:id="@+id/ivDocumentIcon"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_document"
+            android:contentDescription="Ícone do documento"
+            app:tint="@color/primary_color" />
+
+        <!-- Document Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Document Name -->
+            <TextView
+                android:id="@+id/tvDocumentName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="RG (Frente)"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="4dp" />
+
+            <!-- Document Description -->
+            <TextView
+                android:id="@+id/tvDocumentDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Documento de identidade - lado da foto"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Status Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <!-- Status Icon -->
+                <ImageView
+                    android:id="@+id/ivStatusIcon"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_pending"
+                    android:contentDescription="Status"
+                    app:tint="@color/warning_color" />
+
+                <!-- Status Text -->
+                <TextView
+                    android:id="@+id/tvDocumentStatus"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Aguardando upload"
+                    android:textSize="14sp"
+                    android:textColor="@color/warning_color"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Upload Date -->
+            <TextView
+                android:id="@+id/tvUploadDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Enviado em: 15/12/2023 14:30"
+                android:textSize="12sp"
+                android:textColor="@color/text_tertiary"
+                android:layout_marginBottom="2dp"
+                android:visibility="gone" />
+
+            <!-- File Size -->
+            <TextView
+                android:id="@+id/tvFileSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="2.5 MB"
+                android:textSize="12sp"
+                android:textColor="@color/text_tertiary"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <!-- Progress Bar -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="8dp"
+                android:indeterminateTint="@color/primary_color"
+                android:visibility="gone" />
+
+            <!-- Retry Button -->
+            <ImageView
+                android:id="@+id/btnRetry"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_refresh"
+                android:contentDescription="Tentar novamente"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:visibility="gone"
+                app:tint="@color/primary_color" />
+
+            <!-- Remove Button -->
+            <ImageView
+                android:id="@+id/btnRemove"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_delete"
+                android:contentDescription="Remover"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="6dp"
+                android:visibility="gone"
+                app:tint="@color/error_color" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

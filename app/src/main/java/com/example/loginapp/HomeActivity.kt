@@ -1,0 +1,300 @@
+package com.example.loginapp
+
+import android.content.Intent
+import android.os.Bundle
+import android.view.View
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.loginapp.databinding.ActivityHomeBinding
+import kotlinx.coroutines.launch
+
+/**
+ * HomeActivity - Tela principal do aplicativo após o login
+ * 
+ * Esta activity gerencia a interface principal com:
+ * - Barra de pesquisa
+ * - Categorias de serviços
+ * - Navegação inferior
+ * - Lista de serviços em destaque
+ */
+class HomeActivity : AppCompatActivity() {
+
+    // ViewBinding para acesso aos elementos da interface
+    private lateinit var binding: ActivityHomeBinding
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // Inicializar ViewBinding
+        binding = ActivityHomeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        
+        // Configurar a interface
+        setupUI()
+        setupClickListeners()
+        loadUserData()
+        
+        // Verificar se há mensagem de alternância de conta
+        checkSwitchMessage()
+        
+        // Verificar se pode alternar para prestador
+        checkProviderSwitchOption()
+    }
+
+    /**
+     * Configura os elementos da interface do usuário
+     */
+    private fun setupUI() {
+        // Configurar a status bar para ser transparente
+        window.statusBarColor = ContextCompat.getColor(this, android.R.color.transparent)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        }
+    }
+
+    /**
+     * Configura os listeners de clique para todos os elementos interativos
+     */
+    private fun setupClickListeners() {
+        // Barra de pesquisa
+        binding.etSearch.setOnEditorActionListener { _, _, _ ->
+            showToast("🔍 Funcionalidade de busca em desenvolvimento")
+            true
+        }
+        
+        // Botão de filtro
+        binding.ivFilter.setOnClickListener {
+            showToast("🔧 Funcionalidade de filtro em desenvolvimento")
+        }
+        
+        // Categorias de serviços
+        binding.cardPlumber.setOnClickListener {
+            navigateToCreateOrder("Hidráulica")
+        }
+        
+        binding.cardElectrician.setOnClickListener {
+            navigateToCreateOrder("Elétrica")
+        }
+        
+        binding.cardPainter.setOnClickListener {
+            navigateToCreateOrder("Pintura")
+        }
+        
+        binding.cardCleaning.setOnClickListener {
+            navigateToCreateOrder("Limpeza")
+        }
+        
+        binding.cardGardening.setOnClickListener {
+            navigateToCreateOrder("Jardinagem")
+        }
+        
+        binding.cardMore.setOnClickListener {
+            showToast("📋 Mais categorias em breve")
+        }
+        
+        // Navegação inferior
+        binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.navigation_home -> {
+                    // Já estamos na home
+                    true
+                }
+                R.id.navigation_services -> {
+                    showToast("🔧 Tela de serviços em desenvolvimento")
+                    true
+                }
+                R.id.navigation_orders -> {
+                    val intent = Intent(this, ClientOrdersActivity::class.java)
+                    startActivity(intent)
+                    true
+                }
+                R.id.navigation_profile -> {
+                    val intent = Intent(this, ProfileActivity::class.java)
+                    startActivity(intent)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    /**
+     * Carrega os dados do usuário logado
+     */
+    private fun loadUserData() {
+        val user = LocalAuthManager.user
+        if (user != null) {
+            binding.tvWelcome.text = "Olá, ${user.fullName}! Que tipo de serviço você precisa?"
+        }
+    }
+
+    /**
+     * Executa a pesquisa
+     */
+    private fun performSearch() {
+        val query = binding.etSearch.text.toString().trim()
+        if (query.isNotEmpty()) {
+            showToast("🔍 Pesquisando por: $query")
+            // TODO: Implementar pesquisa real
+        }
+    }
+
+    /**
+     * Mostra o diálogo de filtros
+     */
+    private fun showFilterDialog() {
+        showToast("🔧 Filtros em desenvolvimento...")
+        // TODO: Implementar filtros
+    }
+
+    /**
+     * Navega para uma categoria específica
+     */
+    private fun navigateToServiceCategory(category: String) {
+        showToast("🔧 Navegando para: $category")
+        // TODO: Implementar navegação para categoria
+    }
+
+    /**
+     * Mostra todas as categorias
+     */
+    private fun showAllCategories() {
+        showToast("📋 Todas as categorias em desenvolvimento...")
+        // TODO: Implementar tela de todas as categorias
+    }
+
+    /**
+     * Mostra todos os serviços
+     */
+    private fun showAllServices() {
+        showToast("🔧 Todos os serviços em desenvolvimento...")
+        // TODO: Implementar tela de todos os serviços
+    }
+
+    /**
+     * Mostra os pedidos
+     */
+    private fun showOrders() {
+        showToast("📋 Pedidos em desenvolvimento...")
+        // TODO: Implementar tela de pedidos
+    }
+
+    /**
+     * Navega para o perfil
+     */
+    private fun navigateToProfile() {
+        val intent = Intent(this, ProfileActivity::class.java)
+        startActivity(intent)
+    }
+
+    /**
+     * Navega para a tela de criação de pedidos
+     */
+    private fun navigateToCreateOrder(serviceNiche: String) {
+        val intent = Intent(this, CreateOrderActivity::class.java).apply {
+            putExtra("service_category_name", serviceNiche)
+        }
+        startActivity(intent)
+    }
+
+    /**
+     * Verifica se há mensagem de alternância de conta
+     */
+    private fun checkSwitchMessage() {
+        val showSwitchMessage = intent.getBooleanExtra("show_switch_message", false)
+        if (showSwitchMessage) {
+            val switchMessage = intent.getStringExtra("switch_message") ?: "Conta alterada com sucesso!"
+            showToast(switchMessage)
+        }
+    }
+    
+    /**
+     * Verifica se pode alternar para prestador
+     */
+    private fun checkProviderSwitchOption() {
+        val canSwitchToProvider = intent.getBooleanExtra("can_switch_to_provider", false)
+        if (canSwitchToProvider) {
+            // Verificar se o usuário tem dados de prestador
+            val provider = LocalAuthManager.getCurrentProviderData()
+            if (provider != null) {
+                // Mostrar opção para voltar à conta de prestador
+                showProviderSwitchOption()
+            }
+        }
+    }
+    
+    /**
+     * Mostra opção para voltar à conta de prestador
+     */
+    private fun showProviderSwitchOption() {
+        // Verificar se já existe o botão
+        val existingButton = findViewById<com.google.android.material.button.MaterialButton>(888)
+        if (existingButton != null) return
+        
+        // Criar botão para voltar à conta de prestador
+        val switchButton = com.google.android.material.button.MaterialButton(this).apply {
+            id = 888
+            text = "Voltar para Conta Prestador"
+            textSize = 14f
+            setTextColor(ContextCompat.getColor(this@HomeActivity, R.color.white))
+            backgroundTintList = ContextCompat.getColorStateList(this@HomeActivity, R.color.secondary_color)
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(32, 16, 32, 16)
+            }
+            setOnClickListener {
+                switchToProviderAccount()
+            }
+        }
+        
+        // Adicionar o botão na interface (você pode ajustar onde colocar)
+        // Por exemplo, no topo da tela ou em uma posição específica
+        val parentLayout = binding.root as android.widget.LinearLayout
+        parentLayout.addView(switchButton, 0) // Adicionar no topo
+    }
+    
+    /**
+     * Volta para a conta de prestador
+     */
+    private fun switchToProviderAccount() {
+        // Verificar se há dados de prestador
+        val provider = LocalAuthManager.getCurrentProviderData()
+        if (provider != null) {
+            // Navegar diretamente para o dashboard do prestador
+            val intent = Intent(this, ProviderDashboardActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                putExtra("show_welcome_message", true)
+                putExtra("welcome_message", "🎉 Bem-vindo de volta à sua conta de Prestador!")
+                putExtra("default_tab", 1) // Ir para aba Perfil
+            }
+            startActivity(intent)
+            finish()
+        } else {
+            showToast("❌ Dados de prestador não encontrados")
+        }
+    }
+
+    /**
+     * Exibe uma mensagem toast para o usuário
+     * 
+     * @param message Mensagem a ser exibida
+     */
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Limpa os recursos quando a activity é destruída
+     */
+    override fun onDestroy() {
+        super.onDestroy()
+        // Limpar recursos se necessário
+    }
+} 

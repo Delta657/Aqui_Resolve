@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Background Circle -->
+    <path
+        android:fillColor="@color/white"
+        android:pathData="M60,60
+                         m-50,0
+                         a50,50 0,1 1,100,0
+                         a50,50 0,1 1,-100,0" />
+
+    <!-- Inner Circle -->
+    <path
+        android:fillColor="@color/primary_color"
+        android:pathData="M60,60
+                         m-35,0
+                         a35,35 0,1 1,70,0
+                         a35,35 0,1 1,-70,0" />
+
+    <!-- Lock Icon (body) -->
+    <path
+        android:fillColor="@color/white"
+        android:pathData="M50,45h20v20h-20z" />
+
+    <!-- Lock Icon (shackle) -->
+    <path
+        android:fillColor="@color/white"
+        android:strokeColor="@color/white"
+        android:strokeWidth="2"
+        android:pathData="M55,40
+                         v5
+                         h10
+                         v-5
+                         c0,-2.76 -2.24,-5 -5,-5
+                         s-5,2.24 -5,5z" />
+
+    <!-- Key Hole (as a circle drawn via path) -->
+    <path
+        android:fillColor="@color/primary_color"
+        android:pathData="M60,55
+                         m-3,0
+                         a3,3 0,1 0,6,0
+                         a3,3 0,1 0,-6,0" />
+
+    <!-- Key Slot -->
+    <path
+        android:fillColor="@color/primary_color"
+        android:pathData="M58,58h4v4h-4z" />
+
+</vector>

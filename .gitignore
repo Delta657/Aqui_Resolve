@@ -1,0 +1,49 @@
+# Android/Gradle
+.gradle/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Android Studio/IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Local config
+local.properties
+
+# Keystores (não versionar chaves)
+*.jks
+*.keystore
+*.keystore.properties
+
+# Logs e dumps
+*.log
+*.hprof
+*.prof
+
+# Saídas de build
+*.apk
+*.ap_
+*.aab
+app/**/outputs/
+
+# Firebase
+app/google-services.json
+
+# Sistema/OS
+.DS_Store
+Thumbs.db
+
+# Kotlin/Java
+out/
+
+# Ignore intermediários gerados pelo Android Gradle Plugin
+app/build/
+app/.gradle/
+
+# Não ignore o wrapper
+!gradle/wrapper/gradle-wrapper.jar
+

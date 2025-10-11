@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Aqui Resolve</string>
+    <string name="app_logo">Logo do aplicativo</string>
+    
+    <!-- Welcome Screen -->
+    <string name="welcome_back">Bem-vindo de volta!</string>
+    <string name="login_subtitle">Faça login para continuar</string>
+    
+    <!-- Sign Up Screen -->
+    <string name="create_account">Criar Conta</string>
+    <string name="signup_subtitle">Preencha os dados para se cadastrar</string>
+    
+    <!-- Form Fields -->
+    <string name="full_name_hint">Nome completo</string>
+    <string name="email_hint">Email</string>
+    <string name="password_hint">Senha</string>
+    <string name="confirm_password_hint">Confirmar senha</string>
+    
+    <!-- Buttons -->
+    <string name="login_button">Entrar</string>
+    <string name="sign_up_button">Cadastrar</string>
+    <string name="forgot_password">Esqueci minha senha</string>
+    
+    <!-- Social Login -->
+    <string name="or_continue_with">ou continue com</string>
+    <string name="google">Google</string>
+    <string name="facebook">Facebook</string>
+    
+    <!-- Sign Up/Sign In Navigation -->
+    <string name="dont_have_account">Não tem uma conta?</string>
+    <string name="sign_up">Cadastre-se</string>
+    <string name="already_have_account">Já tem uma conta?</string>
+    <string name="sign_in">Entrar</string>
+    
+    <!-- Terms and Conditions -->
+    <string name="terms_agreement">Eu concordo com os Termos de Uso e Política de Privacidade</string>
+    
+    <!-- Validation Messages -->
+    <string name="email_required">Email é obrigatório</string>
+    <string name="email_invalid">Email inválido</string>
+    <string name="password_required">Senha é obrigatória</string>
+    <string name="password_min_length">Senha deve ter pelo menos 6 caracteres</string>
+    <string name="full_name_required">Nome completo é obrigatório</string>
+    <string name="confirm_password_required">Confirmação de senha é obrigatória</string>
+    <string name="passwords_dont_match">As senhas não coincidem</string>
+    <string name="terms_required">Você deve aceitar os termos para continuar</string>
+    
+    <!-- Success Messages -->
+    <string name="login_success">Login realizado com sucesso!</string>
+    <string name="signup_success">Conta criada com sucesso!</string>
+    <string name="welcome_user">Bem-vindo de volta!</string>
+    <string name="email_verification_sent">Email de verificação enviado!</string>
+    
+    <!-- Error Messages -->
+    <string name="login_error">Email ou senha incorretos</string>
+    <string name="signup_error">Erro ao criar conta. Tente novamente.</string>
+    <string name="email_already_exists">Este email já está cadastrado</string>
+    <string name="weak_password">Senha muito fraca. Use pelo menos 6 caracteres</string>
+    <string name="network_error">Erro de conexão. Tente novamente.</string>
+    <string name="user_not_found">Usuário não encontrado</string>
+    <string name="wrong_password">Senha incorreta</string>
+    
+    <!-- Development Messages -->
+    <string name="forgot_password_dev">Funcionalidade de recuperação de senha em desenvolvimento</string>
+    <string name="google_login_dev">Login com Google em desenvolvimento</string>
+    <string name="facebook_login_dev">Login com Facebook em desenvolvimento</string>
+    <string name="signup_dev">Tela de cadastro em desenvolvimento</string>
+    <string name="sign_up_client">Cadastrar como Cliente</string>
+    <string name="sign_up_provider">Cadastrar como Prestador</string>
+    
+    <!-- Document Verification -->
+    <string name="document_verification_title">Verificação de Documentos</string>
+    <string name="document_verification_subtitle">Envie seus documentos para verificação</string>
+    <string name="required_documents">Documentos Necessários</string>
+    <string name="upload_document">Enviar Documento</string>
+    <string name="submit_for_review">Enviar para Verificação</string>
+    <string name="save_progress">Salvar Progresso</string>
+    <string name="need_help">Preciso de Ajuda</string>
+    <string name="document_uploaded">Documento enviado com sucesso!</string>
+    <string name="document_validation_pending">Aguardando validação</string>
+    <string name="document_validated">Documento validado</string>
+    <string name="document_rejected">Documento rejeitado</string>
+    <string name="verification_submitted">Documentos enviados para verificação!</string>
+    <string name="verification_notification">Você será notificado sobre o resultado em até 48 horas</string>
+</resources>
+

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Firebase Configuration -->
+    <string name="firebase_api_key">AIzaSyAmQn-FP2RRvq8T7r7wvtzqKPIKiH1A6SE</string>
+    <string name="firebase_auth_domain">gasprojeto-b6797.firebaseapp.com</string>
+    <string name="firebase_project_id">gasprojeto-b6797</string>
+    <string name="firebase_storage_bucket">gasprojeto-b6797.firebasestorage.app</string>
+    <string name="firebase_messaging_sender_id">700301197838</string>
+    <string name="firebase_app_id">1:700301197838:web:b273595b259ce9b345725f</string>
+    <string name="firebase_measurement_id">G-H8Y06L7JZM</string>
+</resources> 
