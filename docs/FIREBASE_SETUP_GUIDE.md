@@ -179,66 +179,55 @@ Após configurar, o Firestore deve ter as seguintes coleções:
 }
 ```
 
-## Regras de Segurança do Firestore
+## Regras de Segurança Versionadas
 
-Configure as regras de segurança no Firestore:
+As regras reais do projeto agora ficam versionadas na raiz do repositório:
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Usuários podem ler/escrever seus próprios dados
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Pedidos - clientes podem criar, ambos podem ler/atualizar
-    match /orders/{orderId} {
-      allow create: if request.auth != null;
-      allow read, update: if request.auth != null && 
-        (resource.data.clientId == request.auth.uid || 
-         resource.data.providerId == request.auth.uid);
-    }
-    
-    // Mensagens - participantes do pedido podem ler/escrever
-    match /messages/{messageId} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Notificações - usuário pode ler/escrever suas próprias
-    match /notifications/{notificationId} {
-      allow read, write: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-    }
-  }
-}
+- `firestore.rules`
+- `storage.rules`
+- `database.rules.json`
+- `firebase.json`
+
+Esses arquivos já refletem os caminhos e coleções realmente usados pelo app:
+
+- Firestore: `users`, `providers`, `orders`, `orders/{orderId}/messages`, `notifications`, `carts`, `privacy_settings`, `provider_documents`, `userTokens`, coleções de catálogo e legados compatíveis.
+- Storage: `profile_images`, `Documentos`, `documents`, `provider_documents`, `selfies`, `Selfie`, `Pedidos`, `order_images`, `chats`, além de caminhos legados como `profiles/` e `orders/{orderId}/images`.
+- Realtime Database: `presence/{uid}` para status online/offline do chat.
+
+Observação importante:
+
+- As regras foram endurecidas com foco em compatibilidade máxima.
+- Algumas coleções continuam legíveis para usuários autenticados (`orders`, `users`, `providers`) porque o app atual faz consultas amplas e misturou dados públicos/privados no mesmo documento.
+- Para um hardening total sem exposição residual, será necessário refatorar o schema e algumas queries do app.
+
+## Deploy das Regras
+
+Depois de autenticar no Firebase CLI, publique as regras com:
+
+```bash
+firebase deploy --project <PROJECT_ID> --only firestore:rules,storage,database
 ```
 
-## Regras de Segurança do Storage
+Se quiser validar a configuração local antes do deploy:
 
-Configure as regras de segurança no Storage:
-
-```javascript
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    // Usuários autenticados podem fazer upload de imagens de perfil
-    match /profile-images/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Usuários autenticados podem fazer upload de imagens de pedidos
-    match /order-images/{orderId}/{allPaths=**} {
-      allow read, write: if request.auth != null;
-    }
-    
-    // Usuários autenticados podem fazer upload de documentos
-    match /documents/{orderId}/{allPaths=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
+```bash
+firebase use <PROJECT_ID>
+firebase deploy --only firestore:rules,storage,database
 ```
+
+O arquivo `firebase.json` já aponta para:
+
+- `firestore.rules`
+- `firestore.indexes.json`
+- `storage.rules`
+- `database.rules.json`
+
+## Recomendação de Rollout
+
+1. Publique as regras em um projeto de teste primeiro.
+2. Valide login, criação de pedido, upload de imagens, chat, notificações, carrinho e upload de documentos.
+3. Só depois replique no projeto principal.
+4. Se algum fluxo administrativo for feito pelo app cliente, mova-o para backend/Admin SDK antes de endurecer ainda mais as regras.
 
 ## Próximos Passos
 

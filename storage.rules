@@ -2,85 +2,158 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
 
-    // Fotos de perfil
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function hasContentType() {
+      return request.resource != null
+        && request.resource.contentType != null;
+    }
+
+    function isImageUpload() {
+      return hasContentType()
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    function isImageOrPdfUpload() {
+      return hasContentType()
+        && (
+          request.resource.contentType.matches('image/.*') ||
+          request.resource.contentType == 'application/pdf'
+        );
+    }
+
+    function sizeWithin(limitBytes) {
+      return request.resource != null
+        && request.resource.size <= limitBytes;
+    }
+
+    function ownerCanModifyImage(userId, maxBytes) {
+      return isOwner(userId)
+        && (
+          request.resource == null ||
+          (isImageUpload() && sizeWithin(maxBytes))
+        );
+    }
+
+    function ownerCanModifyImageOrPdf(userId, maxBytes) {
+      return isOwner(userId)
+        && (
+          request.resource == null ||
+          (isImageOrPdfUpload() && sizeWithin(maxBytes))
+        );
+    }
+
+    function signedInCanModifyImage(maxBytes) {
+      return isSignedIn()
+        && (
+          request.resource == null ||
+          (isImageUpload() && sizeWithin(maxBytes))
+        );
+    }
+
+    function signedInCanModifyImageOrPdf(maxBytes) {
+      return isSignedIn()
+        && (
+          request.resource == null ||
+          (isImageOrPdfUpload() && sizeWithin(maxBytes))
+        );
+    }
+
+    // Fotos de perfil organizadas por usuário.
     match /profile_images/{userId}/{fileName} {
-      // Todos logados podem ver
-      allow read: if request.auth != null;
-      // Apenas o dono pode atualizar sua foto e apenas imagens
-      allow write: if request.auth != null
-        && request.auth.uid == userId
-        && request.resource.contentType.matches('image/.*');
+      allow read: if isOwner(userId);
+      allow write: if ownerCanModifyImage(userId, 10 * 1024 * 1024);
     }
 
-    // Imagens de serviços
+    // Pasta legada usada pelo FirebaseStorageManager.
+    match /profiles/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
+    }
+
+    // Upload genérico legado.
+    match /images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
+    }
+
+    // Upload genérico legado.
+    match /documents/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImageOrPdf(10 * 1024 * 1024);
+    }
+
+    // Imagens de serviços e catálogo visual.
     match /service_images/{serviceId}/{fileName} {
-      // Todos logados podem ver
-      allow read: if request.auth != null;
-      // Qualquer usuário logado pode enviar
-      allow write: if request.auth != null && request.resource.contentType.matches('image/.*');
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
     }
 
-    // Imagens do chat (associadas ao pedido) - pasta antiga
-    // Regras simplificadas: auth + contentType (evita falha do get() no Firestore)
+    // Caminho legado mantido por compatibilidade.
     match /chat_images/{orderId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.contentType.matches('image/.*');
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
     }
 
-    // Imagens do chat (associadas ao pedido) - pasta nova "chats/{orderId}/"
-    // Regras simplificadas: auth + contentType (evita falha do get() no Firestore)
     match /chats/{orderId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.contentType.matches('image/.*');
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
     }
 
-    // Imagens de pedidos
-    // Regras simplificadas: auth + contentType (evita falha do get() no Firestore)
     match /order_images/{orderId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.contentType.matches('image/.*');
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
     }
 
-    // Imagens de pedidos (pasta "Pedidos" para compatibilidade com bucket atual)
-    // Regras simplificadas: auth + contentType (evita falha do get() no Firestore)
     match /Pedidos/{orderId}/{fileName} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && request.resource.contentType.matches('image/.*');
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
     }
 
-            // Documentos de prestadores - pasta "Documentos"
-            match /Documentos/{userId}/{fileName} {
-              // Apenas o dono pode ver e enviar
-              allow read, write: if request.auth != null && request.auth.uid == userId;
-            }
+    // Caminhos legados do FirebaseStorageManager.
+    match /orders/{orderId}/images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
+    }
 
-            // Selfies de prestadores - pasta "selfies"
-            match /selfies/{userId}/{fileName} {
-              // Apenas o dono pode ver e enviar
-              allow read, write: if request.auth != null && request.auth.uid == userId;
-            }
+    match /orders/{orderId}/documents/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImageOrPdf(10 * 1024 * 1024);
+    }
 
-            // Selfies de prestadores - pasta "Selfie" (compatibilidade)
-            match /Selfie/{userId}/{fileName} {
-              // Apenas o dono pode ver e enviar
-              allow read, write: if request.auth != null && request.auth.uid == userId;
-            }
+    match /Documentos/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if ownerCanModifyImageOrPdf(userId, 10 * 1024 * 1024);
+    }
 
-            // Documentos de prestadores - pasta "provider_documents"
-            match /provider_documents/{userId}/{fileName} {
-              // Apenas o dono pode ver e enviar
-              allow read, write: if request.auth != null && request.auth.uid == userId;
-            }
+    match /documents/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if ownerCanModifyImageOrPdf(userId, 10 * 1024 * 1024);
+    }
 
-            // Documentos gerais - pasta "documents"
-            match /documents/{userId}/{fileName} {
-              // Apenas o dono pode ver e enviar
-              allow read, write: if request.auth != null && request.auth.uid == userId;
-            }
+    match /provider_documents/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if ownerCanModifyImageOrPdf(userId, 10 * 1024 * 1024);
+    }
+
+    match /selfies/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if ownerCanModifyImage(userId, 5 * 1024 * 1024);
+    }
+
+    match /Selfie/{userId}/{fileName} {
+      allow read: if isOwner(userId);
+      allow write: if ownerCanModifyImage(userId, 5 * 1024 * 1024);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
   }
 }

@@ -1,0 +1,170 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function providerDocumentOwner() {
+      return isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.providerId == request.auth.uid
+      );
+    }
+
+    function providerDocumentPayloadOwner() {
+      return isSignedIn() && (
+        request.resource.data.userId == request.auth.uid ||
+        request.resource.data.providerId == request.auth.uid
+      );
+    }
+
+    function orderDeleteAllowed() {
+      return isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.assignedProvider == request.auth.uid
+      );
+    }
+
+    // Compatibilidade primeiro: users ainda é legível para autenticados,
+    // mas somente o dono pode criar/editar/remover o próprio documento.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId;
+      allow update: if isOwner(userId)
+        && (
+          request.resource.data.uid == userId ||
+          resource.data.uid == null
+        );
+      allow delete: if isOwner(userId);
+    }
+
+    // providers mistura dados públicos e privados no mesmo documento.
+    // Mantemos leitura autenticada para não quebrar o app atual.
+    match /providers/{providerId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(providerId)
+        && request.resource.data.uid == providerId;
+      allow update: if isOwner(providerId)
+        && (
+          request.resource.data.uid == providerId ||
+          resource.data.uid == null
+        );
+      allow delete: if isOwner(providerId);
+    }
+
+    // Coleção compatível com dois schemas usados no app:
+    // - userId (FirebaseProviderDocumentManager)
+    // - providerId (ProviderVerificationManager)
+    match /provider_documents/{documentId} {
+      allow read: if providerDocumentOwner();
+      allow create: if providerDocumentPayloadOwner();
+      allow update: if providerDocumentOwner() && providerDocumentPayloadOwner();
+      allow delete: if providerDocumentOwner();
+    }
+
+    // Compatibilidade máxima: prestadores fazem queries amplas por status,
+    // então orders precisa continuar legível para autenticados.
+    match /orders/{orderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.clientId == request.auth.uid;
+      allow update: if isSignedIn()
+        && (
+          request.resource.data.clientId == resource.data.clientId ||
+          resource.data.clientId == null
+        );
+      allow delete: if orderDeleteAllowed();
+
+      match /messages/{messageId} {
+        allow read, write: if isSignedIn();
+      }
+    }
+
+    match /chatRooms/{chatRoomId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Coleção legada ainda usada em rotinas de exclusão de conta.
+    match /chats/{chatId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /notifications/{notificationId} {
+      allow read, update, delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /userTokens/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /carts/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /items/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    match /privacy_settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /data_exports/{exportId} {
+      allow create: if isSignedIn();
+      allow read, delete: if isSignedIn()
+        && resource.data.userData != null
+        && resource.data.userData.uid == request.auth.uid;
+    }
+
+    // Catálogo de serviços e prestadores de exemplo.
+    // service_categories/types/service_providers permanecem graváveis
+    // para não quebrar a rotina de popular dados de exemplo do app.
+    match /service_categories/{docId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /service_types/{docId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /service_providers/{docId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /provider_reviews/{reviewId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.clientId == request.auth.uid;
+      allow update, delete: if isSignedIn()
+        && resource.data.clientId == request.auth.uid;
+    }
+
+    // Ainda não há fluxo ativo consolidado no app.
+    // Mantemos leitura autenticada e bloqueamos mutações por padrão.
+    match /service_quotes/{quoteId} {
+      allow read: if isSignedIn();
+    }
+
+    match /user_favorites/{favoriteId} {
+      allow read, update, delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
