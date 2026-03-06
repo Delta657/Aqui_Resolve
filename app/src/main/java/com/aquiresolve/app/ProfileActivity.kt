@@ -928,12 +928,12 @@ class ProfileActivity : AppCompatActivity() {
      */
     private fun addSwitchToClientButton() {
         // Verificar se o botão já existe
-        val existingButton = findViewById<com.google.android.material.button.MaterialButton>(999) // ID temporário
+        val existingButton = findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_switch_to_client)
         if (existingButton != null) return
         
         // Criar botão dinamicamente
         val switchButton = com.google.android.material.button.MaterialButton(this).apply {
-            id = 999 // ID temporário
+            id = R.id.btn_switch_to_client
             text = "Voltar para Conta Cliente"
             textSize = 14f
             setTextColor(ContextCompat.getColor(this@ProfileActivity, R.color.white))
@@ -959,7 +959,7 @@ class ProfileActivity : AppCompatActivity() {
      * Remove o botão de voltar à conta de cliente
      */
     private fun removeSwitchToClientButton() {
-        val switchButton = findViewById<com.google.android.material.button.MaterialButton>(999) // ID temporário
+        val switchButton = findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_switch_to_client)
         if (switchButton != null) {
             val parentLayout = switchButton.parent as android.widget.LinearLayout
             parentLayout.removeView(switchButton)

@@ -1,5 +1,6 @@
 const HttpError = require('../utils/http-error');
 const { createOrder, getOrderStatus } = require('../services/pagarme.service');
+const { authorizePaymentPayload } = require('../services/payment-authorization.service');
 const {
   normalizeOrderResponse,
   mapPagarmeError
@@ -34,17 +35,21 @@ function validatePaymentPayload(payload) {
 
 async function processCardPayment(req, res, next) {
   try {
+    validatePaymentPayload(req.body);
+    const authorizedPayload = await authorizePaymentPayload({
+      payload: req.body,
+      uid: req.user && req.user.uid
+    });
+
     logger.info('Recebida solicitacao de pagamento com cartao', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,
-      orderCode: req.body?.items?.[0]?.code || null,
-      itemCount: Array.isArray(req.body?.items) ? req.body.items.length : 0,
-      paymentCount: Array.isArray(req.body?.payments) ? req.body.payments.length : 0
+      orderCode: authorizedPayload?.items?.[0]?.code || null,
+      itemCount: Array.isArray(authorizedPayload?.items) ? authorizedPayload.items.length : 0,
+      paymentCount: Array.isArray(authorizedPayload?.payments) ? authorizedPayload.payments.length : 0
     });
 
-    validatePaymentPayload(req.body);
-
-    const order = await createOrder(req.body);
+    const order = await createOrder(authorizedPayload);
     logger.info('Pagamento com cartao processado', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,
@@ -64,17 +69,21 @@ async function processCardPayment(req, res, next) {
 
 async function processPixPayment(req, res, next) {
   try {
+    validatePaymentPayload(req.body);
+    const authorizedPayload = await authorizePaymentPayload({
+      payload: req.body,
+      uid: req.user && req.user.uid
+    });
+
     logger.info('Recebida solicitacao de pagamento PIX', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,
-      orderCode: req.body?.items?.[0]?.code || null,
-      itemCount: Array.isArray(req.body?.items) ? req.body.items.length : 0,
-      paymentCount: Array.isArray(req.body?.payments) ? req.body.payments.length : 0
+      orderCode: authorizedPayload?.items?.[0]?.code || null,
+      itemCount: Array.isArray(authorizedPayload?.items) ? authorizedPayload.items.length : 0,
+      paymentCount: Array.isArray(authorizedPayload?.payments) ? authorizedPayload.payments.length : 0
     });
 
-    validatePaymentPayload(req.body);
-
-    const order = await createOrder(req.body);
+    const order = await createOrder(authorizedPayload);
     logger.info('Pagamento PIX processado', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,

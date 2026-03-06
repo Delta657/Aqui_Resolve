@@ -24,6 +24,7 @@ import com.aquiresolve.app.databinding.DialogAddAddressBinding
 import com.aquiresolve.app.constants.PaymentResultCodes
 import com.aquiresolve.app.models.CreateOrderRequest
 import com.aquiresolve.app.models.CartItemData
+import com.aquiresolve.app.models.OrderData
 import com.aquiresolve.app.adapters.ImagesAdapter
 import com.aquiresolve.app.utils.ImagePermissionHelper
 import com.aquiresolve.app.utils.ProtocolGenerator
@@ -34,6 +35,7 @@ import java.util.*
 import com.aquiresolve.app.utils.awaitCurrentUser
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
@@ -650,7 +652,7 @@ class CreateOrderActivity : AppCompatActivity() {
 
         val formData = collectOrderFormData() ?: return
         setLoadingState(true)
-        createOrder(formData.request)
+        startSingleOrderCheckout(formData)
     }
 
     private fun addToCart() {
@@ -860,10 +862,14 @@ class CreateOrderActivity : AppCompatActivity() {
     }
 
     /**
-     * Preparar dados do pedido e ir para pagamento (NÃO cria no Firebase ainda)
+     * Cria o pedido no Firestore antes do checkout e o deixa fora da distribuição
+     * até o pagamento ser confirmado.
      */
-    private fun createOrder(request: CreateOrderRequest) {
+    private fun startSingleOrderCheckout(formData: OrderFormData) {
         lifecycleScope.launch {
+            var createdOrderId: String? = null
+            var uploadedImageUrls: List<String> = emptyList()
+
             try {
                 val currentUser = FirebaseAuth.getInstance().awaitCurrentUser()
                 if (currentUser == null) {
@@ -871,245 +877,251 @@ class CreateOrderActivity : AppCompatActivity() {
                     showErrorMessage("❌ Usuário não autenticado")
                     return@launch
                 }
-                
-                // Buscar dados do usuário do Firestore
-                val userDoc = FirebaseFirestore.getInstance()
-                    .collection("users")
+
+                val db = FirebaseFirestore.getInstance()
+                val userDoc = db.collection("users")
                     .document(currentUser.uid)
                     .get()
                     .await()
-                
+
                 val userData = userDoc.data
                 val userName = userData?.get("fullName") as? String ?: "Usuário"
                 val userEmail = currentUser.email ?: ""
                 val userCpf = userData?.get("cpf") as? String ?: ""
-                
-                setLoadingState(false)
-                
-                // Salvar dados do pedido temporariamente para criar após pagamento
-                savePendingOrderData(request, currentUser.uid, userName, userEmail)
-                
-                // Navegar DIRETAMENTE para tela de pagamento (SEM criar pedido ainda)
-                navigateToPayment(
-                    description = "${request.serviceNiche} - ${request.serviceType}",
-                    amount = calculateOrderAmount(request),
-                    clientName = userName,
-                    clientEmail = userEmail,
-                    clientCpf = userCpf,
-                    address = request.address,
-                    city = extractCity(request.address),
-                    state = extractState(request.address),
-                    orderRequest = request
-                )
-                
-            } catch (e: Exception) {
-                setLoadingState(false)
-                showErrorMessage("❌ Erro ao processar: ${e.message}")
-            }
-        }
-    }
-    
-    /**
-     * Salvar dados do pedido pendente
-     */
-    private fun savePendingOrderData(
-        request: CreateOrderRequest,
-        userId: String,
-        userName: String,
-        userEmail: String
-    ) {
-        val prefs = getSharedPreferences("pending_order_prefs", MODE_PRIVATE)
-        val editor = prefs.edit()
-        
-        editor.putString("userId", userId)
-        editor.putString("userName", userName)
-        editor.putString("userEmail", userEmail)
-        editor.putString("serviceType", request.serviceType)
-        editor.putString("serviceNiche", request.serviceNiche)
-        editor.putString("description", request.description)
-        editor.putString("address", request.address)
-        editor.putString("cep", request.cep)
-        editor.putString("complement", request.complement)
-        
-        // Salvar coordenadas do endereço selecionado (se disponível)
-        selectedSavedAddress?.coordinates?.let { coords ->
-            editor.putFloat("coordinatesLat", coords.latitude.toFloat())
-            editor.putFloat("coordinatesLng", coords.longitude.toFloat())
-            editor.putBoolean("hasCoordinates", true)
-        } ?: run {
-            editor.putBoolean("hasCoordinates", false)
-        }
-        
-        // Salvar cidade e estado do endereço selecionado
-        selectedSavedAddress?.let { addr ->
-            editor.putString("city", addr.city)
-            editor.putString("state", addr.state)
-        }
-        
-        // Salvar URIs de imagens (convertidas para strings)
-        val imageUriStrings = selectedImageUris.map { it.toString() }
-        editor.putString("imageUris", imageUriStrings.joinToString("|"))
-        
-        editor.apply()
-        
-        android.util.Log.d("CreateOrder", "Dados do pedido salvos temporariamente")
-    }
-    
-    /**
-     * Limpar dados do pedido pendente
-     */
-    private fun clearPendingOrderData() {
-        val prefs = getSharedPreferences("pending_order_prefs", MODE_PRIVATE)
-        prefs.edit().clear().apply()
-        android.util.Log.d("CreateOrder", "Dados do pedido pendente limpos (cancelado)")
-    }
-    
-    /**
-     * Criar pedido no Firebase APÓS pagamento aprovado
-     */
-    private fun createOrderAfterPayment(transactionId: String) {
-        lifecycleScope.launch {
-            try {
-                setLoadingState(true)
-                
-                // Recuperar dados do pedido pendente
-                val prefs = getSharedPreferences("pending_order_prefs", MODE_PRIVATE)
-                val userId = prefs.getString("userId", "") ?: ""
-                val userName = prefs.getString("userName", "") ?: ""
-                val userEmail = prefs.getString("userEmail", "") ?: ""
-                val serviceType = prefs.getString("serviceType", "") ?: ""
-                val serviceNiche = prefs.getString("serviceNiche", "") ?: ""
-                val description = prefs.getString("description", "") ?: ""
-                val address = prefs.getString("address", "") ?: ""
-                val cep = prefs.getString("cep", "") ?: ""
-                val complement = prefs.getString("complement", "") ?: ""
-                val imageUrisString = prefs.getString("imageUris", "") ?: ""
-                
-                // Gerar protocolo
-                val protocol = ProtocolGenerator.generateProtocol()
-                
-                // Calcular valor do pedido
-                val orderAmount = calculateOrderAmount(CreateOrderRequest(
-                    serviceType = serviceType,
-                    serviceNiche = serviceNiche,
-                    description = description,
-                    cep = cep,
-                    address = address,
-                    complement = complement
-                ))
-                
-                // Buscar valor específico do prestador na tabela
+                val orderAmount = calculateOrderAmount(formData.request)
                 val providerCommission = com.aquiresolve.app.models.ServicePricing.getProviderValue(
-                    category = serviceNiche,
-                    serviceType = serviceType
-                ) ?: com.aquiresolve.app.models.ServicePricing.getDefaultProviderValue(serviceNiche)
-                
-                val db = FirebaseFirestore.getInstance()
-                
-                // Timestamp de confirmação após pagamento
-                val confirmedAt = com.google.firebase.Timestamp.now()
-                
-                // Recuperar coordenadas e dados adicionais do endereço
-                val hasCoordinates = prefs.getBoolean("hasCoordinates", false)
-                val coordinatesLat = prefs.getFloat("coordinatesLat", 0f).toDouble()
-                val coordinatesLng = prefs.getFloat("coordinatesLng", 0f).toDouble()
-                val city = prefs.getString("city", "") ?: ""
-                val state = prefs.getString("state", "") ?: ""
-                
-                // Criar dados do pedido
+                    category = formData.serviceNiche,
+                    serviceType = formData.serviceType
+                ) ?: com.aquiresolve.app.models.ServicePricing.getDefaultProviderValue(formData.serviceNiche)
+                val protocol = ProtocolGenerator.generateProtocol()
+                val now = Timestamp.now()
+
+                val orderRef = db.collection("orders").document()
+                createdOrderId = orderRef.id
+
                 val orderData = mutableMapOf<String, Any>(
-                    "clientId" to userId,
+                    "clientId" to currentUser.uid,
                     "clientName" to userName,
                     "clientEmail" to userEmail,
                     "protocol" to protocol,
-                    "serviceType" to serviceType,
-                    "serviceName" to serviceNiche,
-                    "description" to description,
-                    "address" to address,
-                    "zipCode" to cep,
-                    "complement" to complement,
-                    "city" to city,
-                    "state" to state,
-                    "status" to "distributing", // Status DISTRIBUTING para aparecer para prestadores
-                    "paymentStatus" to "paid",
-                    "transactionId" to transactionId,
+                    "serviceType" to formData.serviceType,
+                    "serviceName" to formData.serviceNiche,
+                    "description" to formData.description,
+                    "address" to formData.savedAddress.address,
+                    "zipCode" to formData.savedAddress.zipCode,
+                    "complement" to formData.savedAddress.complement,
+                    "city" to formData.savedAddress.city,
+                    "state" to formData.savedAddress.state,
+                    "status" to OrderData.STATUS_AWAITING_PAYMENT,
+                    "paymentStatus" to OrderData.STATUS_AWAITING_PAYMENT,
                     "estimatedPrice" to orderAmount,
                     "providerCommission" to providerCommission,
-                    "createdAt" to com.google.firebase.Timestamp.now(),
-                    "updatedAt" to com.google.firebase.Timestamp.now(),
-                    "confirmedAt" to confirmedAt // Timestamp de quando o pedido foi confirmado após pagamento
+                    "createdAt" to now,
+                    "updatedAt" to now
                 )
-                
-                // Adicionar coordenadas se disponíveis (para o prestador ver a localização)
-                if (hasCoordinates && coordinatesLat != 0.0 && coordinatesLng != 0.0) {
-                    orderData["coordinates"] = com.google.firebase.firestore.GeoPoint(coordinatesLat, coordinatesLng)
-                    android.util.Log.d("CreateOrder", "📍 Coordenadas salvas: $coordinatesLat, $coordinatesLng")
+
+                currentUser.phoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
+                    orderData["clientPhone"] = phone
                 }
-                
-                // Criar pedido no Firestore com status DISTRIBUTING (disponível para prestadores)
-                val orderRef = db.collection("orders").add(orderData).await()
-                
-                val orderId = orderRef.id
-                
-                // Fazer upload das imagens
-                if (imageUrisString.isNotEmpty()) {
-                    val imageUrisList = imageUrisString.split("|").mapNotNull { 
-                        try { android.net.Uri.parse(it) } catch (e: Exception) { null }
-                    }
-                    
-                    val imageManager = FirebaseImageManager()
-                    val uploadedUrls = mutableListOf<String>()
-                    
-                    imageUrisList.forEachIndexed { index, uri ->
-                        val uploadData = FirebaseImageManager.ImageUploadData(
-                            uri = uri,
-                            fileName = "image_$index.jpg",
-                            folder = FirebaseImageManager.FOLDER_PEDIDOS,
-                            userId = userId,
-                            orderId = orderId
-                        )
-                        
-                        when (val result = imageManager.uploadImage(this@CreateOrderActivity, uploadData)) {
-                            is FirebaseImageManager.UploadResult.Success -> {
-                                uploadedUrls.add(result.downloadUrl)
-                            }
-                            else -> {
-                                android.util.Log.e("CreateOrder", "Erro ao fazer upload da imagem ${index + 1}")
-                            }
-                        }
-                    }
-                    
-                    // Atualizar pedido com URLs das imagens
-                    if (uploadedUrls.isNotEmpty()) {
-                        db.collection("orders").document(orderId)
-                            .update("images", uploadedUrls)
-                            .await()
-                    }
+                formData.savedAddress.coordinates?.let { coordinates ->
+                    orderData["coordinates"] = coordinates
                 }
-                
-                // Limpar dados pendentes
-                prefs.edit().clear().apply()
-                
+                selectedDate?.let { scheduledDate ->
+                    orderData["scheduledDate"] = Timestamp(scheduledDate)
+                }
+                selectedTime?.takeIf { it.isNotBlank() }?.let { preferredTime ->
+                    orderData["preferredTimeSlot"] = preferredTime
+                }
+
+                orderRef.set(orderData).await()
+
+                uploadedImageUrls = uploadImagesForSingleOrder(currentUser.uid, orderRef.id)
+                if (uploadedImageUrls.isNotEmpty()) {
+                    orderRef.update("images", uploadedImageUrls).await()
+                }
+
+                savePendingOrderSession(orderRef.id)
+                paymentProcessed = false
                 setLoadingState(false)
 
-                android.util.Log.d("CreateOrder", "Pedido criado com sucesso! ID: $orderId, Protocolo: $protocol")
+                navigateToPayment(
+                    orderId = orderRef.id,
+                    description = "${formData.serviceNiche} - ${formData.serviceType}",
+                    amount = orderAmount,
+                    clientName = userName,
+                    clientEmail = userEmail,
+                    clientCpf = userCpf,
+                    address = formData.request.address,
+                    city = formData.savedAddress.city,
+                    state = formData.savedAddress.state
+                )
+            } catch (e: Exception) {
+                createdOrderId?.let { orderId ->
+                    cleanupPendingOrder(orderId, uploadedImageUrls)
+                }
+                clearPendingOrderSession()
+                setLoadingState(false)
+                showErrorMessage("❌ Erro ao processar pedido: ${e.message}")
+            }
+        }
+    }
 
-                // Navegar para tela de comprovante de pagamento
+    private fun savePendingOrderSession(orderId: String) {
+        getSharedPreferences("pending_order_prefs", MODE_PRIVATE)
+            .edit()
+            .putString("orderId", orderId)
+            .apply()
+    }
+
+    private fun getPendingOrderId(): String? {
+        val orderId = getSharedPreferences("pending_order_prefs", MODE_PRIVATE)
+            .getString("orderId", null)
+            ?.trim()
+            .orEmpty()
+
+        return orderId.ifEmpty { null }
+    }
+
+    private fun clearPendingOrderSession() {
+        getSharedPreferences("pending_order_prefs", MODE_PRIVATE)
+            .edit()
+            .clear()
+            .apply()
+    }
+
+    private suspend fun uploadImagesForSingleOrder(userId: String, orderId: String): List<String> {
+        if (selectedImageUris.isEmpty()) {
+            return emptyList()
+        }
+
+        val imageManager = FirebaseImageManager()
+        val uploadedUrls = mutableListOf<String>()
+
+        try {
+            selectedImageUris.forEachIndexed { index, uri ->
+                val uploadData = FirebaseImageManager.ImageUploadData(
+                    uri = uri,
+                    fileName = "order_image_$index.jpg",
+                    folder = FirebaseImageManager.FOLDER_PEDIDOS,
+                    userId = userId,
+                    orderId = orderId
+                )
+
+                when (val result = imageManager.uploadImage(this, uploadData)) {
+                    is FirebaseImageManager.UploadResult.Success -> {
+                        uploadedUrls.add(result.downloadUrl)
+                    }
+                    is FirebaseImageManager.UploadResult.Error -> {
+                        throw IllegalStateException(result.message)
+                    }
+                    else -> {
+                        throw IllegalStateException("Falha no upload da imagem ${index + 1}")
+                    }
+                }
+            }
+
+            return uploadedUrls
+        } catch (e: Exception) {
+            if (uploadedUrls.isNotEmpty()) {
+                imageManager.deleteMultipleImages(uploadedUrls)
+            }
+            throw e
+        }
+    }
+
+    private suspend fun cleanupPendingOrder(orderId: String, knownImageUrls: List<String> = emptyList()) {
+        val db = FirebaseFirestore.getInstance()
+        val imageManager = FirebaseImageManager()
+
+        try {
+            val imageUrls = if (knownImageUrls.isNotEmpty()) {
+                knownImageUrls
+            } else {
+                val snapshot = db.collection("orders").document(orderId).get().await()
+                (snapshot.get("images") as? List<*>)?.filterIsInstance<String>().orEmpty()
+            }
+
+            if (imageUrls.isNotEmpty()) {
+                imageManager.deleteMultipleImages(imageUrls)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("CreateOrder", "Falha ao excluir imagens do pedido pendente $orderId", e)
+        }
+
+        try {
+            db.collection("orders").document(orderId).delete().await()
+        } catch (e: Exception) {
+            android.util.Log.w("CreateOrder", "Falha ao excluir pedido pendente $orderId", e)
+        }
+    }
+
+    private fun finalizePendingOrderAfterPayment(
+        transactionId: String,
+        paymentStatus: String,
+        paymentMethod: String
+    ) {
+        lifecycleScope.launch {
+            try {
+                setLoadingState(true)
+
+                val orderId = getPendingOrderId()
+                    ?: throw IllegalStateException("Pedido pendente não encontrado")
+
+                val db = FirebaseFirestore.getInstance()
+                val orderRef = db.collection("orders").document(orderId)
+                val now = Timestamp.now()
+                val status = if (paymentStatus == "paid") {
+                    OrderData.STATUS_DISTRIBUTING
+                } else {
+                    OrderData.STATUS_AWAITING_PAYMENT
+                }
+
+                val updates = mutableMapOf<String, Any>(
+                    "paymentStatus" to paymentStatus,
+                    "transactionId" to transactionId,
+                    "status" to status,
+                    "updatedAt" to now
+                )
+
+                if (paymentStatus == "paid") {
+                    updates["confirmedAt"] = now
+                } else {
+                    updates["confirmedAt"] = FieldValue.delete()
+                }
+
+                orderRef.update(updates).await()
+
+                val updatedOrder = orderRef.get().await()
+                    .toObject(OrderData::class.java)
+                    ?.copy(id = orderId)
+                    ?: throw IllegalStateException("Não foi possível carregar o pedido após o pagamento")
+
+                clearPendingOrderSession()
+                setLoadingState(false)
+
                 val confirmationIntent = Intent(this@CreateOrderActivity, PaymentConfirmationActivity::class.java).apply {
                     putExtra(PaymentConfirmationActivity.EXTRA_TRANSACTION_ID, transactionId)
-                    putExtra(PaymentConfirmationActivity.EXTRA_AMOUNT, orderAmount)
-                    putExtra(PaymentConfirmationActivity.EXTRA_PAYMENT_METHOD, prefs.getString("paymentMethod", "Cartão de Crédito") ?: "Cartão de Crédito")
-                    putExtra(PaymentConfirmationActivity.EXTRA_SERVICE_TYPE, serviceNiche)
-                    putExtra(PaymentConfirmationActivity.EXTRA_SERVICE_DESCRIPTION, description)
-                    putExtra(PaymentConfirmationActivity.EXTRA_PROTOCOL, protocol)
+                    putExtra(PaymentConfirmationActivity.EXTRA_AMOUNT, updatedOrder.estimatedPrice)
+                    putExtra(
+                        PaymentConfirmationActivity.EXTRA_PAYMENT_METHOD,
+                        if (paymentStatus == "pending") "$paymentMethod (Pendente)" else paymentMethod
+                    )
+                    putExtra(
+                        PaymentConfirmationActivity.EXTRA_SERVICE_TYPE,
+                        updatedOrder.serviceName.ifEmpty { updatedOrder.serviceType }
+                    )
+                    putExtra(PaymentConfirmationActivity.EXTRA_SERVICE_DESCRIPTION, updatedOrder.description)
+                    putExtra(PaymentConfirmationActivity.EXTRA_PROTOCOL, updatedOrder.protocol)
                 }
                 startActivity(confirmationIntent)
                 finish()
-                
             } catch (e: Exception) {
                 setLoadingState(false)
-                android.util.Log.e("CreateOrder", "Erro ao criar pedido após pagamento", e)
-                showErrorMessage("❌ Erro ao criar pedido: ${e.message}")
+                android.util.Log.e("CreateOrder", "Erro ao sincronizar pedido após pagamento", e)
+                showErrorMessage(
+                    "❌ O pagamento foi processado, mas não foi possível sincronizar o pedido. " +
+                        "Abra Meus Pedidos para conferir ou contate o suporte."
+                )
             }
         }
     }
@@ -1381,6 +1393,7 @@ class CreateOrderActivity : AppCompatActivity() {
      * Navegar para tela de pagamento (pedido ainda NÃO foi criado)
      */
     private fun navigateToPayment(
+        orderId: String,
         description: String,
         amount: Double,
         clientName: String,
@@ -1388,8 +1401,7 @@ class CreateOrderActivity : AppCompatActivity() {
         clientCpf: String,
         address: String,
         city: String,
-        state: String,
-        orderRequest: CreateOrderRequest
+        state: String
     ) {
         val currentUser = FirebaseAuth.getInstance().currentUser
         val phone = currentUser?.phoneNumber ?: ""
@@ -1400,7 +1412,7 @@ class CreateOrderActivity : AppCompatActivity() {
         android.util.Log.d("CreateOrder", "Navegando para pagamento")
         
         val intent = Intent(this, PaymentActivity::class.java).apply {
-            putExtra(PaymentActivity.EXTRA_ORDER_ID, "pending") // Será gerado após pagamento
+            putExtra(PaymentActivity.EXTRA_ORDER_ID, orderId)
             putExtra(PaymentActivity.EXTRA_ORDER_DESCRIPTION, description)
             putExtra(PaymentActivity.EXTRA_ORDER_AMOUNT, amount)
             putExtra(PaymentActivity.EXTRA_CLIENT_NAME, clientName)
@@ -1416,7 +1428,7 @@ class CreateOrderActivity : AppCompatActivity() {
     }
     
     /**
-     * Processar resultado do pagamento e CRIAR pedido se aprovado
+     * Processa o resultado do pagamento e sincroniza o pedido já criado.
      */
     private fun handlePaymentResult(resultCode: Int, data: Intent?) {
         // Prevenir processamento duplicado
@@ -1443,81 +1455,88 @@ class CreateOrderActivity : AppCompatActivity() {
         android.util.Log.d("CreateOrder", "═══════════════════════════════════════")
         
         paymentProcessed = true  // Marcar como processado
+
+        val transactionId = data?.getStringExtra(PaymentResultCodes.EXTRA_TRANSACTION_ID).orEmpty()
+        val paymentStatus = data?.getStringExtra(PaymentResultCodes.EXTRA_PAYMENT_STATUS).orEmpty()
+        val paymentMethod = data?.getStringExtra(PaymentResultCodes.EXTRA_PAYMENT_METHOD)
+            ?.takeIf { it.isNotBlank() }
+            ?: if (resultCode == PaymentResultCodes.RESULT_PAYMENT_PENDING) "Pagamento Online" else "Pagamento Online"
         
         when (resultCode) {
             PaymentResultCodes.RESULT_PAYMENT_SUCCESS -> {
-                val transactionId = data?.getStringExtra(PaymentResultCodes.EXTRA_TRANSACTION_ID) ?: ""
                 android.util.Log.d("CreateOrder", "✅✅✅ ENTRANDO EM RESULT_PAYMENT_SUCCESS ✅✅✅")
-                
-                // AGORA SIM criar o pedido no Firebase (pagamento aprovado!)
-                createOrderAfterPayment(transactionId)
+
+                finalizePendingOrderAfterPayment(
+                    transactionId = transactionId,
+                    paymentStatus = paymentStatus.ifBlank { "paid" },
+                    paymentMethod = paymentMethod
+                )
             }
             
             PaymentResultCodes.RESULT_PAYMENT_PENDING -> {
-                val transactionId = data?.getStringExtra(PaymentResultCodes.EXTRA_TRANSACTION_ID) ?: ""
                 android.util.Log.d("CreateOrder", "⏳ RESULT_PAYMENT_PENDING")
-                
-                // PIX: criar pedido mesmo pendente (QR Code gerado)
-                createOrderAfterPayment(transactionId)
+
+                finalizePendingOrderAfterPayment(
+                    transactionId = transactionId,
+                    paymentStatus = "pending",
+                    paymentMethod = paymentMethod
+                )
             }
             
             PaymentResultCodes.RESULT_PAYMENT_FAILED -> {
                 val errorMessage = data?.getStringExtra(PaymentResultCodes.EXTRA_ERROR_MESSAGE) ?: "Erro desconhecido"
                 android.util.Log.e("CreateOrder", "❌ RESULT_PAYMENT_FAILED - Erro: $errorMessage")
-                
-                // Limpar dados temporários
-                clearPendingOrderData()
-                
-                AlertDialog.Builder(this)
-                    .setTitle("❌ Pagamento Recusado")
-                    .setMessage("Não foi possível processar o pagamento.\n\n$errorMessage\n\nPor favor, crie um novo pedido e tente novamente.")
-                    .setPositiveButton("Criar Novo Pedido") { _, _ ->
-                        // Volta para tela inicial
-                        finish()
-                    }
-                    .setNegativeButton("Voltar à Home") { _, _ ->
-                        val intent = Intent(this, ClientHomeActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                        startActivity(intent)
-                        finish()
-                    }
-                    .setCancelable(false)
-                    .show()
+
+                deletePendingOrderAfterCheckout(
+                    title = "❌ Pagamento Recusado",
+                    message = "Não foi possível processar o pagamento.\n\n$errorMessage\n\nPor favor, crie um novo pedido e tente novamente."
+                )
             }
             
             Activity.RESULT_CANCELED -> {
                 // Usuário cancelou/saiu sem pagar
                 android.util.Log.w("CreateOrder", "🚫 RESULT_CANCELED - Usuário saiu sem pagar")
-                
-                // Limpar dados temporários
-                clearPendingOrderData()
-                
-                // APENAS mostrar dialog se a activity ainda está visível
-                if (!isFinishing) {
-                    AlertDialog.Builder(this)
-                        .setTitle("❌ Pedido Cancelado")
-                        .setMessage("O pagamento não foi realizado.\n\nSeu pedido foi cancelado e NÃO foi criado no sistema.\n\nPara criar um pedido, você precisa efetuar o pagamento.")
-                        .setPositiveButton("Criar Novo Pedido") { _, _ ->
-                            // Permite criar novo pedido
-                            finish()
-                        }
-                        .setNegativeButton("Voltar à Home") { _, _ ->
-                            val intent = Intent(this, ClientHomeActivity::class.java)
-                            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                            startActivity(intent)
-                            finish()
-                        }
-                        .setCancelable(false)
-                        .show()
-                } else {
-                    android.util.Log.w("CreateOrder", "⚠️ Activity finalizando, não mostrando dialog")
-                }
+
+                deletePendingOrderAfterCheckout(
+                    title = "❌ Pedido Cancelado",
+                    message = "O pagamento não foi realizado.\n\nSeu pedido foi cancelado e removido do sistema.\n\nPara criar um pedido, você precisa efetuar o pagamento."
+                )
             }
             
             else -> {
                 // Outro resultado desconhecido - não fazer nada para não interromper fluxo
                 android.util.Log.w("CreateOrder", "⚠️ Resultado desconhecido: $resultCode - Ignorando")
             }
+        }
+    }
+
+    private fun deletePendingOrderAfterCheckout(title: String, message: String) {
+        lifecycleScope.launch {
+            val orderId = getPendingOrderId()
+            if (!orderId.isNullOrBlank()) {
+                cleanupPendingOrder(orderId)
+            }
+            clearPendingOrderSession()
+
+            if (isFinishing) {
+                android.util.Log.w("CreateOrder", "⚠️ Activity finalizando, não mostrando dialog")
+                return@launch
+            }
+
+            AlertDialog.Builder(this@CreateOrderActivity)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton("Criar Novo Pedido") { _, _ ->
+                    finish()
+                }
+                .setNegativeButton("Voltar à Home") { _, _ ->
+                    val intent = Intent(this@CreateOrderActivity, ClientHomeActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                    startActivity(intent)
+                    finish()
+                }
+                .setCancelable(false)
+                .show()
         }
     }
     

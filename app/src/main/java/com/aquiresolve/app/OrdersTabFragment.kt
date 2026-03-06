@@ -148,6 +148,7 @@ class OrdersTabFragment : Fragment() {
             TabType.DISTRIBUTING -> {
                 val filtered = allOrders.filter { 
                     val status = it.status.lowercase()
+                    status == OrderData.STATUS_AWAITING_PAYMENT ||
                     status == OrderData.STATUS_DISTRIBUTING || 
                     status == OrderData.STATUS_PENDING 
                 }

@@ -12,6 +12,7 @@ object PaymentResultCodes {
     // Extras
     const val EXTRA_TRANSACTION_ID = "transaction_id"
     const val EXTRA_PAYMENT_STATUS = "payment_status"
+    const val EXTRA_PAYMENT_METHOD = "payment_method"
     const val EXTRA_ERROR_MESSAGE = "error_message"
 }
 

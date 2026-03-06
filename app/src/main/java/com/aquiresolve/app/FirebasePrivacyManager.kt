@@ -316,7 +316,10 @@ class FirebasePrivacyManager(private val context: Context) {
             try {
                 val storage = com.google.firebase.storage.FirebaseStorage.getInstance()
                 val profileRef = storage.reference.child("profile_images/$userId")
-                profileRef.delete().await()
+                val profileImages = profileRef.listAll().await()
+                profileImages.items.forEach { imageRef ->
+                    imageRef.delete().await()
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Sem imagem de perfil para excluir: ${e.message}")
             }

@@ -505,6 +505,7 @@ class PaymentActivity : AppCompatActivity() {
                 val resultIntent = Intent().apply {
                     putExtra(PaymentResultCodes.EXTRA_TRANSACTION_ID, result.transactionId)
                     putExtra(PaymentResultCodes.EXTRA_PAYMENT_STATUS, result.status)
+                    putExtra(PaymentResultCodes.EXTRA_PAYMENT_METHOD, "Cartão de Crédito")
                 }
                 setResult(PaymentResultCodes.RESULT_PAYMENT_SUCCESS, resultIntent)
                 
@@ -518,6 +519,7 @@ class PaymentActivity : AppCompatActivity() {
                 val resultIntent = Intent().apply {
                     putExtra(PaymentResultCodes.EXTRA_TRANSACTION_ID, result.transactionId)
                     putExtra(PaymentResultCodes.EXTRA_PAYMENT_STATUS, "pending")
+                    putExtra(PaymentResultCodes.EXTRA_PAYMENT_METHOD, "Cartão de Crédito")
                 }
                 setResult(PaymentResultCodes.RESULT_PAYMENT_PENDING, resultIntent)
                 

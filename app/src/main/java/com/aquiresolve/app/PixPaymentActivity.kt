@@ -422,6 +422,7 @@ class PixPaymentActivity : AppCompatActivity() {
         val resultIntent = Intent().apply {
             putExtra(PaymentResultCodes.EXTRA_TRANSACTION_ID, transactionId)
             putExtra(PaymentResultCodes.EXTRA_PAYMENT_STATUS, "paid")
+            putExtra(PaymentResultCodes.EXTRA_PAYMENT_METHOD, "PIX")
         }
         
         // IMPORTANTE: Definir resultado ANTES de navegar

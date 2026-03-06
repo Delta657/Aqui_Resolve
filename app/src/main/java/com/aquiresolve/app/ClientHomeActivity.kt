@@ -185,6 +185,7 @@ class ClientHomeActivity : AppCompatActivity() {
 
     private fun getStatusText(status: String): String {
         return when (status) {
+            OrderData.STATUS_AWAITING_PAYMENT -> "Aguardando Pagamento"
             OrderData.STATUS_PENDING -> "Pendente"
             OrderData.STATUS_DISTRIBUTING -> "Em Distribuição"
             OrderData.STATUS_ASSIGNED -> "Atribuído"

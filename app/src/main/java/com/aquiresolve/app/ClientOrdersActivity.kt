@@ -221,6 +221,7 @@ class ClientOrdersActivity : AppCompatActivity() {
             it.status == OrderData.STATUS_IN_PROGRESS || 
             it.status == OrderData.STATUS_ASSIGNED ||
             it.status == OrderData.STATUS_DISTRIBUTING ||
+            it.status == OrderData.STATUS_AWAITING_PAYMENT ||
             it.status == OrderData.STATUS_PENDING
         }
         
@@ -325,4 +326,4 @@ class ClientOrdersActivity : AppCompatActivity() {
             loadOrders()
         }
     }
-} 
+}

@@ -3,9 +3,10 @@
 import android.os.Bundle
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import com.aquiresolve.app.databinding.ActivityPrivacyPolicyBinding
-import com.google.android.material.appbar.MaterialToolbar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class PrivacyPolicyActivity : AppCompatActivity() {
 
@@ -34,10 +35,12 @@ class PrivacyPolicyActivity : AppCompatActivity() {
     }
 
     private fun getPrivacyPolicyContent(): String {
+        val lastUpdated = SimpleDateFormat("dd/MM/yyyy", Locale("pt", "BR")).format(Date())
+
         return """
             POLÍTICA DE PRIVACIDADE
             
-            Última atualização: ${java.time.LocalDate.now()}
+            Última atualização: $lastUpdated
             
             1. INFORMAÇÕES QUE COLETAMOS
             

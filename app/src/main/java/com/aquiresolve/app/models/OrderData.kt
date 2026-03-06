@@ -127,6 +127,7 @@ data class OrderData(
     val images: List<String> = emptyList()
 ) {
     companion object {
+        const val STATUS_AWAITING_PAYMENT = "awaiting_payment"
         const val STATUS_DISTRIBUTING = "distributing" // Em distribuição (status inicial)
         const val STATUS_PENDING = "pending" // Aguardando resposta do prestador
         const val STATUS_ASSIGNED = "assigned" // Atribuído a um prestador
@@ -212,4 +213,4 @@ data class CreateOrderRequest(
 sealed class OrderResult {
     object Success : OrderResult()
     data class Error(val message: String) : OrderResult()
-} 
+}

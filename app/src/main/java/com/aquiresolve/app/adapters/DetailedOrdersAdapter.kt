@@ -101,6 +101,7 @@ class DetailedOrdersAdapter(
 
         private fun setupOrderStatus(status: String?) {
             val statusText = when (status) {
+                OrderData.STATUS_AWAITING_PAYMENT -> "AGUARDANDO PAGAMENTO"
                 "distributing" -> "EM DISTRIBUIÇÃO"
                 "pending" -> "AGUARDANDO PRESTADOR"
                 "quotes_received" -> "COTAÇÕES RECEBIDAS"
@@ -113,6 +114,7 @@ class DetailedOrdersAdapter(
             }
 
             val backgroundColor = when (status) {
+                OrderData.STATUS_AWAITING_PAYMENT -> R.drawable.status_pending_improved_background
                 "distributing" -> R.drawable.status_pending_improved_background
                 "pending" -> R.drawable.status_pending_improved_background
                 "quotes_received" -> R.drawable.status_pending_improved_background
@@ -131,7 +133,7 @@ class DetailedOrdersAdapter(
             val textColor = when (status) {
                 "cancelled", "expired" -> R.color.white
                 "completed" -> R.color.white
-                "distributing", "pending", "quotes_received", "assigned", "in_progress" -> R.color.white
+                OrderData.STATUS_AWAITING_PAYMENT, "distributing", "pending", "quotes_received", "assigned", "in_progress" -> R.color.white
                 else -> R.color.white
             }
             
@@ -141,6 +143,7 @@ class DetailedOrdersAdapter(
         private fun setupDistributionInfo(order: OrderData) {
             // Status de distribuição
             val distributionStatus = when (order.status) {
+                OrderData.STATUS_AWAITING_PAYMENT -> "Aguardando confirmação do pagamento"
                 "distributing" -> "Em distribuição"
                 "pending" -> "Aguardando resposta do prestador"
                 "assigned" -> "Atribuído a um prestador"
@@ -159,6 +162,7 @@ class DetailedOrdersAdapter(
             } else {
                 binding.layoutAssignedProvider.visibility = View.VISIBLE
                 binding.tvAssignedProvider.text = when (order.status) {
+                    OrderData.STATUS_AWAITING_PAYMENT -> "Aguardando pagamento"
                     "distributing" -> "Não atribuído"
                     "pending" -> "Não atribuído"
                     "cancelled" -> "Cancelado"
@@ -223,6 +227,11 @@ class DetailedOrdersAdapter(
                 }
             } else {
                 when (order.status) {
+                    OrderData.STATUS_AWAITING_PAYMENT -> {
+                        binding.btnPrimaryAction.text = "Aguardando Pagamento"
+                        binding.btnPrimaryAction.setBackgroundColor(ContextCompat.getColor(context, R.color.primary_color))
+                        binding.btnSecondaryAction.text = "Cancelar Pedido"
+                    }
                     "distributing" -> {
                         binding.btnPrimaryAction.text = "Cancelar Pedido"
                         binding.btnPrimaryAction.setBackgroundColor(ContextCompat.getColor(context, R.color.error_color))

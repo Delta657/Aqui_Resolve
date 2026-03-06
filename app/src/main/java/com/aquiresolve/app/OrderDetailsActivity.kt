@@ -356,6 +356,7 @@ class OrderDetailsActivity : AppCompatActivity() {
     private fun setStatusInfo(status: String) {
         val normalized = status.lowercase()
         val (text, backgroundRes) = when (normalized) {
+            OrderData.STATUS_AWAITING_PAYMENT -> "AGUARDANDO PAGAMENTO" to R.drawable.status_pending_background
             OrderData.STATUS_PENDING -> "PENDENTE" to R.drawable.status_pending_background
             "quotes_received" -> "COTAÇÕES" to R.drawable.status_pending_background
             OrderData.STATUS_ASSIGNED -> "ATRIBUIDO" to R.drawable.status_pending_background
@@ -419,6 +420,9 @@ class OrderDetailsActivity : AppCompatActivity() {
             }
         } else {
             when (order.status) {
+                OrderData.STATUS_AWAITING_PAYMENT -> {
+                    "⏳ Aguardando Pagamento" to "Cancelar Pedido"
+                }
                 OrderData.STATUS_DISTRIBUTING -> {
                     "⏳ Em Distribuição" to "Cancelar Pedido"
                 }
@@ -893,6 +897,7 @@ class OrderDetailsActivity : AppCompatActivity() {
      */
     private fun showCancelOrderDialog(order: OrderData) {
         val statusText = when (order.status) {
+            OrderData.STATUS_AWAITING_PAYMENT -> "aguardando pagamento"
             OrderData.STATUS_DISTRIBUTING -> "em distribuição"
             OrderData.STATUS_PENDING -> "pendente"
             "quotes_received" -> "com cotações recebidas"
@@ -901,6 +906,7 @@ class OrderDetailsActivity : AppCompatActivity() {
         }
         
         val message = when (order.status) {
+            OrderData.STATUS_AWAITING_PAYMENT -> "Este pedido ainda está aguardando a confirmação do pagamento. Tem certeza que deseja cancelá-lo?"
             OrderData.STATUS_DISTRIBUTING -> "Este pedido ainda está sendo distribuído para prestadores. Tem certeza que deseja cancelá-lo?"
             OrderData.STATUS_PENDING -> "Este pedido está aguardando resposta de prestadores. Tem certeza que deseja cancelá-lo?"
             "quotes_received" -> "Este pedido já recebeu cotações de prestadores. Tem certeza que deseja cancelá-lo?"
@@ -931,6 +937,7 @@ class OrderDetailsActivity : AppCompatActivity() {
      */
     private fun showCancelInfoDialog(order: OrderData) {
         val info = when (order.status) {
+            OrderData.STATUS_AWAITING_PAYMENT -> "• O pedido será removido antes de entrar em distribuição\n• Nenhum prestador será notificado\n• Você pode criar um novo pedido a qualquer momento"
             "distributing" -> "• O pedido será removido da lista de distribuição\n• Nenhum prestador será notificado\n• Você pode criar um novo pedido a qualquer momento"
             "pending" -> "• O pedido será removido da lista de pendentes\n• Prestadores que já viram o pedido serão notificados\n• Você pode criar um novo pedido a qualquer momento"
             "quotes_received" -> "• Todas as cotações serão perdidas\n• Prestadores serão notificados do cancelamento\n• Você pode criar um novo pedido a qualquer momento"

@@ -249,5 +249,6 @@ class PaymentConfirmationActivity : AppCompatActivity() {
     override fun onBackPressed() {
         // Não permitir voltar - deve usar o botão "Voltar à Tela Inicial"
         navigateToHome()
+        super.onBackPressed()
     }
 }

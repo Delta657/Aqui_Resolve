@@ -216,12 +216,12 @@ class HomeActivity : AppCompatActivity() {
      */
     private fun showProviderSwitchOption() {
         // Verificar se já existe o botão
-        val existingButton = findViewById<com.google.android.material.button.MaterialButton>(888)
+        val existingButton = findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_switch_to_provider)
         if (existingButton != null) return
         
         // Criar botão para voltar à conta de prestador
         val switchButton = com.google.android.material.button.MaterialButton(this).apply {
-            id = 888
+            id = R.id.btn_switch_to_provider
             text = "Voltar para Conta Prestador"
             textSize = 14f
             setTextColor(ContextCompat.getColor(this@HomeActivity, R.color.white))
@@ -280,4 +280,4 @@ class HomeActivity : AppCompatActivity() {
         super.onDestroy()
         // Limpar recursos se necessário
     }
-} 
+}
