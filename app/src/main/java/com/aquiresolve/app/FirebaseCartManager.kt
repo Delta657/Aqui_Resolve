@@ -2,7 +2,9 @@
 
 import android.util.Log
 import com.aquiresolve.app.models.CartItemData
+import com.aquiresolve.app.models.OrderData
 import com.aquiresolve.app.utils.ProtocolGenerator
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,6 +13,14 @@ import kotlinx.coroutines.tasks.await
 /**
  * Gerenciador de carrinho do cliente.
  */
+data class PreparedCartCheckout(
+    val checkoutCode: String,
+    val orderIds: List<String>,
+    val cartItemIds: List<String>,
+    val orderCount: Int,
+    val totalAmount: Double
+)
+
 class FirebaseCartManager {
 
     private val db = FirebaseFirestore.getInstance()
@@ -109,11 +119,65 @@ class FirebaseCartManager {
 
     suspend fun checkoutCart(
         userId: String,
-        clientName: String,
-        clientEmail: String,
+        orderIds: List<String>,
+        cartItemIds: List<String>,
         transactionId: String,
         paymentStatus: String
     ): Result<List<String>> {
+        return try {
+            if (orderIds.isEmpty()) {
+                return Result.failure(Exception("Nenhum pedido pendente encontrado para finalizar"))
+            }
+
+            val now = Timestamp.now()
+            val batch = db.batch()
+            val finalStatus = if (paymentStatus == "paid") {
+                OrderData.STATUS_DISTRIBUTING
+            } else {
+                OrderData.STATUS_AWAITING_PAYMENT
+            }
+
+            orderIds.forEach { orderId ->
+                val orderRef = db.collection("orders").document(orderId)
+                val updates = mutableMapOf<String, Any>(
+                    "paymentStatus" to paymentStatus,
+                    "transactionId" to transactionId,
+                    "status" to finalStatus,
+                    "updatedAt" to now
+                )
+
+                if (paymentStatus == "paid") {
+                    updates["confirmedAt"] = now
+                } else {
+                    updates["confirmedAt"] = FieldValue.delete()
+                }
+
+                batch.update(orderRef, updates)
+            }
+
+            cartItemIds.forEach { itemId ->
+                val cartItemRef = db.collection(CARTS_COLLECTION)
+                    .document(userId)
+                    .collection(ITEMS_COLLECTION)
+                    .document(itemId)
+                batch.delete(cartItemRef)
+            }
+
+            batch.commit().await()
+            Result.success(orderIds)
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao finalizar checkout do carrinho", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun prepareCheckout(
+        userId: String,
+        clientName: String,
+        clientEmail: String,
+        checkoutCode: String,
+        clientPhone: String? = null
+    ): Result<PreparedCartCheckout> {
         return try {
             val cartSnapshot = db.collection(CARTS_COLLECTION)
                 .document(userId)
@@ -136,6 +200,8 @@ class FirebaseCartManager {
             val now = Timestamp.now()
             val batch = db.batch()
             val createdOrderIds = mutableListOf<String>()
+            val cartItemIds = items.map { it.id }
+            val totalAmount = items.sumOf { it.estimatedPrice }
 
             items.forEach { item ->
                 val orderRef = db.collection("orders").document()
@@ -159,34 +225,58 @@ class FirebaseCartManager {
                     "complement" to item.complement,
                     "city" to item.city,
                     "state" to item.state,
-                    "status" to "distributing",
-                    "paymentStatus" to paymentStatus,
-                    "transactionId" to transactionId,
+                    "status" to OrderData.STATUS_AWAITING_PAYMENT,
+                    "paymentStatus" to OrderData.STATUS_AWAITING_PAYMENT,
                     "estimatedPrice" to item.estimatedPrice,
                     "providerCommission" to providerCommission,
                     "images" to item.imageUrls,
+                    "cartCheckoutCode" to checkoutCode,
+                    "cartItemId" to item.id,
                     "createdAt" to now,
-                    "updatedAt" to now,
-                    "confirmedAt" to now
+                    "updatedAt" to now
                 )
 
+                clientPhone?.takeIf { it.isNotBlank() }?.let { phone ->
+                    orderData["clientPhone"] = phone
+                }
                 item.preferredDate?.let { orderData["scheduledDate"] = it }
                 item.preferredTime?.let { orderData["preferredTimeSlot"] = it }
                 item.coordinates?.let { orderData["coordinates"] = it }
 
                 batch.set(orderRef, orderData)
-
-                val cartItemRef = db.collection(CARTS_COLLECTION)
-                    .document(userId)
-                    .collection(ITEMS_COLLECTION)
-                    .document(item.id)
-                batch.delete(cartItemRef)
             }
 
             batch.commit().await()
-            Result.success(createdOrderIds)
+            Result.success(
+                PreparedCartCheckout(
+                    checkoutCode = checkoutCode,
+                    orderIds = createdOrderIds,
+                    cartItemIds = cartItemIds,
+                    orderCount = items.size,
+                    totalAmount = totalAmount
+                )
+            )
         } catch (e: Exception) {
-            Log.e(TAG, "Erro no checkout do carrinho", e)
+            Log.e(TAG, "Erro ao preparar checkout do carrinho", e)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun cancelPreparedCheckout(orderIds: List<String>): Result<Unit> {
+        return try {
+            if (orderIds.isEmpty()) {
+                return Result.success(Unit)
+            }
+
+            val batch = db.batch()
+            orderIds.forEach { orderId ->
+                batch.delete(db.collection("orders").document(orderId))
+            }
+            batch.commit().await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao cancelar checkout preparado", e)
             Result.failure(e)
         }
     }

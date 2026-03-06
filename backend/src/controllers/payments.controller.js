@@ -2,6 +2,10 @@ const HttpError = require('../utils/http-error');
 const { createOrder, getOrderStatus } = require('../services/pagarme.service');
 const { authorizePaymentPayload } = require('../services/payment-authorization.service');
 const {
+  ensurePaymentSessionOwnership,
+  savePaymentSession
+} = require('../services/payment-session.service');
+const {
   normalizeOrderResponse,
   mapPagarmeError
 } = require('../services/payment-mapper.service');
@@ -50,6 +54,15 @@ async function processCardPayment(req, res, next) {
     });
 
     const order = await createOrder(authorizedPayload);
+    await savePaymentSession({
+      gatewayOrderId: order?.id,
+      uid: req.user && req.user.uid,
+      localOrderCode:
+        (authorizedPayload?.metadata && authorizedPayload.metadata.order_id) ||
+        authorizedPayload?.items?.[0]?.code ||
+        null,
+      paymentSource: authorizedPayload?.metadata?.payment_source || null
+    });
     logger.info('Pagamento com cartao processado', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,
@@ -84,6 +97,15 @@ async function processPixPayment(req, res, next) {
     });
 
     const order = await createOrder(authorizedPayload);
+    await savePaymentSession({
+      gatewayOrderId: order?.id,
+      uid: req.user && req.user.uid,
+      localOrderCode:
+        (authorizedPayload?.metadata && authorizedPayload.metadata.order_id) ||
+        authorizedPayload?.items?.[0]?.code ||
+        null,
+      paymentSource: authorizedPayload?.metadata?.payment_source || null
+    });
     logger.info('Pagamento PIX processado', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,
@@ -117,6 +139,10 @@ async function getPaymentStatus(req, res, next) {
       orderId: orderId.trim()
     });
 
+    await ensurePaymentSessionOwnership({
+      gatewayOrderId: orderId.trim(),
+      uid: req.user && req.user.uid
+    });
     const order = await getOrderStatus(orderId.trim());
     logger.info('Status de pagamento consultado', {
       requestId: req.requestId,

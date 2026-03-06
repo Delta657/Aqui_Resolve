@@ -11,13 +11,17 @@ function normalizeString(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function isCartCheckoutCode(orderId) {
+  return orderId === CART_CHECKOUT_CODE || orderId.startsWith(`${CART_CHECKOUT_CODE}_`);
+}
+
 function normalizeLower(value) {
   return normalizeString(value).toLowerCase();
 }
 
 function toCents(amount) {
   if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
-    throw new HttpError(422, 'Valor do pedido inválido para pagamento', {
+    throw new HttpError(422, 'Valor do pedido invalido para pagamento', {
       code: 'INVALID_ORDER_AMOUNT'
     });
   }
@@ -33,7 +37,7 @@ function clonePayments(payments) {
     : [];
 
   if (sanitizedPayments.length === 0) {
-    throw new HttpError(400, 'O campo payments é obrigatório', {
+    throw new HttpError(400, 'O campo payments e obrigatorio', {
       code: 'INVALID_PAYLOAD'
     });
   }
@@ -57,7 +61,7 @@ function buildMetadata(metadata, orderId, source) {
 
 function sanitizeCustomer(customer, fallback = {}) {
   if (!customer || typeof customer !== 'object' || Array.isArray(customer)) {
-    throw new HttpError(400, 'O campo customer é obrigatório', {
+    throw new HttpError(400, 'O campo customer e obrigatorio', {
       code: 'INVALID_PAYLOAD'
     });
   }
@@ -118,14 +122,14 @@ async function loadUserFallbackData(firestore, uid) {
 async function authorizeSingleOrderPayload({ firestore, payload, uid, orderId }) {
   const orderSnapshot = await firestore.collection('orders').document(orderId).get();
   if (!orderSnapshot.exists) {
-    throw new HttpError(404, 'Pedido não encontrado para pagamento', {
+    throw new HttpError(404, 'Pedido nao encontrado para pagamento', {
       code: 'ORDER_NOT_FOUND'
     });
   }
 
   const order = orderSnapshot.data() || {};
   if (normalizeString(order.clientId) !== uid) {
-    throw new HttpError(403, 'Você não tem acesso a este pedido', {
+    throw new HttpError(403, 'Voce nao tem acesso a este pedido', {
       code: 'FORBIDDEN_ORDER'
     });
   }
@@ -134,7 +138,7 @@ async function authorizeSingleOrderPayload({ firestore, payload, uid, orderId })
   const paymentStatus = normalizeLower(order.paymentStatus);
 
   if (paymentStatus === PAYMENT_STATUS_PAID) {
-    throw new HttpError(409, 'Este pedido já foi pago', {
+    throw new HttpError(409, 'Este pedido ja foi pago', {
       code: 'ORDER_ALREADY_PAID'
     });
   }
@@ -146,7 +150,7 @@ async function authorizeSingleOrderPayload({ firestore, payload, uid, orderId })
       paymentStatus === PAYMENT_STATUS_PENDING);
 
   if (!canBePaid) {
-    throw new HttpError(409, 'Pedido não está disponível para um novo pagamento', {
+    throw new HttpError(409, 'Pedido nao esta disponivel para um novo pagamento', {
       code: 'ORDER_PAYMENT_STATE_INVALID'
     });
   }
@@ -170,35 +174,59 @@ async function authorizeSingleOrderPayload({ firestore, payload, uid, orderId })
   };
 }
 
-async function authorizeCartPayload({ firestore, payload, uid }) {
-  const cartSnapshot = await firestore.collection('carts').document(uid).collection('items').get();
-  if (cartSnapshot.empty) {
-    throw new HttpError(422, 'Carrinho vazio para pagamento', {
-      code: 'EMPTY_CART'
-    });
+async function authorizeCartPayload({ firestore, payload, uid, requestedOrderId }) {
+  const fallbackCustomer = await loadUserFallbackData(firestore, uid);
+  const cartOrderCode =
+    requestedOrderId && requestedOrderId !== CART_CHECKOUT_CODE
+      ? requestedOrderId
+      : `${CART_CHECKOUT_CODE}_${uid}_${Date.now()}`;
+  let payableItems = [];
+  let paymentSource = 'cart_checkout';
+
+  if (requestedOrderId && requestedOrderId !== CART_CHECKOUT_CODE) {
+    const checkoutOrdersSnapshot = await firestore
+      .collection('orders')
+      .where('cartCheckoutCode', '==', cartOrderCode)
+      .get();
+
+    payableItems = checkoutOrdersSnapshot.docs
+      .map((doc) => doc.data() || {})
+      .filter((order) => normalizeString(order.clientId) === uid)
+      .filter((order) => normalizeLower(order.status) === ORDER_STATUS_AWAITING_PAYMENT);
+
+    if (payableItems.length > 0) {
+      paymentSource = 'prepared_cart_checkout';
+    }
   }
 
-  const cartItems = cartSnapshot.docs.map((doc) => doc.data() || {});
-  const totalAmount = cartItems.reduce((sum, item) => {
-    const estimatedPrice = Number(item.estimatedPrice || 0);
-    return sum + (Number.isFinite(estimatedPrice) ? estimatedPrice : 0);
-  }, 0);
+  if (payableItems.length === 0) {
+    const cartSnapshot = await firestore.collection('carts').document(uid).collection('items').get();
+    if (cartSnapshot.empty) {
+      throw new HttpError(422, 'Carrinho vazio para pagamento', {
+        code: 'EMPTY_CART'
+      });
+    }
 
-  const fallbackCustomer = await loadUserFallbackData(firestore, uid);
-  const cartOrderCode = `${CART_CHECKOUT_CODE}_${uid}_${Date.now()}`;
+    payableItems = cartSnapshot.docs.map((doc) => doc.data() || {});
+  }
+
+  const totalAmount = payableItems.reduce((sum, item) => {
+    const itemAmount = Number(item.finalPrice || item.estimatedPrice || 0);
+    return sum + (Number.isFinite(itemAmount) ? itemAmount : 0);
+  }, 0);
 
   return {
     items: [
       {
         amount: toCents(totalAmount),
-        description: `Carrinho (${cartItems.length} serviços)`,
+        description: `Carrinho (${payableItems.length} servicos)`,
         quantity: 1,
         code: cartOrderCode
       }
     ],
     customer: sanitizeCustomer(payload.customer, fallbackCustomer),
     payments: clonePayments(payload.payments),
-    metadata: buildMetadata(payload.metadata, cartOrderCode, 'cart_checkout'),
+    metadata: buildMetadata(payload.metadata, cartOrderCode, paymentSource),
     closed: payload.closed !== false
   };
 }
@@ -208,8 +236,8 @@ async function authorizePaymentPayload({ payload, uid }) {
   const firestore = admin.firestore();
   const requestedOrderId = extractRequestedOrderId(payload);
 
-  if (requestedOrderId === CART_CHECKOUT_CODE) {
-    return authorizeCartPayload({ firestore, payload, uid });
+  if (isCartCheckoutCode(requestedOrderId)) {
+    return authorizeCartPayload({ firestore, payload, uid, requestedOrderId });
   }
 
   return authorizeSingleOrderPayload({

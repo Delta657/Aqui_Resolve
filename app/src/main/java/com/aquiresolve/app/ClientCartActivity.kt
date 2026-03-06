@@ -15,12 +15,27 @@ import com.aquiresolve.app.constants.PaymentResultCodes
 import com.aquiresolve.app.databinding.ActivityClientCartBinding
 import com.aquiresolve.app.models.CartItemData
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
+import org.json.JSONArray
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class ClientCartActivity : AppCompatActivity() {
+
+    companion object {
+        private const val PENDING_CHECKOUT_PREFS = "pending_cart_checkout_prefs"
+        private const val KEY_PENDING_CHECKOUT = "pending_checkout"
+        private const val CART_CHECKOUT_PREFIX = "cart_checkout"
+    }
+
+    private data class PendingCartCheckoutSession(
+        val checkoutCode: String,
+        val orderIds: List<String>,
+        val cartItemIds: List<String>,
+        val orderCount: Int,
+        val totalAmount: Double
+    )
 
     private lateinit var binding: ActivityClientCartBinding
     private lateinit var cartAdapter: CartItemsAdapter
@@ -150,57 +165,124 @@ class ClientCartActivity : AppCompatActivity() {
             return
         }
 
+        val userId = authManager.getLocalUserData()?.uid
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
+            ?: run {
+                showToast("❌ Usuário não autenticado")
+                return
+            }
+
         val user = authManager.getLocalUserData()
         val clientName = user?.fullName?.ifBlank { "Usuário" } ?: "Usuário"
         val clientEmail = user?.email ?: ""
-
-        val firstItem = cartItems.first()
-        val total = cartItems.sumOf { it.estimatedPrice }
-
-        val intent = Intent(this, PaymentActivity::class.java).apply {
-            putExtra(PaymentActivity.EXTRA_ORDER_ID, "cart_checkout")
-            putExtra(PaymentActivity.EXTRA_ORDER_DESCRIPTION, "Carrinho (${cartItems.size} serviços)")
-            putExtra(PaymentActivity.EXTRA_ORDER_AMOUNT, total)
-            putExtra(PaymentActivity.EXTRA_CLIENT_NAME, clientName)
-            putExtra(PaymentActivity.EXTRA_CLIENT_EMAIL, clientEmail)
-            putExtra(PaymentActivity.EXTRA_CLIENT_PHONE, user?.phone ?: "")
-            putExtra(PaymentActivity.EXTRA_CLIENT_ADDRESS, firstItem.address)
-            putExtra(PaymentActivity.EXTRA_CLIENT_CITY, firstItem.city)
-            putExtra(PaymentActivity.EXTRA_CLIENT_STATE, firstItem.state)
-            putExtra(PaymentActivity.EXTRA_CLIENT_CPF, "")
-        }
+        val clientPhone = user?.phone
+            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.phoneNumber
+            ?: ""
 
         checkoutInProgress = true
         checkoutResultProcessed = false
-        paymentLauncher.launch(intent)
+        setLoading(true)
+
+        lifecycleScope.launch {
+            var preparedCheckout: PreparedCartCheckout? = null
+
+            try {
+                val checkoutCode = buildCheckoutCode(userId)
+                val preparationResult = cartManager.prepareCheckout(
+                    userId = userId,
+                    clientName = clientName,
+                    clientEmail = clientEmail,
+                    checkoutCode = checkoutCode,
+                    clientPhone = clientPhone
+                )
+
+                if (preparationResult.isFailure) {
+                    throw preparationResult.exceptionOrNull()
+                        ?: IllegalStateException("Não foi possível preparar o checkout")
+                }
+
+                val session = preparationResult.getOrNull()
+                    ?: throw IllegalStateException("Sessão de checkout inválida")
+                preparedCheckout = session
+                savePendingCheckoutSession(session)
+
+                val firstItem = cartItems.first()
+                val intent = Intent(this@ClientCartActivity, PaymentActivity::class.java).apply {
+                    putExtra(PaymentActivity.EXTRA_ORDER_ID, session.checkoutCode)
+                    putExtra(
+                        PaymentActivity.EXTRA_ORDER_DESCRIPTION,
+                        "Carrinho (${session.orderCount} serviços)"
+                    )
+                    putExtra(PaymentActivity.EXTRA_ORDER_AMOUNT, session.totalAmount)
+                    putExtra(PaymentActivity.EXTRA_CLIENT_NAME, clientName)
+                    putExtra(PaymentActivity.EXTRA_CLIENT_EMAIL, clientEmail)
+                    putExtra(PaymentActivity.EXTRA_CLIENT_PHONE, clientPhone)
+                    putExtra(PaymentActivity.EXTRA_CLIENT_ADDRESS, firstItem.address)
+                    putExtra(PaymentActivity.EXTRA_CLIENT_CITY, firstItem.city)
+                    putExtra(PaymentActivity.EXTRA_CLIENT_STATE, firstItem.state)
+                    putExtra(PaymentActivity.EXTRA_CLIENT_CPF, "")
+                }
+
+                setLoading(false)
+                paymentLauncher.launch(intent)
+            } catch (e: Exception) {
+                preparedCheckout?.let { session ->
+                    cartManager.cancelPreparedCheckout(session.orderIds)
+                }
+                clearPendingCheckoutSession()
+                checkoutInProgress = false
+                setLoading(false)
+                showToast("❌ Erro ao preparar checkout: ${e.message}")
+            }
+        }
     }
 
     private fun handlePaymentResult(resultCode: Int, data: Intent?) {
-        if (!checkoutInProgress || checkoutResultProcessed) return
+        val pendingSession = getPendingCheckoutSession()
+        if (pendingSession == null || checkoutResultProcessed) {
+            checkoutInProgress = false
+            return
+        }
+
+        checkoutInProgress = true
 
         when (resultCode) {
             PaymentResultCodes.RESULT_PAYMENT_SUCCESS -> {
                 checkoutResultProcessed = true
                 val transactionId = data?.getStringExtra(PaymentResultCodes.EXTRA_TRANSACTION_ID).orEmpty()
-                finalizeCheckout(transactionId, "paid")
+                val paymentMethod = data?.getStringExtra(PaymentResultCodes.EXTRA_PAYMENT_METHOD)
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "Pagamento Online"
+                finalizeCheckout(
+                    pendingSession = pendingSession,
+                    transactionId = transactionId,
+                    paymentStatus = data?.getStringExtra(PaymentResultCodes.EXTRA_PAYMENT_STATUS).orEmpty().ifBlank { "paid" },
+                    paymentMethod = paymentMethod
+                )
             }
 
             PaymentResultCodes.RESULT_PAYMENT_PENDING -> {
                 checkoutResultProcessed = true
                 val transactionId = data?.getStringExtra(PaymentResultCodes.EXTRA_TRANSACTION_ID).orEmpty()
-                finalizeCheckout(transactionId, "pending")
+                val paymentMethod = data?.getStringExtra(PaymentResultCodes.EXTRA_PAYMENT_METHOD)
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "Pagamento Online"
+                finalizeCheckout(
+                    pendingSession = pendingSession,
+                    transactionId = transactionId,
+                    paymentStatus = "pending",
+                    paymentMethod = paymentMethod
+                )
             }
 
             PaymentResultCodes.RESULT_PAYMENT_FAILED -> {
-                checkoutInProgress = false
                 val message = data?.getStringExtra(PaymentResultCodes.EXTRA_ERROR_MESSAGE)
                     ?: "Pagamento não aprovado"
-                showToast("❌ $message")
+                rollbackPreparedCheckout(pendingSession, "❌ $message")
             }
 
             Activity.RESULT_CANCELED -> {
-                checkoutInProgress = false
-                showToast("Pagamento cancelado")
+                rollbackPreparedCheckout(pendingSession, "Pagamento cancelado")
             }
 
             else -> {
@@ -209,7 +291,12 @@ class ClientCartActivity : AppCompatActivity() {
         }
     }
 
-    private fun finalizeCheckout(transactionId: String, paymentStatus: String) {
+    private fun finalizeCheckout(
+        pendingSession: PendingCartCheckoutSession,
+        transactionId: String,
+        paymentStatus: String,
+        paymentMethod: String
+    ) {
         val userId = authManager.getLocalUserData()?.uid
             ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
             ?: run {
@@ -218,18 +305,13 @@ class ClientCartActivity : AppCompatActivity() {
                 return
             }
 
-        val user = authManager.getLocalUserData()
-        val clientName = user?.fullName?.ifBlank { "Usuário" } ?: "Usuário"
-        val clientEmail = user?.email ?: ""
-        val totalAmount = cartItems.sumOf { it.estimatedPrice }
-
         setLoading(true)
         lifecycleScope.launch {
             try {
                 val checkoutResult = cartManager.checkoutCart(
                     userId = userId,
-                    clientName = clientName,
-                    clientEmail = clientEmail,
+                    orderIds = pendingSession.orderIds,
+                    cartItemIds = pendingSession.cartItemIds,
                     transactionId = transactionId,
                     paymentStatus = paymentStatus
                 )
@@ -242,13 +324,21 @@ class ClientCartActivity : AppCompatActivity() {
 
                 val createdOrders = checkoutResult.getOrNull() ?: emptyList()
                 val protocol = "CART-${SimpleDateFormat("yyyyMMddHHmm", Locale("pt", "BR")).format(Date())}"
+                clearPendingCheckoutSession()
+                checkoutInProgress = false
 
                 val confirmationIntent = Intent(this@ClientCartActivity, PaymentConfirmationActivity::class.java).apply {
                     putExtra(PaymentConfirmationActivity.EXTRA_TRANSACTION_ID, transactionId)
-                    putExtra(PaymentConfirmationActivity.EXTRA_AMOUNT, totalAmount)
-                    putExtra(PaymentConfirmationActivity.EXTRA_PAYMENT_METHOD, if (paymentStatus == "pending") "PIX" else "Pagamento Online")
+                    putExtra(PaymentConfirmationActivity.EXTRA_AMOUNT, pendingSession.totalAmount)
+                    putExtra(
+                        PaymentConfirmationActivity.EXTRA_PAYMENT_METHOD,
+                        if (paymentStatus == "pending") "$paymentMethod (Pendente)" else paymentMethod
+                    )
                     putExtra(PaymentConfirmationActivity.EXTRA_SERVICE_TYPE, "Carrinho")
-                    putExtra(PaymentConfirmationActivity.EXTRA_SERVICE_DESCRIPTION, "${createdOrders.size} serviço(s) finalizado(s) em conjunto")
+                    putExtra(
+                        PaymentConfirmationActivity.EXTRA_SERVICE_DESCRIPTION,
+                        "${createdOrders.size} serviço(s) finalizado(s) em conjunto"
+                    )
                     putExtra(PaymentConfirmationActivity.EXTRA_PROTOCOL, protocol)
                 }
 
@@ -256,9 +346,104 @@ class ClientCartActivity : AppCompatActivity() {
                 finish()
             } catch (e: Exception) {
                 checkoutInProgress = false
-                showToast("❌ Erro ao finalizar carrinho: ${e.message}")
+                showToast(
+                    "❌ O pagamento foi processado, mas não foi possível sincronizar o carrinho: ${e.message}"
+                )
             } finally {
                 setLoading(false)
+            }
+        }
+    }
+
+    private fun rollbackPreparedCheckout(
+        pendingSession: PendingCartCheckoutSession,
+        message: String
+    ) {
+        setLoading(true)
+        lifecycleScope.launch {
+            val cleanupResult = cartManager.cancelPreparedCheckout(pendingSession.orderIds)
+            clearPendingCheckoutSession()
+            checkoutInProgress = false
+            checkoutResultProcessed = false
+            setLoading(false)
+
+            if (cleanupResult.isFailure) {
+                showToast(
+                    "⚠️ O checkout foi interrompido, mas não foi possível remover os pedidos pendentes."
+                )
+            } else {
+                showToast(message)
+            }
+
+            loadCartItems()
+        }
+    }
+
+    private fun buildCheckoutCode(userId: String): String {
+        return "${CART_CHECKOUT_PREFIX}_${userId}_${System.currentTimeMillis()}"
+    }
+
+    private fun savePendingCheckoutSession(session: PreparedCartCheckout) {
+        val payload = JSONObject().apply {
+            put("checkoutCode", session.checkoutCode)
+            put("orderCount", session.orderCount)
+            put("totalAmount", session.totalAmount)
+            put("orderIds", JSONArray(session.orderIds))
+            put("cartItemIds", JSONArray(session.cartItemIds))
+        }
+
+        getSharedPreferences(PENDING_CHECKOUT_PREFS, MODE_PRIVATE)
+            .edit()
+            .putString(KEY_PENDING_CHECKOUT, payload.toString())
+            .apply()
+    }
+
+    private fun getPendingCheckoutSession(): PendingCartCheckoutSession? {
+        val rawPayload = getSharedPreferences(PENDING_CHECKOUT_PREFS, MODE_PRIVATE)
+            .getString(KEY_PENDING_CHECKOUT, null)
+            ?.trim()
+            .orEmpty()
+
+        if (rawPayload.isBlank()) {
+            return null
+        }
+
+        return try {
+            val payload = JSONObject(rawPayload)
+            PendingCartCheckoutSession(
+                checkoutCode = payload.optString("checkoutCode").trim(),
+                orderIds = payload.optJSONArray("orderIds").toStringList(),
+                cartItemIds = payload.optJSONArray("cartItemIds").toStringList(),
+                orderCount = payload.optInt("orderCount", 0),
+                totalAmount = payload.optDouble("totalAmount", 0.0)
+            ).takeIf { session ->
+                session.checkoutCode.isNotBlank() &&
+                    session.orderIds.isNotEmpty() &&
+                    session.cartItemIds.isNotEmpty()
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun clearPendingCheckoutSession() {
+        getSharedPreferences(PENDING_CHECKOUT_PREFS, MODE_PRIVATE)
+            .edit()
+            .remove(KEY_PENDING_CHECKOUT)
+            .apply()
+    }
+
+    private fun JSONArray?.toStringList(): List<String> {
+        if (this == null) {
+            return emptyList()
+        }
+
+        return buildList {
+            for (index in 0 until length()) {
+                optString(index)
+                    .trim()
+                    .takeIf { it.isNotBlank() }
+                    ?.let(::add)
             }
         }
     }
