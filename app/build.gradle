@@ -1,29 +1,35 @@
-plugins {
+﻿plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'com.google.gms.google-services'
 }
 
 android {
-    namespace 'com.example.loginapp'
+    namespace 'com.aquiresolve.app'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.loginapp"
+        applicationId "com.aquiresolve.app"
         minSdk 24
         targetSdk 34
         versionCode 1
         versionName "1.0"
+        
+        // Configuração do servidor para cada build type
         buildConfigField "String", "PAYMENTS_API_BASE_URL", "\"https://aquiresolve.onrender.com/api/payments/\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            buildConfigField "String", "PAYMENTS_API_BASE_URL", "\"https://aquiresolve.onrender.com/api/payments/\"" // TODO: usar URL de dev/staging aqui quando tiver
+        }
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
-                    'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "PAYMENTS_API_BASE_URL", "\"https://aquiresolve.onrender.com/api/payments/\""
         }
     }
     

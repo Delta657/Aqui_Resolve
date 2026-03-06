@@ -1,22 +1,39 @@
 # Add project specific ProGuard rules here.
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Retrofit & OkHttp
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class retrofit2.** { *; }
+-keep class okhttp3.** { *; }
+-keep class okio.** { *; }
+-dontwarn retrofit2.**
+-dontwarn okhttp3.**
+-dontwarn okio.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Gson
+-keep class com.google.gson.** { *; }
+-keep class com.google.gson.stream.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Firebase & Play Services
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
 
+# Coroutines
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+-keepclassmembernames class kotlinx.** {
+    volatile <fields>;
+}
+
+# Preserve the Models for Gson / Firebase Serialization
+-keep class com.aquiresolve.app.models.** { *; }
+
+# Preserve API Interfaces
+-keep class com.aquiresolve.app.api.** { *; }
+
+# Preserve Managers where reflection might be used by DI/ViewBinding
+-keep class com.aquiresolve.app.managers.** { *; }
