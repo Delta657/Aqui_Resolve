@@ -1,172 +1,137 @@
-# LoginApp - Aplicativo de Login e Cadastro
+# AquiResolve — Marketplace de Serviços
 
-Um aplicativo Android moderno para autenticação de usuários com interface Material Design 3.
+Aplicativo Android para conectar clientes a prestadores de serviços. Clientes encontram, contratam e pagam por serviços; prestadores gerenciam pedidos, agenda e recebimentos.
 
-## 🚀 Funcionalidades
+## Stack
 
-### ✅ Implementadas
-- **Tela de Login** com validação de campos
-- **Tela de Cadastro** com validação completa
-- **Recuperação de senha** (simulada)
-- **Login social** (Google e Facebook - simulado)
-- **Interface moderna** com Material Design 3
-- **Validações locais** sem dependência de banco de dados
-- **Animações e feedback visual**
-- **Suporte a ViewBinding**
+| Tecnologia | Versão |
+|---|---|
+| Kotlin | 1.9.22 |
+| Compile/Target SDK | 35 |
+| Min SDK | 24 |
+| Gradle | 8.13.2 |
+| Firebase BOM | 32.7.0 |
+| Retrofit | 2.9.0 |
+| OkHttp | 4.12.0 |
+| Glide | 4.16.0 |
+| ZXing | 3.5.2 |
+| OSMDroid | 6.1.18 |
+| Material Design | 3 |
+| Coroutines | 1.7.3 |
 
-### 🔄 Em Desenvolvimento
-- Integração com banco de dados (Supabase/Firebase)
-- Tela principal após login
-- Perfil do usuário
-- Configurações da conta
+## Arquitetura
 
-## 📱 Screenshots
+```
+Activities → Managers → Firebase
+```
 
-### Tela de Login
-- Campos de email e senha com validação
-- Botões de login social (Google/Facebook)
-- Link para recuperação de senha
-- Link para cadastro
+- **Presentation:** ~40 Activities com ViewBinding + coroutines (`lifecycleScope`)
+- **Managers:** Toda a lógica de negócio em classes separadas (Firebase e negócio)
+- **Models:** Anotados com `@PropertyName` do Firestore
+- **Adapters:** ~15 RecyclerView adapters
 
-### Tela de Cadastro
-- Campos: nome completo, email, senha, confirmação de senha
-- Checkbox para aceitar termos
-- Botões de cadastro social
-- Validações em tempo real
+## Funcionalidades
 
-## 🛠️ Tecnologias Utilizadas
+### Autenticação
+- Cadastro e login para **cliente** e **prestador** (fluxos separados)
+- Recuperação de senha
+- Firebase Authentication
 
-- **Kotlin** - Linguagem principal
-- **Android SDK** - Framework Android
-- **Material Design 3** - Design system
-- **ViewBinding** - Binding de views
-- **Coroutines** - Programação assíncrona
-- **Lifecycle Components** - Gerenciamento de ciclo de vida
+### Pedidos
+- Criação de pedidos com categorias de serviço
+- Fluxo de status: `pending → distributing → assigned → in_progress → completed`
+- Distribuição automática para prestadores disponíveis
+- Código de verificação de 6 dígitos na conclusão
+- Cancelamento com política de reembolso (5 min)
 
-## 📋 Pré-requisitos
+### Pagamentos (Pagar.me v5)
+- **Cartão de crédito:** Validação Luhn, detecção de bandeira
+- **PIX:** Geração de QR Code (ZXing), polling automático a cada 5s
+- API em `https://aquiresolve.onrender.com/api/payments/`
 
-- Android Studio Arctic Fox ou superior
-- Android SDK 24+
-- Kotlin 1.9.10+
+### Chat
+- Tempo real via Firestore listeners
+- Bloqueio de acesso de 5 minutos após aceitação do pedido
 
-## 🔧 Instalação
+### Localização
+- Google Play Services (atualização a cada 5 min)
+- Mapas via OSMDroid (OpenStreetMap)
+- GeoPoint no Firestore
+
+### Imagens
+- Compressão para max 1MB / 1920x1080
+- Firebase Storage
+- Glide para carregamento
+- PhotoView para zoom
+- uCrop para recorte de avatar
+
+### Notificações
+- Firebase Cloud Messaging
+- Múltiplos canais de notificação
+- Privacidade na entrega
+
+### Outros
+- Agendamento de serviços (SchedulingManager)
+- Avaliações (RatingManager)
+- Histórico de serviços
+- Documentos do prestador (upload e verificação)
+- Gerenciamento de endereços
+
+## Pré-requisitos
+
+- Android Studio Hedgehog ou superior
+- Android SDK 35
+- JDK 17
+- Conta Firebase com projeto configurado
+
+## Configuração
 
 1. Clone o repositório:
 ```bash
-git clone https://github.com/seu-usuario/LoginApp.git
+git clone git@github.com:alvaro209890/AquiResolve.git
 ```
 
-2. Abra o projeto no Android Studio
+2. Adicione o arquivo `app/google-services.json` do Firebase Console
 
-3. Sincronize o projeto (File > Sync Project with Gradle Files)
+3. (Opcional) Configure keystore de release em `keystore/upload-keystore.credentials.properties`
 
-4. Execute o aplicativo em um emulador ou dispositivo físico
+## Build
 
-## 🧪 Testando o Aplicativo
-
-### Usuários de Teste
-O aplicativo inclui alguns usuários pré-cadastrados para teste:
-
-- **Email:** `teste@email.com` | **Senha:** `123456`
-- **Email:** `admin@email.com` | **Senha:** `admin123`
-
-### Funcionalidades de Teste
-- **Login local:** Use os usuários acima
-- **Cadastro:** Crie novos usuários
-- **Login social:** Simulação com delays
-- **Recuperação de senha:** Simulação de envio de email
-
-## 🏗️ Arquitetura
-
-### Estrutura de Arquivos
-```
-app/src/main/java/com/example/loginapp/
-├── MainActivity.kt           # Tela de login
-├── SignUpActivity.kt         # Tela de cadastro
-└── LocalAuthManager.kt       # Gerenciador de autenticação local
-
-app/src/main/res/
-├── layout/
-│   ├── activity_main.xml     # Layout da tela de login
-│   └── activity_signup.xml   # Layout da tela de cadastro
-├── values/
-│   ├── colors.xml           # Cores do tema
-│   ├── strings.xml          # Strings do aplicativo
-│   └── themes.xml           # Temas Material Design 3
-└── drawable/
-    └── *.xml                # Ícones e backgrounds
+```bash
+./gradlew assembleDebug          # APK debug
+./gradlew installDebug           # Instalar em dispositivo
+./gradlew assembleRelease        # APK release (minificado + ofuscado)
+./gradlew bundleRelease          # AAB release (Play Store)
+./gradlew lint                   # Verificações de lint
+./gradlew test                   # Testes unitários
 ```
 
-### Componentes Principais
+## Estrutura do Projeto
 
-#### LocalAuthManager
-- Gerencia autenticação local sem banco de dados
-- Simula comportamento do Firebase
-- Inclui usuários de teste
-- Suporte a login social simulado
+```
+app/
+├── src/main/java/com/aquiresolve/app/
+│   ├── adapters/          # RecyclerView adapters
+│   ├── api/               # Retrofit (Pagar.me)
+│   ├── constants/         # Constantes (códigos de pagamento)
+│   ├── models/            # Data classes Firestore
+│   │   └── payment/       # Modelos de pagamento
+│   ├── payment/           # Lógica Pagar.me
+│   ├── utils/             # Helpers (permissões, código, formatação)
+│   ├── *.kt               # Activities + Managers
+│   └── AppApplication.kt # Application class
+├── google-services.json   # Config Firebase
+├── build.gradle           # Build do módulo
+└── proguard-rules.pro     # Regras ProGuard
+```
 
-#### MainActivity
-- Interface de login
-- Validação de campos
-- Integração com LocalAuthManager
-- Navegação para cadastro
+## Firebase
 
-#### SignUpActivity
-- Interface de cadastro
-- Validação completa de dados
-- Criação de contas locais
-- Navegação de volta para login
+- **Projeto:** `aplicativoservico-143c2`
+- **Firestore:** Regras em `firestore.rules`, índices em `firestore.indexes.json`
+- **Storage:** Regras em `storage.rules`
+- **Realtime Database:** Regras em `database.rules.json`
 
-## 🎨 Design
+## Licença
 
-### Material Design 3
-- **Cores:** Paleta de cores moderna e acessível
-- **Tipografia:** Hierarquia clara de textos
-- **Componentes:** Cards, botões e campos Material Design
-- **Animações:** Transições suaves e feedback visual
-
-### Responsividade
-- Suporte a diferentes tamanhos de tela
-- Orientação portrait e landscape
-- Adaptação a diferentes densidades de pixel
-
-## 🔮 Próximos Passos
-
-### Fase 1: Funcionalidades Básicas ✅
-- [x] Interface de login
-- [x] Interface de cadastro
-- [x] Validações locais
-- [x] Autenticação simulada
-
-### Fase 2: Integração com Banco de Dados 🔄
-- [ ] Configuração do Supabase/Firebase
-- [ ] Migração de LocalAuthManager para banco real
-- [ ] Implementação de login social real
-- [ ] Sistema de verificação de email
-
-### Fase 3: Funcionalidades Avançadas 📋
-- [ ] Tela principal após login
-- [ ] Perfil do usuário
-- [ ] Configurações da conta
-- [ ] Logout e gerenciamento de sessão
-
-## 🤝 Contribuição
-
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 📞 Suporte
-
-Se você encontrar algum problema ou tiver dúvidas, abra uma [issue](https://github.com/seu-usuario/LoginApp/issues) no GitHub.
-
----
-
-**Desenvolvido com ❤️ para a comunidade Android**
-
+MIT
