@@ -55,17 +55,6 @@ object ServiceNicheManager {
             basePrice = 70.0
         ),
         
-        // 3. Pintura
-        ServiceNiche(
-            id = "painting",
-            name = "Pintura",
-            displayName = "Pintura e Acabamento",
-            description = "Pintura residencial e comercial, acabamentos",
-            iconRes = R.drawable.ic_painter,
-            colorRes = R.color.painting_color,
-            basePrice = 120.0
-        ),
-        
         // 4. Marcenaria
         ServiceNiche(
             id = "carpentry",
@@ -75,28 +64,6 @@ object ServiceNicheManager {
             iconRes = R.drawable.ic_carpentry,
             colorRes = R.color.carpentry_color,
             basePrice = 150.0
-        ),
-        
-        // 5. Limpeza
-        ServiceNiche(
-            id = "cleaning",
-            name = "Limpeza",
-            displayName = "Limpeza Residencial e Comercial",
-            description = "Limpeza de casas, escritórios, pós-obra",
-            iconRes = R.drawable.ic_cleaning,
-            colorRes = R.color.cleaning_color,
-            basePrice = 60.0
-        ),
-        
-        // 6. Jardinagem
-        ServiceNiche(
-            id = "gardening",
-            name = "Jardinagem",
-            displayName = "Jardinagem e Paisagismo",
-            description = "Manutenção de jardins, paisagismo, poda de árvores",
-            iconRes = R.drawable.ic_gardening,
-            colorRes = R.color.gardening_color,
-            basePrice = 90.0
         ),
         
         // 7. Dedetização

@@ -142,8 +142,8 @@ class UserDashboardActivity : AppCompatActivity() {
         // Simular pedidos recentes com status em tempo real
         val recentOrders = listOf(
             OrderStatus("Pedido #1234", "Elétrica", "Concluído", R.color.success_green),
-            OrderStatus("Pedido #1235", "Limpeza", "Em andamento", R.color.warning_orange),
-            OrderStatus("Pedido #1236", "Pintura", "Aguardando", R.color.primary_color),
+            OrderStatus("Pedido #1235", "Elétrica", "Em andamento", R.color.warning_orange),
+            OrderStatus("Pedido #1236", "Encanador", "Aguardando", R.color.primary_color),
             OrderStatus("Pedido #1237", "Encanador", "Agendado", R.color.info_blue)
         )
 

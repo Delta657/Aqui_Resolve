@@ -323,9 +323,6 @@ class CreateOrderActivity : AppCompatActivity() {
             "Elétrica",
             "Encanador",
             "Instalação",
-            "Pintura",
-            "Jardinagem",
-            "Limpeza",
             "Caixa d'água",
             "Desentupimento manual",
             "Desentupimento com maquinário até 2 m",
@@ -378,27 +375,6 @@ class CreateOrderActivity : AppCompatActivity() {
                 "Instalação de Purificador",
                 "Conversão de gás para fogão cooktop",
                 "Varal de teto"
-            )
-            "Pintura" -> listOf(
-                "Pintura de parede interna",
-                "Pintura de teto",
-                "Pintura de porta",
-                "Pintura de janela",
-                "Retoques gerais"
-            )
-            "Jardinagem" -> listOf(
-                "Corte de grama",
-                "Poda de arbustos",
-                "Limpeza de jardim",
-                "Adubação",
-                "Plantio de mudas"
-            )
-            "Limpeza" -> listOf(
-                "Limpeza residencial básica",
-                "Limpeza pós-obra",
-                "Limpeza pesada",
-                "Limpeza de vidros",
-                "Organização"
             )
             "Caixa d'água" -> listOf(
                 "Limpeza de caixa d’água de 1000 litros",
@@ -460,11 +436,7 @@ class CreateOrderActivity : AppCompatActivity() {
                 "Troca de pneu no local",
                 "Troca de pneu Caminhonete, SUV e vans",
                 "Pane seca (entrega de combustível)",
-                "Partida elétrica",
-                "Troca de palhetas de limpador",
-                "Troca de lâmpadas automotivas",
-                "Troca de óleo e filtro domiciliar",
-                "Higienização de ar-condicionado automotivo"
+                "Partida elétrica"
             )
             "Montagem de móveis" -> listOf(
                 "guarda roupas",

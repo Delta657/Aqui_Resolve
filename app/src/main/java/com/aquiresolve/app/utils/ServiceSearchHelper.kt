@@ -55,12 +55,9 @@ object ServiceSearchHelper {
         "vazamento" to listOf("vazamento", "vazamentos", "infiltracao", "goteira"),
         "encanamento" to listOf("encanamento", "encanador", "hidraulica", "cano"),
         "eletrica" to listOf("eletrica", "eletricista", "luz", "energia", "curto"),
-        "pintura" to listOf("pintura", "pintar", "parede", "retoque", "tinta"),
-        "limpeza" to listOf("limpeza", "limpar", "faxina", "higienizacao"),
         "estofado" to listOf("estofado", "sofa", "colchao", "tapete", "cadeira"),
         "desentupimento" to listOf("desentupimento", "desentupir", "entupido", "ralo", "pia", "vaso"),
         "chaveiro" to listOf("chaveiro", "chave", "fechadura", "porta"),
-        "jardim" to listOf("jardim", "jardinagem", "grama", "poda", "planta"),
         "automotivo" to listOf("automotivo", "carro", "pneu", "veiculo", "oleo"),
         "montagem" to listOf("montagem", "montar", "movel", "guarda roupa", "estante"),
         "ar condicionado" to listOf("ar condicionado", "ar condicionado", "climatizador", "split"),
@@ -122,14 +119,12 @@ object ServiceSearchHelper {
                                 categoryName.contains("estofado", ignoreCase = true) -> "Limpeza de estofados"
                                 categoryName.contains("encanamento", ignoreCase = true) -> "Encanador"
                                 categoryName.contains("caixa", ignoreCase = true) -> "Caixa d'água"
-                                categoryName.contains("jardim", ignoreCase = true) -> "Jardinagem"
                                 categoryName.contains("ar condicionado", ignoreCase = true) -> "Ar condicionado"
                                 categoryName.contains("eletrica", ignoreCase = true) -> "Elétrica"
                                 categoryName.contains("eletrodomestico", ignoreCase = true) -> "Eletrodomésticos"
                                 categoryName.contains("chaveiro", ignoreCase = true) -> "Chaveiro residencial"
                                 categoryName.contains("automotivo", ignoreCase = true) -> "Serviços automotivos"
                                 categoryName.contains("montagem", ignoreCase = true) -> "Montagem de móveis"
-                                categoryName.contains("pintura", ignoreCase = true) -> "Pintura"
                                 categoryName.contains("faxina", ignoreCase = true) -> "Faxina"
                                 categoryName.contains("limpeza", ignoreCase = true) -> "Faxina"
                                 categoryName.contains("desentupimento", ignoreCase = true) -> "Desentupimento manual"
@@ -167,14 +162,12 @@ object ServiceSearchHelper {
                     categoryName.contains("estofado", ignoreCase = true) -> "Limpeza de estofados"
                     categoryName.contains("encanamento", ignoreCase = true) -> "Encanador"
                     categoryName.contains("caixa", ignoreCase = true) -> "Caixa d'água"
-                    categoryName.contains("jardim", ignoreCase = true) -> "Jardinagem"
                     categoryName.contains("ar condicionado", ignoreCase = true) -> "Ar condicionado"
                     categoryName.contains("eletrica", ignoreCase = true) -> "Elétrica"
                     categoryName.contains("eletrodomestico", ignoreCase = true) -> "Eletrodomésticos"
                     categoryName.contains("chaveiro", ignoreCase = true) -> "Chaveiro residencial"
                     categoryName.contains("automotivo", ignoreCase = true) -> "Serviços automotivos"
                     categoryName.contains("montagem", ignoreCase = true) -> "Montagem de móveis"
-                    categoryName.contains("pintura", ignoreCase = true) -> "Pintura"
                     categoryName.contains("faxina", ignoreCase = true) -> "Faxina"
                     categoryName.contains("limpeza", ignoreCase = true) -> "Faxina"
                     categoryName.contains("desentupimento", ignoreCase = true) -> "Desentupimento manual"

@@ -68,13 +68,6 @@ class FirebaseServiceManager {
     private fun createSampleCategories(): List<ServiceCategory> {
         return listOf(
             ServiceCategory(
-                name = "Limpeza",
-                description = "Serviços de limpeza residencial e comercial",
-                icon = "ic_cleaning",
-                color = "#4CAF50",
-                order = 1
-            ),
-            ServiceCategory(
                 name = "Manutenção",
                 description = "Reparos e manutenção geral",
                 icon = "ic_tools",
@@ -94,20 +87,6 @@ class FirebaseServiceManager {
                 icon = "ic_plumber",
                 color = "#2196F3",
                 order = 4
-            ),
-            ServiceCategory(
-                name = "Pintura",
-                description = "Serviços de pintura e acabamento",
-                icon = "ic_painter",
-                color = "#9C27B0",
-                order = 5
-            ),
-            ServiceCategory(
-                name = "Jardinagem",
-                description = "Cuidados com jardim e paisagismo",
-                icon = "ic_gardening",
-                color = "#8BC34A",
-                order = 6
             ),
             ServiceCategory(
                 name = "Mudanças",
@@ -131,36 +110,6 @@ class FirebaseServiceManager {
      */
     private fun createSampleServiceTypes(): List<ServiceType> {
         return listOf(
-            // Limpeza
-            ServiceType(
-                categoryId = "limpeza",
-                name = "Limpeza Residencial",
-                description = "Limpeza completa da casa incluindo quartos, banheiros, cozinha e áreas comuns",
-                icon = "ic_cleaning",
-                estimatedPrice = 80.0,
-                estimatedTime = "2-3 horas",
-                order = 1
-            ),
-            ServiceType(
-                categoryId = "limpeza",
-                name = "Limpeza de Escritório",
-                description = "Limpeza profissional para escritórios e ambientes corporativos",
-                icon = "ic_cleaning",
-                estimatedPrice = 120.0,
-                estimatedTime = "3-4 horas",
-                order = 2
-            ),
-            ServiceType(
-                categoryId = "limpeza",
-                name = "Limpeza Pós-Obra",
-                description = "Limpeza especializada após reformas e construções",
-                icon = "ic_cleaning",
-                isComplex = true,
-                estimatedPrice = 200.0,
-                estimatedTime = "4-6 horas",
-                order = 3
-            ),
-            
             // Manutenção
             ServiceType(
                 categoryId = "manutencao",
@@ -241,48 +190,6 @@ class FirebaseServiceManager {
                 order = 3
             ),
             
-            // Pintura
-            ServiceType(
-                categoryId = "pintura",
-                name = "Pintura de Quarto",
-                description = "Pintura completa de quarto incluindo teto e paredes",
-                icon = "ic_painter",
-                estimatedPrice = 200.0,
-                estimatedTime = "1 dia",
-                order = 1
-            ),
-            ServiceType(
-                categoryId = "pintura",
-                name = "Pintura de Fachada",
-                description = "Pintura externa de casas e prédios",
-                icon = "ic_painter",
-                isComplex = true,
-                estimatedPrice = 500.0,
-                estimatedTime = "2-3 dias",
-                order = 2
-            ),
-            
-            // Jardinagem
-            ServiceType(
-                categoryId = "jardinagem",
-                name = "Manutenção de Jardim",
-                description = "Corte de grama, poda de plantas e manutenção geral",
-                icon = "ic_gardening",
-                estimatedPrice = 60.0,
-                estimatedTime = "2-3 horas",
-                order = 1
-            ),
-            ServiceType(
-                categoryId = "jardinagem",
-                name = "Paisagismo",
-                description = "Projeto e execução de paisagismo",
-                icon = "ic_gardening",
-                isComplex = true,
-                estimatedPrice = 800.0,
-                estimatedTime = "1 semana",
-                order = 2
-            ),
-            
             // Mudanças
             ServiceType(
                 categoryId = "mudancas",
@@ -350,20 +257,6 @@ class FirebaseServiceManager {
                 isVerified = true,
                 location = "São Paulo, SP",
                 bio = "Técnica especializada em serviços elétricos e hidráulicos"
-            ),
-            ServiceProvider(
-                userId = "provider_3",
-                name = "Carlos Oliveira",
-                email = "carlos.oliveira@email.com",
-                phone = "(11) 99999-3333",
-                rating = 4.7,
-                totalReviews = 32,
-                completedOrders = 95,
-                categories = listOf("pintura", "jardinagem"),
-                serviceTypes = listOf("pintura_quarto", "manutencao_jardim"),
-                isVerified = true,
-                location = "São Paulo, SP",
-                bio = "Artista plástico e jardineiro profissional"
             ),
             ServiceProvider(
                 userId = "provider_4",

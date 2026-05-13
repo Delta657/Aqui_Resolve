@@ -39,16 +39,6 @@ object OrderManager {
             "Desentupimento de pia" to 55.0,
             "Reparo de vazamento" to 75.0,
             "Instalação de chuveiro" to 90.0
-        ),
-        "Limpeza" to mapOf(
-            "Limpeza residencial" to 120.0,
-            "Limpeza comercial" to 200.0,
-            "Limpeza pós-obra" to 150.0
-        ),
-        "Jardinagem" to mapOf(
-            "Poda de árvores" to 100.0,
-            "Corte de grama" to 80.0,
-            "Manutenção de jardim" to 90.0
         )
     )
     
@@ -148,8 +138,6 @@ object OrderManager {
             niche == "Elétrica" && description.contains("tomada") -> 45.0
             niche == "Encanador" && description.contains("torneira") -> 65.0
             niche == "Encanador" && description.contains("desentupimento") -> 55.0
-            niche == "Limpeza" -> 120.0
-            niche == "Jardinagem" -> 90.0
             else -> 100.0 // Preço padrão
         }
     }

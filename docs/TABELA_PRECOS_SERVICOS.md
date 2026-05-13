@@ -176,8 +176,6 @@ A tabela de preços está em dois lugares:
 1. `getPrice(categoria, servico)` — busca exata pelo nome do serviço
 2. Se não encontrar → `getDefaultPrice(categoria)` — preço fallback da categoria
 
-**IMPORTANTE:** O nome do serviço no dropdown **deve** ser exatamente igual à chave no `pricingTable` do `ServicePricing.kt`, senão cai no fallback.
-
 ---
 
 ## 📦 Fonte Oficial
@@ -186,4 +184,6 @@ Planilha: `tabela.xlsx` (sheet `Dados_Para_Importacao`)
 
 ---
 
-*Última atualização: 11/05/2026*
+*Última atualização: 13/05/2026*
+
+> ℹ️ **Nota:** As categorias **Pintura**, **Jardinagem** e **Limpeza** foram removidas do app em 13/05/2026 por não possuírem preços definidos. Consulte `docs/CORRECAO_PRECOS_SERVICOS.md` para detalhes.

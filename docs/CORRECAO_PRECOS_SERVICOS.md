@@ -76,47 +76,34 @@ Removido "Faxina expressa (só manutenção)" — não existe na planilha.
 
 ---
 
-## ❌ AINDA PENDENTE — 19 serviços sem preço
+## ❌ REMOVIDOS — 19 serviços sem preço
 
-Aguardando definição de valores via WhatsApp.
+Os serviços abaixo **não tinham preços definidos** e foram **removidos do app em 13/05/2026** de todos os arquivos:
 
-### 🎨 Pintura (5 serviços — sem tabela)
-- Pintura de parede interna
-- Pintura de teto
-- Pintura de porta
-- Pintura de janela
-- Retoques gerais
+### 🎨 Pintura (5 serviços — removida completamente)
+- Pintura de parede interna, Pintura de teto, Pintura de porta, Pintura de janela, Retoques gerais
+- Categoria inteira removida de: `CreateOrderActivity.kt`, `ServiceNicheCatalog.kt`, `ServiceNicheManager.kt`, `FirebaseServiceManager.kt`, `ServiceSearchHelper.kt`
 
-### 🌿 Jardinagem (5 serviços — sem tabela)
-- Corte de grama
-- Poda de arbustos
-- Limpeza de jardim
-- Adubação
-- Plantio de mudas
+### 🌿 Jardinagem (5 serviços — removida completamente)
+- Corte de grama, Poda de arbustos, Limpeza de jardim, Adubação, Plantio de mudas
+- Categoria inteira removida de: `CreateOrderActivity.kt`, `ServiceNicheCatalog.kt`, `ServiceNicheManager.kt`, `FirebaseServiceManager.kt`, `ServiceSearchHelper.kt`, `OrderManager.kt`
 
-### 🧹 Limpeza (5 serviços — sem tabela)
-- Limpeza residencial básica
-- Limpeza pós-obra
-- Limpeza pesada
-- Limpeza de vidros
-- Organização
+### 🧹 Limpeza (5 serviços — removida completamente)
+- Limpeza residencial básica, Limpeza pós-obra, Limpeza pesada, Limpeza de vidros, Organização
+- Categoria inteira removida de: `CreateOrderActivity.kt`, `ServiceNicheCatalog.kt`, `ServiceNicheManager.kt`, `FirebaseServiceManager.kt`, `ServiceSearchHelper.kt`, `OrderManager.kt`
 
-### 🔧 Serviços Automotivos (4 serviços extras)
-- Troca de palhetas de limpador
-- Troca de lâmpadas automotivas
-- Troca de óleo e filtro domiciliar
-- Higienização de ar-condicionado automotivo
+### 🔧 Serviços Automotivos (4 serviços extras removidos)
+- Troca de palhetas de limpador, Troca de lâmpadas automotivas, Troca de óleo e filtro domiciliar, Higienização de ar-condicionado automotivo
+- Removidos apenas do dropdown em `CreateOrderActivity.kt` (categoria "Serviços automotivos" mantida)
 
 ---
 
-## 🎯 Resumo
+## 🎯 Resumo Final
 
 | Status | Quantidade |
-|---|---|
+|--------|:---------:|
 | ✅ Corrigidos | 74 serviços |
 | 💰 "A consultar" (Mont. móveis) | 9 serviços |
-| ❌ Sem preço (pendente) | 19 serviços |
+| ❌ Removidos (sem preço) | 19 serviços |
 
-**Arquivo modificado:** `app/src/main/java/com/aquiresolve/app/CreateOrderActivity.kt`
-
-**Fonte oficial:** `tabela.xlsx` (sheet `Dados_Para_Importacao`)
+**Arquivos modificados:** `CreateOrderActivity.kt`, `ServicePricing.kt`, `ServiceNicheCatalog.kt`, `ServiceNicheManager.kt`, `FirebaseServiceManager.kt`, `ServiceSearchHelper.kt`, `OrderManager.kt`, `UserDashboardActivity.kt`
