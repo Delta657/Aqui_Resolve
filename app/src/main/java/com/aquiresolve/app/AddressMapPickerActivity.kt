@@ -66,9 +66,13 @@ class AddressMapPickerActivity : AppCompatActivity() {
 
     private fun setupActions() {
         binding.btnMyLocation.setOnClickListener {
-            enableMyLocation { point ->
-                setSelectedPoint(point)
-                centerMap(point)
+            if (hasLocationPermission()) {
+                enableMyLocation { point ->
+                    setSelectedPoint(point)
+                    centerMap(point)
+                }
+            } else {
+                requestLocationIfNeeded()
             }
         }
 
@@ -88,10 +92,14 @@ class AddressMapPickerActivity : AppCompatActivity() {
         binding.btnClose.setOnClickListener { finish() }
     }
 
-    private fun requestLocationIfNeeded() {
+    private fun hasLocationPermission(): Boolean {
         val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val hasCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        if (hasFine || hasCoarse) {
+        return hasFine || hasCoarse
+    }
+
+    private fun requestLocationIfNeeded() {
+        if (hasLocationPermission()) {
             enableMyLocation { point -> centerMap(point) }
         } else {
             ActivityCompat.requestPermissions(
@@ -159,5 +167,13 @@ class AddressMapPickerActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         binding.map.onPause()
+    }
+
+    override fun onDestroy() {
+        myLocationOverlay?.disableFollowLocation()
+        myLocationOverlay?.disableMyLocation()
+        myLocationOverlay = null
+        binding.map.onDetach()
+        super.onDestroy()
     }
 }

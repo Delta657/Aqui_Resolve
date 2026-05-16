@@ -80,6 +80,13 @@ class OrderDetailsActivity : AppCompatActivity() {
     private var lastProviderPoint: GeoPoint? = null
     private var currentClientPoint: GeoPoint? = null
     private var providerLocationListener: com.google.firebase.firestore.ListenerRegistration? = null
+    private var mapTapOverlay: org.osmdroid.views.overlay.Overlay? = null
+    private val osrmClient: okhttp3.OkHttpClient by lazy {
+        okhttp3.OkHttpClient.Builder()
+            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+    }
     private val ratingResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -1192,15 +1199,16 @@ class OrderDetailsActivity : AppCompatActivity() {
             map.zoomToBoundingBox(boundingBox.increaseByScale(1.4f), true)
         }
 
-        // Adicionar overlay para detectar clique no mapa e expandir fullscreen
+        // Adicionar overlay único para detectar clique no mapa e expandir fullscreen
         // (o setOnClickListener no cardMap não funciona porque o MapView intercepta os toques)
-        val tapOverlay = object : org.osmdroid.views.overlay.Overlay() {
+        mapTapOverlay?.let { map.overlays.remove(it) }
+        mapTapOverlay = object : org.osmdroid.views.overlay.Overlay() {
             override fun onSingleTapConfirmed(e: android.view.MotionEvent?, mapView: org.osmdroid.views.MapView?): Boolean {
                 openFullScreenMap()
                 return true
             }
         }
-        map.overlays.add(tapOverlay)
+        mapTapOverlay?.let { map.overlays.add(it) }
 
         if (isProviderView) {
             // Prestador vendo: usar GPS do dispositivo
@@ -1427,15 +1435,11 @@ class OrderDetailsActivity : AppCompatActivity() {
                     "?overview=full&geometries=geojson"
 
                 val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val client = okhttp3.OkHttpClient.Builder()
-                        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                        .build()
                     val request = okhttp3.Request.Builder()
                         .url(url)
-                        .header("User-Agent", "AppServico/1.0")
+                        .header("User-Agent", "AquiResolve/1.0")
                         .build()
-                    val response = client.newCall(request).execute()
+                    val response = osrmClient.newCall(request).execute()
                     val body = response.body?.string()
                     if (response.isSuccessful && body != null) {
                         val json = org.json.JSONObject(body)
