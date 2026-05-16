@@ -47,8 +47,6 @@ async function expireOrders() {
     let expiredCount = 0;
     let errorCount = 0;
 
-    const expirationBatch = db.batch();
-
     for (const doc of snapshot.docs) {
       const data = doc.data();
       const createdAt = data.createdAt?.toDate();
@@ -76,16 +74,19 @@ async function expireOrders() {
       });
 
       try {
-        // 1. Atualizar status para expired no batch
-        expirationBatch.update(doc.ref, {
+        // Batch POR pedido — evita que falha em um cancele todos os outros
+        const orderBatch = db.batch();
+
+        // 1. Atualizar status para expired
+        orderBatch.update(doc.ref, {
           status: 'expired',
           expiredAt: admin.firestore.Timestamp.now(),
           updatedAt: admin.firestore.Timestamp.now()
         });
 
-        // 2. Salvar notificação no Firestore (coleção "notifications")
+        // 2. Salvar notificação no Firestore
         const notificationRef = db.collection('notifications').doc();
-        expirationBatch.set(notificationRef, {
+        orderBatch.set(notificationRef, {
           userId: data.clientId,
           title: 'Pedido não encontrou prestador',
           message: `Seu pedido #${data.protocol || doc.id.slice(0, 8)} não foi aceito por nenhum prestador dentro do prazo.`,
@@ -98,6 +99,8 @@ async function expireOrders() {
             protocol: data.protocol || ''
           }
         });
+
+        await orderBatch.commit();
 
         // 3. Enviar notificação push via FCM
         await sendPushNotification(db, data.clientId, {
@@ -115,12 +118,6 @@ async function expireOrders() {
         });
         errorCount++;
       }
-    }
-
-    // Commitar batch de atualizações
-    if (expiredCount > 0) {
-      await expirationBatch.commit();
-      logger.info(`Batch commit realizado: ${expiredCount} pedidos expirados`);
     }
 
     const result = {

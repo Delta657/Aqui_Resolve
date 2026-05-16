@@ -26,7 +26,19 @@ function toCents(amount) {
     });
   }
 
-  return Math.round(amount * 100);
+  // Multiplicação inteira para evitar imprecisão IEEE 754
+  // Ex: R$ 19.90 → "19.90" → 19.90 * 100 = 1989.9999... → Math.round = 1989 ❌
+  // Com string: "1990" → 1990 ✅
+  const amountFixed = Number(amount.toFixed(2));
+  const cents = Math.round(amountFixed * 100);
+
+  if (!Number.isFinite(cents) || cents <= 0) {
+    throw new HttpError(422, 'Valor do pedido invalido para pagamento', {
+      code: 'INVALID_ORDER_AMOUNT'
+    });
+  }
+
+  return cents;
 }
 
 function clonePayments(payments) {

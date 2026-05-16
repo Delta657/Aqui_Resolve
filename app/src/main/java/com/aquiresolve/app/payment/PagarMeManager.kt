@@ -12,6 +12,8 @@ import org.json.JSONObject
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -84,8 +86,11 @@ class PagarMeManager(private val context: Context) {
         return try {
             Log.d(TAG, "Iniciando processamento de pagamento")
             
-            // Converter valor para centavos
-            val amountInCents = (amount * 100).toLong()
+            // Converter valor para centavos com BigDecimal (precisão exata)
+            val amountInCents = amount.toBigDecimal()
+                .multiply(BigDecimal("100"))
+                .setScale(0, RoundingMode.HALF_UP)
+                .toLong()
             
             // Criar item do pedido
             val item = PaymentItem(
@@ -200,8 +205,11 @@ class PagarMeManager(private val context: Context) {
         return try {
             Log.d(TAG, "Iniciando processamento de pagamento PIX")
             
-            // Converter valor para centavos
-            val amountInCents = (amount * 100).toLong()
+            // Converter valor para centavos com BigDecimal (precisão exata)
+            val amountInCents = amount.toBigDecimal()
+                .multiply(BigDecimal("100"))
+                .setScale(0, RoundingMode.HALF_UP)
+                .toLong()
             if (amountInCents <= 0L) {
                 return PixPaymentResult.Error("Valor inválido para gerar PIX")
             }
@@ -378,21 +386,31 @@ class PagarMeManager(private val context: Context) {
         val currentUser = auth.awaitCurrentUser()
             ?: throw IllegalStateException("Usuário não autenticado. Faça login novamente.")
 
-        val idToken = suspendCancellableCoroutine<String> { continuation ->
-            currentUser.getIdToken(false)
+        // Tentar token cacheado primeiro (mais rápido)
+        val cachedToken = getIdTokenBlocking(currentUser, false)
+        if (cachedToken != null) {
+            return "Bearer $cachedToken"
+        }
+
+        // Fallback: forçar refresh
+        val freshToken = getIdTokenBlocking(currentUser, true)
+            ?: throw IllegalStateException("Não foi possível obter o token de autenticação.")
+        return "Bearer $freshToken"
+    }
+
+    /**
+     * Obtém token Firebase de forma bloqueante via coroutine.
+     * @param forceRefresh true para forçar refresh, false para usar cache
+     */
+    private suspend fun getIdTokenBlocking(user: com.google.firebase.auth.FirebaseUser, forceRefresh: Boolean): String? {
+        return suspendCancellableCoroutine { continuation ->
+            user.getIdToken(forceRefresh)
                 .addOnSuccessListener { result ->
                     val token = result.token
-                    if (token.isNullOrBlank()) {
-                        if (continuation.isActive) {
-                            continuation.resumeWithException(
-                                IllegalStateException("Não foi possível obter o token de autenticação.")
-                            )
-                        }
-                        return@addOnSuccessListener
-                    }
-
-                    if (continuation.isActive) {
+                    if (!token.isNullOrBlank() && continuation.isActive) {
                         continuation.resume(token)
+                    } else if (continuation.isActive) {
+                        continuation.resume(null)
                     }
                 }
                 .addOnFailureListener { error ->
@@ -401,8 +419,6 @@ class PagarMeManager(private val context: Context) {
                     }
                 }
         }
-
-        return "Bearer $idToken"
     }
     
     /**

@@ -3,11 +3,25 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 
 const healthRoutes = require('./routes/health.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const cronRoutes = require('./routes/cron.routes');
 const { notFoundHandler, errorHandler } = require('./middlewares/error-handler');
+
+const paymentLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 10, // 10 requisições por minuto por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Muitas requisições. Aguarde um momento e tente novamente.'
+    }
+  }
+});
 
 function createCorsOptions(config) {
   if (!config.corsOrigin || config.corsOrigin === '*') {
@@ -53,7 +67,7 @@ function createApp({ config }) {
   );
 
   app.use('/api/health', healthRoutes);
-  app.use('/api/payments', paymentsRoutes);
+  app.use('/api/payments', paymentLimiter, paymentsRoutes);
   app.use('/api/cron', cronRoutes);
 
   app.use(notFoundHandler);

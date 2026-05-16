@@ -16,9 +16,14 @@ const logger = require('../utils/logger');
 router.post('/expire-orders', async (req, res) => {
   const cronSecret = req.headers['x-cron-secret'] || req.body?.secret;
 
-  // Validação básica: exigir CRON_SECRET do ambiente
+  // CRON_SECRET é obrigatório — sem ele, o endpoint fica exposto
   const expectedSecret = process.env.CRON_SECRET;
-  if (expectedSecret && cronSecret !== expectedSecret) {
+  if (!expectedSecret) {
+    logger.error('CRON_SECRET não configurada no ambiente');
+    return res.status(500).json({ ok: false, error: 'Cron secret not configured on server' });
+  }
+
+  if (cronSecret !== expectedSecret) {
     logger.warn('Tentativa de acesso não autorizado ao cron', {
       ip: req.ip
     });
