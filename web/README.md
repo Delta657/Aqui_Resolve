@@ -24,3 +24,8 @@ Depois de publicar, use a URL pública no Play Console em:
 ## Observação
 
 A política foi escrita para refletir o funcionamento atual do AquiResolve: Firebase, Pagar.me, OSMDroid/OpenStreetMap, OSRM, localização do prestador e notificações.
+
+Documentação complementar:
+
+- `../docs/PLAY_CONSOLE_PRIVACIDADE.md`
+- `../docs/LOCALIZACAO_MAPAS.md`

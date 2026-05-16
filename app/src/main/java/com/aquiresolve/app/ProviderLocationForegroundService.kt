@@ -82,14 +82,14 @@ class ProviderLocationForegroundService : Service() {
 
         if (!hasLocationPermission()) {
             Log.w(TAG, "Sem permissão de localização; encerrando foreground service")
-            stopSelf()
+            stopServiceAfterLocationDisabled()
             return
         }
 
         serviceScope.launch {
             if (!isProviderVerified()) {
                 Log.w(TAG, "Prestador não verificado; rastreamento foreground não será iniciado")
-                stopSelf()
+                stopServiceAfterLocationDisabled()
                 return@launch
             }
 
@@ -130,10 +130,16 @@ class ProviderLocationForegroundService : Service() {
         }
         locationCallback = null
         isTracking = false
-        serviceScope.launch { updateLocationEnabled(false) }
-        stopForegroundCompat()
-        stopSelf()
+        stopServiceAfterLocationDisabled()
         Log.d(TAG, "Rastreamento foreground parado")
+    }
+
+    private fun stopServiceAfterLocationDisabled() {
+        serviceScope.launch {
+            updateLocationEnabled(false)
+            stopForegroundCompat()
+            stopSelf()
+        }
     }
 
     private fun updateLastKnownLocation() {

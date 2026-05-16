@@ -286,8 +286,8 @@ class ProviderDashboardActivity : AppCompatActivity() {
      */
     override fun onPause() {
         super.onPause()
-        // Manter rastreamento ativo mesmo em background (mas só enquanto app estiver aberto)
-        Log.d(TAG, "Activity pausada - rastreamento continua em background")
+        // Foreground service mantém rastreamento ativo em background enquanto a notificação persistente existir.
+        Log.d(TAG, "Activity pausada - rastreamento foreground continua em background")
     }
 
     /**
