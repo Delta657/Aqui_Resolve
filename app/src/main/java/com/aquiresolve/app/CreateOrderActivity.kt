@@ -377,11 +377,11 @@ class CreateOrderActivity : AppCompatActivity() {
                 "Varal de teto"
             )
             "Caixa d'água" -> listOf(
-                "Limpeza de caixa d’água de 1000 litros",
-                "Limpeza de caixa d’água de 2000 litros",
-                "Limpeza de caixa d’água de 3000 litros",
-                "Limpeza de caixa d’água de 4000 litros",
-                "Limpeza de caixa d’água de 5000 litros",
+                "Limpeza de caixa d'água de 1000 litros",
+                "Limpeza de caixa d'água de 2000 litros",
+                "Limpeza de caixa d'água de 3000 litros",
+                "Limpeza de caixa d'água de 4000 litros",
+                "Limpeza de caixa d'água de 5000 litros",
                 "Troca de boia"
             )
             "Desentupimento manual" -> listOf(
