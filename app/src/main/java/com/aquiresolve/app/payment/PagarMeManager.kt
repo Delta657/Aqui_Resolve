@@ -71,6 +71,34 @@ class PagarMeManager(private val context: Context) {
             rawBody
         }
     }
+
+    suspend fun calculateServicePricing(category: String, serviceType: String): PricingResult {
+        return try {
+            val authToken = getAuthorizationHeader()
+            val response = apiService.calculatePricing(
+                authToken,
+                PricingRequest(category = category, serviceType = serviceType)
+            )
+
+            if (response.isSuccessful) {
+                val body = response.body()
+                if (body != null && body.estimatedPrice > 0 && body.providerCommission >= 0) {
+                    PricingResult.Success(
+                        estimatedPrice = body.estimatedPrice,
+                        providerCommission = body.providerCommission,
+                        source = body.source ?: "backend"
+                    )
+                } else {
+                    PricingResult.Error("Resposta de precificação inválida")
+                }
+            } else {
+                PricingResult.Error(extractApiErrorMessage(response.errorBody()) ?: "Erro ao calcular preço (${response.code()})")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao calcular preço no backend", e)
+            PricingResult.Error("Erro de conexão ao calcular preço: ${e.localizedMessage}")
+        }
+    }
     
     /**
      * Processar pagamento com cartão de crédito
@@ -548,6 +576,19 @@ class PagarMeManager(private val context: Context) {
             else -> CardBrand.UNKNOWN
         }
     }
+}
+
+/**
+ * Resultado da precificação feita no backend.
+ */
+sealed class PricingResult {
+    data class Success(
+        val estimatedPrice: Double,
+        val providerCommission: Double,
+        val source: String
+    ) : PricingResult()
+
+    data class Error(val message: String) : PricingResult()
 }
 
 /**

@@ -713,50 +713,12 @@ class OrderDetailsActivity : AppCompatActivity() {
 
     private fun acceptOrderAsProvider(order: OrderData) {
         lifecycleScope.launch {
-            try {
-                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                val current = auth.currentUser ?: run {
-                    showToast("Usuário não autenticado")
-                    return@launch
-                }
-                
-                // Buscar nome real do prestador da coleção providers
-                val providerDoc = db.collection("providers").document(current.uid).get().await()
-                val providerName = if (providerDoc.exists()) {
-                    providerDoc.getString("fullName") ?: auth.currentUser?.displayName ?: "Prestador"
-                } else {
-                    auth.currentUser?.displayName ?: "Prestador"
-                }
-                
-                val docRef = db.collection("orders").document(order.id)
-                com.google.firebase.firestore.FirebaseFirestore.getInstance().runTransaction { tx ->
-                    val snap = tx.get(docRef)
-                    val currentStatus = snap.getString("status") ?: OrderData.STATUS_DISTRIBUTING
-                    val assigned = snap.getString("assignedProvider")
-                    if ((currentStatus == OrderData.STATUS_DISTRIBUTING || currentStatus == OrderData.STATUS_PENDING) && assigned.isNullOrEmpty()) {
-                        tx.update(docRef, mapOf(
-                            "assignedProvider" to current.uid,
-                            "assignedProviderName" to providerName,
-                            "status" to OrderData.STATUS_ASSIGNED,
-                            "assignedAt" to com.google.firebase.Timestamp.now(),
-                            "updatedAt" to com.google.firebase.Timestamp.now()
-                        ))
-                    } else {
-                        throw IllegalStateException("Indisponível")
-                    }
-                }.await()
-                
-                // Gerar códigos de verificação (sem mostrar para o prestador)
-                val codesResult = orderManager.generateVerificationCodes(order.id)
-                if (codesResult.isSuccess) {
-                    showSuccessMessage("✅ Pedido aceito com sucesso!")
-                } else {
-                    showSuccessMessage("✅ Pedido aceito com sucesso!")
-                }
+            val result = orderManager.acceptOrderAsProvider(order.id)
+            if (result.isSuccess) {
+                showSuccessMessage("✅ Pedido aceito com sucesso!")
                 loadOrderDetails()
-            } catch (e: Exception) {
-                showErrorMessage("❌ Não foi possível aceitar: ${e.message}")
+            } else {
+                showErrorMessage("❌ Não foi possível aceitar: ${result.exceptionOrNull()?.message ?: "erro desconhecido"}")
             }
         }
     }

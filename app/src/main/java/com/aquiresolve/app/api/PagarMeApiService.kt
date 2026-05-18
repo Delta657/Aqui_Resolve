@@ -4,6 +4,8 @@ import com.aquiresolve.app.models.payment.PaymentRequest
 import com.aquiresolve.app.models.payment.PaymentResponse
 import com.aquiresolve.app.models.payment.PixPaymentRequest
 import com.aquiresolve.app.models.payment.PixPaymentResponse
+import com.aquiresolve.app.models.payment.PricingRequest
+import com.aquiresolve.app.models.payment.PricingResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -15,6 +17,15 @@ import retrofit2.http.Path
  * Interface da API de pagamentos do backend para Retrofit
  */
 interface PagarMeApiService {
+
+    /**
+     * Calcula preço e repasse no backend, não no APK.
+     */
+    @POST("pricing/calculate")
+    suspend fun calculatePricing(
+        @Header("Authorization") authorization: String,
+        @Body pricingRequest: PricingRequest
+    ): Response<PricingResponse>
 
     /**
      * Cria um pagamento com cartão via backend.

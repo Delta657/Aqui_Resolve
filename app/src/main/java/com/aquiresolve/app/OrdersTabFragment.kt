@@ -305,65 +305,11 @@ class OrdersTabFragment : Fragment() {
 
     private fun acceptOrder(order: OrderData) {
         lifecycleScope.launch {
-            try {
-                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                val current = auth.currentUser ?: run {
-                    showToast("Usuário não autenticado")
-                    return@launch
-                }
-
-                // Verificar estado atual e se ainda está disponível
-                val docRef = db.collection("orders").document(order.id)
-                val snapshot = docRef.get().await()
-                if (!snapshot.exists()) {
-                    showToast("Pedido não encontrado")
-                    return@launch
-                }
-                val status = snapshot.getString("status") ?: OrderData.STATUS_DISTRIBUTING
-                if (status != OrderData.STATUS_DISTRIBUTING && status != OrderData.STATUS_PENDING) {
-                    showToast("Pedido indisponível para aceite")
-                    return@launch
-                }
-
-                // Buscar nome real do prestador da coleção providers
-                val providerDoc = db.collection("providers").document(current.uid).get().await()
-                val providerName = if (providerDoc.exists()) {
-                    providerDoc.getString("fullName") ?: auth.currentUser?.displayName ?: "Prestador"
-                } else {
-                    auth.currentUser?.displayName ?: "Prestador"
-                }
-
-                // Tentar atribuir ao prestador atual com condição (evitar corrida)
-                com.google.firebase.firestore.FirebaseFirestore.getInstance().runTransaction { tx ->
-                    val snap = tx.get(docRef)
-                    val currentStatus = snap.getString("status") ?: OrderData.STATUS_DISTRIBUTING
-                    val assigned = snap.getString("assignedProvider")
-                    if ((currentStatus == OrderData.STATUS_DISTRIBUTING || currentStatus == OrderData.STATUS_PENDING) && assigned.isNullOrEmpty()) {
-                        tx.update(docRef, mapOf(
-                            "assignedProvider" to current.uid,
-                            // Garantir persistência do nome do prestador que aceitou
-                            "assignedProviderName" to providerName,
-                            "status" to OrderData.STATUS_ASSIGNED,
-                            "assignedAt" to com.google.firebase.Timestamp.now(),
-                            "updatedAt" to com.google.firebase.Timestamp.now()
-                        ))
-                    } else {
-                        throw IllegalStateException("Indisponível")
-                    }
-                }.await()
-
-                // Gerar códigos de verificação (sem mostrar para o prestador)
-                val orderManager = FirebaseOrderManager()
-                val codesResult = orderManager.generateVerificationCodes(order.id)
-                if (codesResult.isSuccess) {
-                    showToast("✅ Pedido aceito com sucesso!")
-                } else {
-                    showToast("✅ Pedido aceito com sucesso!")
-                }
-
-            } catch (e: Exception) {
-                showToast("❌ Não foi possível aceitar: ${e.message}")
+            val result = FirebaseOrderManager().acceptOrderAsProvider(order.id)
+            if (result.isSuccess) {
+                showToast("✅ Pedido aceito com sucesso!")
+            } else {
+                showToast("❌ Não foi possível aceitar: ${result.exceptionOrNull()?.message ?: "erro desconhecido"}")
             }
         }
     }

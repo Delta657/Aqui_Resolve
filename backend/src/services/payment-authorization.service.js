@@ -119,7 +119,7 @@ function buildOrderDescription(order) {
 }
 
 async function loadUserFallbackData(firestore, uid) {
-  const userSnapshot = await firestore.collection('users').document(uid).get();
+  const userSnapshot = await firestore.collection('users').doc(uid).get();
   if (!userSnapshot.exists) {
     return {};
   }
@@ -132,7 +132,7 @@ async function loadUserFallbackData(firestore, uid) {
 }
 
 async function authorizeSingleOrderPayload({ firestore, payload, uid, orderId }) {
-  const orderSnapshot = await firestore.collection('orders').document(orderId).get();
+  const orderSnapshot = await firestore.collection('orders').doc(orderId).get();
   if (!orderSnapshot.exists) {
     throw new HttpError(404, 'Pedido nao encontrado para pagamento', {
       code: 'ORDER_NOT_FOUND'
@@ -212,7 +212,7 @@ async function authorizeCartPayload({ firestore, payload, uid, requestedOrderId 
   }
 
   if (payableItems.length === 0) {
-    const cartSnapshot = await firestore.collection('carts').document(uid).collection('items').get();
+    const cartSnapshot = await firestore.collection('carts').doc(uid).collection('items').get();
     if (cartSnapshot.empty) {
       throw new HttpError(422, 'Carrinho vazio para pagamento', {
         code: 'EMPTY_CART'

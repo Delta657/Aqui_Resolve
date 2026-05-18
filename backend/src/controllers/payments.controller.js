@@ -3,8 +3,13 @@ const { createOrder, getOrderStatus } = require('../services/pagarme.service');
 const { authorizePaymentPayload } = require('../services/payment-authorization.service');
 const {
   ensurePaymentSessionOwnership,
-  savePaymentSession
+  getPaymentSession,
+  savePaymentSession,
+  updatePaymentSessionStatus
 } = require('../services/payment-session.service');
+const {
+  syncPaymentStatusToFirestore
+} = require('../services/payment-status-sync.service');
 const {
   normalizeOrderResponse,
   mapPagarmeError
@@ -54,7 +59,7 @@ async function processCardPayment(req, res, next) {
     });
 
     const order = await createOrder(authorizedPayload);
-    await savePaymentSession({
+    const session = await savePaymentSession({
       gatewayOrderId: order?.id,
       uid: req.user && req.user.uid,
       localOrderCode:
@@ -63,6 +68,16 @@ async function processCardPayment(req, res, next) {
         null,
       paymentSource: authorizedPayload?.metadata?.payment_source || null
     });
+    const syncResult = session
+      ? await syncPaymentStatusToFirestore({ gatewayOrder: order, session })
+      : null;
+    if (syncResult) {
+      await updatePaymentSessionStatus({
+        gatewayOrderId: order?.id,
+        paymentStatus: syncResult.paymentStatus,
+        gatewayStatus: order?.status
+      });
+    }
     logger.info('Pagamento com cartao processado', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,
@@ -97,7 +112,7 @@ async function processPixPayment(req, res, next) {
     });
 
     const order = await createOrder(authorizedPayload);
-    await savePaymentSession({
+    const session = await savePaymentSession({
       gatewayOrderId: order?.id,
       uid: req.user && req.user.uid,
       localOrderCode:
@@ -106,6 +121,16 @@ async function processPixPayment(req, res, next) {
         null,
       paymentSource: authorizedPayload?.metadata?.payment_source || null
     });
+    const syncResult = session
+      ? await syncPaymentStatusToFirestore({ gatewayOrder: order, session })
+      : null;
+    if (syncResult) {
+      await updatePaymentSessionStatus({
+        gatewayOrderId: order?.id,
+        paymentStatus: syncResult.paymentStatus,
+        gatewayStatus: order?.status
+      });
+    }
     logger.info('Pagamento PIX processado', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,
@@ -139,11 +164,17 @@ async function getPaymentStatus(req, res, next) {
       orderId: orderId.trim()
     });
 
-    await ensurePaymentSessionOwnership({
+    const session = await ensurePaymentSessionOwnership({
       gatewayOrderId: orderId.trim(),
       uid: req.user && req.user.uid
     });
     const order = await getOrderStatus(orderId.trim());
+    const syncResult = await syncPaymentStatusToFirestore({ gatewayOrder: order, session });
+    await updatePaymentSessionStatus({
+      gatewayOrderId: order?.id || orderId.trim(),
+      paymentStatus: syncResult.paymentStatus,
+      gatewayStatus: order?.status
+    });
     logger.info('Status de pagamento consultado', {
       requestId: req.requestId,
       uid: req.user && req.user.uid,
@@ -162,8 +193,89 @@ async function getPaymentStatus(req, res, next) {
   }
 }
 
+function verifyWebhookSecret(req) {
+  const expectedSecret = process.env.PAGARME_WEBHOOK_SECRET || process.env.PAYMENT_WEBHOOK_SECRET || '';
+  if (!expectedSecret) {
+    logger.warn('PAGARME_WEBHOOK_SECRET ausente; webhook aceito sem segredo compartilhado', {
+      requestId: req.requestId
+    });
+    return;
+  }
+
+  const providedSecret =
+    req.headers['x-pagarme-webhook-secret'] ||
+    req.headers['x-payment-webhook-secret'] ||
+    req.headers['x-webhook-secret'] ||
+    req.query?.secret;
+
+  if (providedSecret !== expectedSecret) {
+    throw new HttpError(401, 'Webhook de pagamento nao autorizado', {
+      code: 'UNAUTHORIZED_WEBHOOK'
+    });
+  }
+}
+
+function extractGatewayOrderIdFromWebhook(payload) {
+  return normalizeWebhookString(payload?.data?.id) ||
+    normalizeWebhookString(payload?.data?.order?.id) ||
+    normalizeWebhookString(payload?.data?.object?.id) ||
+    normalizeWebhookString(payload?.data?.object?.order?.id) ||
+    normalizeWebhookString(payload?.order?.id) ||
+    normalizeWebhookString(payload?.object?.id) ||
+    normalizeWebhookString(payload?.id);
+}
+
+function normalizeWebhookString(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+async function handlePagarmeWebhook(req, res, next) {
+  try {
+    verifyWebhookSecret(req);
+
+    const eventPayload = req.body || {};
+    const gatewayOrderId = extractGatewayOrderIdFromWebhook(eventPayload);
+    if (!gatewayOrderId) {
+      throw new HttpError(400, 'Webhook sem identificador de pedido do gateway', {
+        code: 'WEBHOOK_MISSING_ORDER_ID'
+      });
+    }
+
+    const session = await getPaymentSession(gatewayOrderId);
+    const gatewayOrder = await getOrderStatus(gatewayOrderId);
+    const syncResult = await syncPaymentStatusToFirestore({ gatewayOrder, session });
+    await updatePaymentSessionStatus({
+      gatewayOrderId: gatewayOrder?.id || gatewayOrderId,
+      paymentStatus: syncResult.paymentStatus,
+      gatewayStatus: gatewayOrder?.status
+    });
+
+    logger.info('Webhook Pagar.me processado com sucesso', {
+      requestId: req.requestId,
+      gatewayOrderId,
+      eventType: normalizeWebhookString(eventPayload.type),
+      paymentStatus: syncResult.paymentStatus,
+      updatedOrders: syncResult.updatedOrders
+    });
+
+    res.status(200).json({
+      ok: true,
+      gatewayOrderId,
+      paymentStatus: syncResult.paymentStatus,
+      updatedOrders: syncResult.updatedOrders
+    });
+  } catch (error) {
+    logger.warn('Falha ao processar webhook Pagar.me', {
+      requestId: req.requestId,
+      error: error.message
+    });
+    next(mapPagarmeError(error));
+  }
+}
+
 module.exports = {
   processCardPayment,
   processPixPayment,
-  getPaymentStatus
+  getPaymentStatus,
+  handlePagarmeWebhook
 };

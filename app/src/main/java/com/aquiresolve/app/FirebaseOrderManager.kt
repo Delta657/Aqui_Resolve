@@ -197,7 +197,6 @@ class FirebaseOrderManager {
                 .await()
             
             Log.d(TAG, "Códigos de verificação gerados para pedido: $orderId")
-            Log.d(TAG, "Código do cliente: $clientCode | Código do prestador: $providerCode")
             
             Result.success(Pair(clientCode, providerCode))
         } catch (e: Exception) {
@@ -206,6 +205,65 @@ class FirebaseOrderManager {
         }
     }
     
+    /**
+     * Aceita um pedido disponível em uma única transação.
+     * Centraliza a regra para evitar dois prestadores aceitando o mesmo pedido.
+     */
+    suspend fun acceptOrderAsProvider(orderId: String): Result<Unit> {
+        return try {
+            if (orderId.isBlank()) {
+                return Result.failure(IllegalArgumentException("ID do pedido inválido"))
+            }
+
+            val currentUser = auth.awaitCurrentUser()
+                ?: return Result.failure(IllegalStateException("Usuário não autenticado"))
+
+            val providerDoc = db.collection("providers").document(currentUser.uid).get().await()
+            val providerName = if (providerDoc.exists()) {
+                providerDoc.getString("fullName") ?: currentUser.displayName ?: "Prestador"
+            } else {
+                currentUser.displayName ?: "Prestador"
+            }
+
+            val clientCode = VerificationCodeGenerator.generateCode()
+            val providerCode = VerificationCodeGenerator.generateCode()
+            val orderRef = db.collection(ORDERS_COLLECTION).document(orderId)
+            val now = Timestamp.now()
+
+            db.runTransaction { tx ->
+                val snap = tx.get(orderRef)
+                if (!snap.exists()) {
+                    throw IllegalStateException("Pedido não encontrado")
+                }
+
+                val currentStatus = snap.getString("status") ?: OrderData.STATUS_DISTRIBUTING
+                val assigned = snap.getString("assignedProvider")
+                val allowedStatuses = setOf(OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING, "available")
+
+                if (currentStatus !in allowedStatuses || !assigned.isNullOrBlank()) {
+                    throw IllegalStateException("Pedido indisponível")
+                }
+
+                tx.update(orderRef, mapOf(
+                    "assignedProvider" to currentUser.uid,
+                    "assignedProviderName" to providerName,
+                    "status" to OrderData.STATUS_ASSIGNED,
+                    "assignedAt" to now,
+                    "clientVerificationCode" to clientCode,
+                    "providerVerificationCode" to providerCode,
+                    "verificationCodesGeneratedAt" to now,
+                    "updatedAt" to now
+                ))
+            }.await()
+
+            Log.d(TAG, "Pedido aceito com sucesso: $orderId pelo prestador ${currentUser.uid}")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao aceitar pedido: ${e.message}")
+            Result.failure(e)
+        }
+    }
+
     /**
      * Finaliza um pedido verificando o código do cliente
      * O prestador deve fornecer o código do cliente para finalizar

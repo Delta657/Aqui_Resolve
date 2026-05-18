@@ -38,7 +38,6 @@ import java.util.*
 import com.aquiresolve.app.utils.awaitCurrentUser
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.text.NumberFormat
@@ -123,6 +122,11 @@ class CreateOrderActivity : AppCompatActivity() {
     ) {
         override fun toString(): String = if (priceLabel.isNotBlank()) "$name — $priceLabel" else name
     }
+
+    private data class OrderPricing(
+        val estimatedPrice: Double,
+        val providerCommission: Double
+    )
     
     // Launcher para pagamento
     private val paymentLauncher = registerForActivityResult(
@@ -761,7 +765,8 @@ class CreateOrderActivity : AppCompatActivity() {
 
                 val uploadedImageUrls = uploadImagesForCart(currentUserId, cartItemId)
                 val address = formData.savedAddress
-                val estimatedPrice = calculateOrderAmount(formData.request)
+                val pricing = resolveOrderPricing(formData.request)
+                val estimatedPrice = pricing.estimatedPrice
 
                 val cartItem = CartItemData(
                     id = cartItemId,
@@ -973,11 +978,9 @@ class CreateOrderActivity : AppCompatActivity() {
                 val userName = userData?.get("fullName") as? String ?: "Usuário"
                 val userEmail = currentUser.email ?: ""
                 val userCpf = userData?.get("cpf") as? String ?: ""
-                val orderAmount = calculateOrderAmount(formData.request)
-                val providerCommission = com.aquiresolve.app.models.ServicePricing.getProviderValue(
-                    category = formData.serviceNiche,
-                    serviceType = formData.serviceType
-                ) ?: com.aquiresolve.app.models.ServicePricing.getDefaultProviderValue(formData.serviceNiche)
+                val pricing = resolveOrderPricing(formData.request)
+                val orderAmount = pricing.estimatedPrice
+                val providerCommission = pricing.providerCommission
                 val protocol = ProtocolGenerator.generateProtocol()
                 val now = Timestamp.now()
 
@@ -1152,30 +1155,21 @@ class CreateOrderActivity : AppCompatActivity() {
                 val orderId = getPendingOrderId()
                     ?: throw IllegalStateException("Pedido pendente não encontrado")
 
+                if (transactionId.isNotBlank()) {
+                    when (val syncResult = com.aquiresolve.app.payment.PagarMeManager(this@CreateOrderActivity)
+                        .checkPixPaymentStatus(transactionId)) {
+                        is com.aquiresolve.app.payment.PixPaymentResult.Error -> {
+                            android.util.Log.w(
+                                "CreateOrder",
+                                "Backend ainda não confirmou a sincronização do pagamento: ${syncResult.message}"
+                            )
+                        }
+                        else -> Unit
+                    }
+                }
+
                 val db = FirebaseFirestore.getInstance()
                 val orderRef = db.collection("orders").document(orderId)
-                val now = Timestamp.now()
-                val status = if (paymentStatus == "paid") {
-                    OrderData.STATUS_DISTRIBUTING
-                } else {
-                    OrderData.STATUS_AWAITING_PAYMENT
-                }
-
-                val updates = mutableMapOf<String, Any>(
-                    "paymentStatus" to paymentStatus,
-                    "transactionId" to transactionId,
-                    "status" to status,
-                    "updatedAt" to now
-                )
-
-                if (paymentStatus == "paid") {
-                    updates["confirmedAt"] = now
-                } else {
-                    updates["confirmedAt"] = FieldValue.delete()
-                }
-
-                orderRef.update(updates).await()
-
                 val updatedOrder = orderRef.get().await()
                     .toObject(OrderData::class.java)
                     ?.copy(id = orderId)
@@ -1626,25 +1620,27 @@ class CreateOrderActivity : AppCompatActivity() {
     }
     
     /**
-     * Calcular valor do pedido baseado na tabela de preços oficial
+     * Calcular valor do pedido no backend para não confiar em preço/repasse do APK.
      */
-    private fun calculateOrderAmount(request: CreateOrderRequest): Double {
-        // Buscar preço específico na tabela
-        val price = com.aquiresolve.app.models.ServicePricing.getPrice(
+    private suspend fun resolveOrderPricing(request: CreateOrderRequest): OrderPricing {
+        return when (val result = com.aquiresolve.app.payment.PagarMeManager(this).calculateServicePricing(
             category = request.serviceNiche,
             serviceType = request.serviceType
-        )
-        
-        // Se encontrou o preço específico, usar ele
-        if (price != null && price > 0) {
-            android.util.Log.d("CreateOrder", "Preço encontrado: R$ $price para ${request.serviceType}")
-            return price
+        )) {
+            is com.aquiresolve.app.payment.PricingResult.Success -> {
+                android.util.Log.d(
+                    "CreateOrder",
+                    "Preço backend (${result.source}): R$ ${result.estimatedPrice}, prestador: R$ ${result.providerCommission}"
+                )
+                OrderPricing(
+                    estimatedPrice = result.estimatedPrice,
+                    providerCommission = result.providerCommission
+                )
+            }
+            is com.aquiresolve.app.payment.PricingResult.Error -> {
+                throw IllegalStateException(result.message)
+            }
         }
-        
-        // Se não encontrou, usar preço padrão da categoria
-        val defaultPrice = com.aquiresolve.app.models.ServicePricing.getDefaultPrice(request.serviceNiche)
-        android.util.Log.d("CreateOrder", "Usando preço padrão: R$ $defaultPrice para categoria ${request.serviceNiche}")
-        return defaultPrice
     }
     
     /**

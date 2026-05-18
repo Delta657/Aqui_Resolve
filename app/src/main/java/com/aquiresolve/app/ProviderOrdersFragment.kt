@@ -458,47 +458,16 @@ class ProviderOrdersFragment : Fragment() {
      */
     private fun acceptOrder(order: OrderData) {
         lifecycleScope.launch {
-            try {
-                // Garantir Firebase inicializado
-                if (!FirebaseConfig.isInitialized()) {
-                    FirebaseConfig.initialize(requireContext())
-                }
-                
-                val authManager = FirebaseAuthManager(requireContext())
-                val user = authManager.getLocalUserData()
-                if (user == null) {
-                    showToast("❌ Usuário não encontrado")
-                    return@launch
-                }
-                
-                // Atualizar status do pedido para "assigned" (padrão do sistema)
-                val updates = mapOf(
-                    "assignedProvider" to user.uid,
-                    "assignedProviderName" to user.fullName,
-                    "status" to OrderData.STATUS_ASSIGNED,
-                    "assignedAt" to com.google.firebase.Timestamp.now(),
-                    "updatedAt" to com.google.firebase.Timestamp.now()
-                )
-                
-                firestore.collection("orders")
-                    .document(order.id)
-                    .update(updates)
-                    .await()
-                
-                // Gerar códigos de verificação (sem mostrar para o prestador)
-                val orderManager = FirebaseOrderManager()
-                val codesResult = orderManager.generateVerificationCodes(order.id)
-                if (codesResult.isSuccess) {
-                    showToast("✅ Pedido aceito com sucesso!")
-                } else {
-                    showToast("✅ Pedido aceito com sucesso!")
-                }
-                
-                loadOrders() // Recarregar lista
-                
-            } catch (e: Exception) {
-                showToast("❌ Erro ao aceitar pedido: ${e.message}")
-                android.util.Log.e("ProviderOrders", "Erro ao aceitar pedido", e)
+            if (!FirebaseConfig.isInitialized()) {
+                FirebaseConfig.initialize(requireContext())
+            }
+
+            val result = FirebaseOrderManager().acceptOrderAsProvider(order.id)
+            if (result.isSuccess) {
+                showToast("✅ Pedido aceito com sucesso!")
+                loadOrders()
+            } else {
+                showToast("❌ Erro ao aceitar pedido: ${result.exceptionOrNull()?.message ?: "erro desconhecido"}")
             }
         }
     }

@@ -73,7 +73,7 @@ class ClientCartActivity : AppCompatActivity() {
         binding = ActivityClientCartBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        cartManager = FirebaseCartManager()
+        cartManager = FirebaseCartManager(this)
         authManager = FirebaseAuthManager(this)
 
         setupRecycler()
@@ -248,7 +248,7 @@ class ClientCartActivity : AppCompatActivity() {
                         PaymentActivity.EXTRA_ORDER_DESCRIPTION,
                         "Carrinho (${session.orderCount} serviços)"
                     )
-                    putExtra(PaymentActivity.EXTRA_ORDER_AMOUNT, totalAmount)
+                    putExtra(PaymentActivity.EXTRA_ORDER_AMOUNT, session.totalAmount)
                     putExtra(PaymentActivity.EXTRA_CLIENT_NAME, clientName)
                     putExtra(PaymentActivity.EXTRA_CLIENT_EMAIL, clientEmail)
                     putExtra(PaymentActivity.EXTRA_CLIENT_PHONE, clientPhone)
@@ -332,32 +332,23 @@ class ClientCartActivity : AppCompatActivity() {
         paymentStatus: String,
         paymentMethod: String
     ) {
-        val userId = authManager.getLocalUserData()?.uid
-            ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid
-            ?: run {
-                showToast("❌ Usuário não autenticado")
-                checkoutInProgress = false
-                return
-            }
-
         setLoading(true)
         lifecycleScope.launch {
             try {
-                val checkoutResult = cartManager.checkoutCart(
-                    userId = userId,
-                    orderIds = pendingSession.orderIds,
-                    cartItemIds = pendingSession.cartItemIds,
-                    transactionId = transactionId,
-                    paymentStatus = paymentStatus
-                )
-
-                if (checkoutResult.isFailure) {
-                    checkoutInProgress = false
-                    showToast("❌ Erro ao criar pedidos: ${checkoutResult.exceptionOrNull()?.message}")
-                    return@launch
+                if (transactionId.isNotBlank()) {
+                    when (val syncResult = com.aquiresolve.app.payment.PagarMeManager(this@ClientCartActivity)
+                        .checkPixPaymentStatus(transactionId)) {
+                        is com.aquiresolve.app.payment.PixPaymentResult.Error -> {
+                            android.util.Log.w(
+                                "ClientCart",
+                                "Backend ainda não confirmou a sincronização do carrinho: ${syncResult.message}"
+                            )
+                        }
+                        else -> Unit
+                    }
                 }
 
-                val createdOrders = checkoutResult.getOrNull() ?: emptyList()
+                val createdOrders = pendingSession.orderIds
                 val protocol = "CART-${SimpleDateFormat("yyyyMMddHHmm", Locale("pt", "BR")).format(Date())}"
                 clearPendingCheckoutSession()
                 checkoutInProgress = false

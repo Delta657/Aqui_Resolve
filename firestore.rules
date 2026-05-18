@@ -20,6 +20,113 @@ service cloud.firestore {
       );
     }
 
+    function isOrderClient() {
+      return isSignedIn() && resource.data.clientId == request.auth.uid;
+    }
+
+    function isOrderAssignedProvider() {
+      return isSignedIn() && resource.data.assignedProvider == request.auth.uid;
+    }
+
+    function orderPriceFieldsUnchanged() {
+      return request.resource.data.estimatedPrice == resource.data.estimatedPrice
+        && request.resource.data.providerCommission == resource.data.providerCommission;
+    }
+
+    function orderSensitiveAssignmentFieldsUnchanged() {
+      return request.resource.data.assignedProvider == resource.data.assignedProvider
+        && request.resource.data.assignedProviderName == resource.data.assignedProviderName
+        && request.resource.data.clientVerificationCode == resource.data.clientVerificationCode
+        && request.resource.data.providerVerificationCode == resource.data.providerVerificationCode;
+    }
+
+    function validOrderCreate() {
+      return isSignedIn()
+        && request.resource.data.clientId == request.auth.uid
+        && request.resource.data.status == 'awaiting_payment'
+        && request.resource.data.paymentStatus == 'awaiting_payment'
+        && request.resource.data.estimatedPrice is number
+        && request.resource.data.estimatedPrice > 0
+        && request.resource.data.providerCommission is number
+        && request.resource.data.providerCommission >= 0
+        && request.resource.data.keys().hasAll([
+          'clientId', 'clientName', 'protocol', 'serviceType', 'serviceName',
+          'description', 'address', 'city', 'state', 'status', 'paymentStatus',
+          'estimatedPrice', 'providerCommission', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'clientId', 'clientName', 'clientEmail', 'clientPhone', 'protocol',
+          'serviceType', 'serviceName', 'description', 'address', 'zipCode',
+          'complement', 'city', 'state', 'coordinates', 'scheduledDate',
+          'preferredTimeSlot', 'images', 'cartCheckoutCode', 'cartItemId',
+          'status', 'paymentStatus', 'estimatedPrice',
+          'providerCommission', 'createdAt', 'updatedAt'
+        ]);
+    }
+
+    function validClientOrderUpdate() {
+      return isOrderClient()
+        && orderPriceFieldsUnchanged()
+        && orderSensitiveAssignmentFieldsUnchanged()
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['images', 'updatedAt'])
+          || (
+            request.resource.data.status == 'cancelled'
+            && request.resource.data.cancelledBy == 'client'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'cancelledAt', 'cancelledBy', 'cancellationReason',
+              'updatedAt', 'refundStatus', 'refundRequestedAt'
+            ])
+          )
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'clientCompletionConfirmed', 'status', 'completedAt', 'updatedAt'
+          ])
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'rating', 'review', 'detailedRatings', 'ratedAt', 'updatedAt'
+          ])
+        );
+    }
+
+    function validProviderAcceptUpdate() {
+      return isSignedIn()
+        && resource.data.status in ['distributing', 'pending', 'available']
+        && (resource.data.assignedProvider == null || resource.data.assignedProvider == '')
+        && request.resource.data.status == 'assigned'
+        && request.resource.data.assignedProvider == request.auth.uid
+        && request.resource.data.assignedProviderName is string
+        && request.resource.data.clientVerificationCode is string
+        && request.resource.data.providerVerificationCode is string
+        && orderPriceFieldsUnchanged()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'assignedProvider', 'assignedProviderName', 'status', 'assignedAt',
+          'clientVerificationCode', 'providerVerificationCode',
+          'verificationCodesGeneratedAt', 'updatedAt'
+        ]);
+    }
+
+    function validProviderOrderUpdate() {
+      return isOrderAssignedProvider()
+        && orderPriceFieldsUnchanged()
+        && (
+          (
+            resource.data.status == 'assigned'
+            && request.resource.data.status == 'in_progress'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'startedAt', 'updatedAt'])
+          )
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'providerCompletionConfirmed', 'clientCompletionConfirmed', 'status',
+            'completedAt', 'updatedAt'
+          ])
+          || (
+            request.resource.data.status == 'cancelled'
+            && request.resource.data.cancelledBy == 'provider'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'status', 'cancelledAt', 'cancelledBy', 'cancellationReason', 'updatedAt'
+            ])
+          )
+        );
+    }
+
     // ===== USUÁRIOS =====
 
     match /users/{userId} {
@@ -76,13 +183,10 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn()
-        && request.resource.data.clientId == request.auth.uid;
-      allow update: if isSignedIn()
-        && (
-          request.resource.data.clientId == resource.data.clientId ||
-          resource.data.clientId == null
-        );
+      allow create: if validOrderCreate();
+      allow update: if validClientOrderUpdate()
+        || validProviderAcceptUpdate()
+        || validProviderOrderUpdate();
       allow delete: if orderDeleteAllowed();
 
       match /messages/{messageId} {

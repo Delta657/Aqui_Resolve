@@ -1,10 +1,12 @@
 ﻿package com.aquiresolve.app
 
+import android.content.Context
 import android.util.Log
 import com.aquiresolve.app.models.CartItemData
 import com.aquiresolve.app.models.OrderData
+import com.aquiresolve.app.payment.PagarMeManager
+import com.aquiresolve.app.payment.PricingResult
 import com.aquiresolve.app.utils.ProtocolGenerator
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -21,7 +23,12 @@ data class PreparedCartCheckout(
     val totalAmount: Double
 )
 
-class FirebaseCartManager {
+private data class CartItemPricing(
+    val estimatedPrice: Double,
+    val providerCommission: Double
+)
+
+class FirebaseCartManager(private val context: Context? = null) {
 
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
@@ -41,6 +48,22 @@ class FirebaseCartManager {
             category = item.serviceNiche,
             serviceType = item.serviceType
         ) ?: com.aquiresolve.app.models.ServicePricing.getDefaultPrice(item.serviceNiche)
+    }
+
+    private suspend fun resolveItemPricingForCheckout(item: CartItemData): CartItemPricing {
+        val appContext = context
+            ?: throw IllegalStateException("Contexto Android indisponível para precificação no backend")
+
+        return when (val result = PagarMeManager(appContext).calculateServicePricing(
+            category = item.serviceNiche,
+            serviceType = item.serviceType
+        )) {
+            is PricingResult.Success -> CartItemPricing(
+                estimatedPrice = result.estimatedPrice,
+                providerCommission = result.providerCommission
+            )
+            is PricingResult.Error -> throw IllegalStateException(result.message)
+        }
     }
 
     suspend fun addItem(item: CartItemData): Result<String> {
@@ -128,6 +151,11 @@ class FirebaseCartManager {
         }
     }
 
+    /**
+     * Mantido apenas para compatibilidade. A confirmação real de pagamento/status do carrinho
+     * agora é feita pelo backend, via criação da transação, polling seguro e webhook Pagar.me.
+     */
+    @Deprecated("Use backend payment sync; client must not write paymentStatus/status after checkout.")
     suspend fun checkoutCart(
         userId: String,
         orderIds: List<String>,
@@ -135,50 +163,10 @@ class FirebaseCartManager {
         transactionId: String,
         paymentStatus: String
     ): Result<List<String>> {
-        return try {
-            if (orderIds.isEmpty()) {
-                return Result.failure(Exception("Nenhum pedido pendente encontrado para finalizar"))
-            }
-
-            val now = Timestamp.now()
-            val batch = db.batch()
-            val finalStatus = if (paymentStatus == "paid") {
-                OrderData.STATUS_DISTRIBUTING
-            } else {
-                OrderData.STATUS_AWAITING_PAYMENT
-            }
-
-            orderIds.forEach { orderId ->
-                val orderRef = db.collection("orders").document(orderId)
-                val updates = mutableMapOf<String, Any>(
-                    "paymentStatus" to paymentStatus,
-                    "transactionId" to transactionId,
-                    "status" to finalStatus,
-                    "updatedAt" to now
-                )
-
-                if (paymentStatus == "paid") {
-                    updates["confirmedAt"] = now
-                } else {
-                    updates["confirmedAt"] = FieldValue.delete()
-                }
-
-                batch.update(orderRef, updates)
-            }
-
-            cartItemIds.forEach { itemId ->
-                val cartItemRef = db.collection(CARTS_COLLECTION)
-                    .document(userId)
-                    .collection(ITEMS_COLLECTION)
-                    .document(itemId)
-                batch.delete(cartItemRef)
-            }
-
-            batch.commit().await()
+        return if (orderIds.isEmpty()) {
+            Result.failure(Exception("Nenhum pedido pendente encontrado para finalizar"))
+        } else {
             Result.success(orderIds)
-        } catch (e: Exception) {
-            Log.e(TAG, "Erro ao finalizar checkout do carrinho", e)
-            Result.failure(e)
         }
     }
 
@@ -212,7 +200,10 @@ class FirebaseCartManager {
             val batch = db.batch()
             val createdOrderIds = mutableListOf<String>()
             val cartItemIds = items.map { it.id }
-            val totalAmount = items.sumOf(::resolveItemPrice)
+            val pricingByItemId = items.associate { item ->
+                item.id to resolveItemPricingForCheckout(item)
+            }
+            val totalAmount = pricingByItemId.values.sumOf { it.estimatedPrice }
 
             if (totalAmount <= 0) {
                 return Result.failure(Exception("Carrinho com valor inválido para pagamento"))
@@ -221,12 +212,10 @@ class FirebaseCartManager {
             items.forEach { item ->
                 val orderRef = db.collection("orders").document()
                 createdOrderIds.add(orderRef.id)
-                val effectivePrice = resolveItemPrice(item)
-
-                val providerCommission = com.aquiresolve.app.models.ServicePricing.getProviderValue(
-                    category = item.serviceNiche,
-                    serviceType = item.serviceType
-                ) ?: com.aquiresolve.app.models.ServicePricing.getDefaultProviderValue(item.serviceNiche)
+                val pricing = pricingByItemId[item.id]
+                    ?: throw IllegalStateException("Preço do item não calculado")
+                val effectivePrice = pricing.estimatedPrice
+                val providerCommission = pricing.providerCommission
 
                 val orderData = mutableMapOf<String, Any>(
                     "clientId" to userId,
