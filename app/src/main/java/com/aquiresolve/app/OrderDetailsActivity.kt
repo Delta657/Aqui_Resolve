@@ -20,6 +20,7 @@ import com.aquiresolve.app.adapters.ImageAdapter
 import com.aquiresolve.app.databinding.ActivityOrderDetailsBinding
 import com.aquiresolve.app.models.OrderData
 import com.aquiresolve.app.models.OrderStatus
+import com.aquiresolve.app.models.OsChecklistData
 import com.aquiresolve.app.utils.ProtocolGenerator
 import com.aquiresolve.app.utils.VerificationCodeDialog
 import kotlinx.coroutines.delay
@@ -68,7 +69,12 @@ class OrderDetailsActivity : AppCompatActivity() {
     // Firebase
     private val db = FirebaseFirestore.getInstance()
     private lateinit var orderManager: FirebaseOrderManager
+    private lateinit var checklistManager: FirebaseChecklistManager
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    // OS Checklist
+    private var osChecklist: OsChecklistData? = null
+    private var osStatusCard: com.google.android.material.card.MaterialCardView? = null
     
     // Map overlays
     private var clientMarker: Marker? = null
@@ -116,6 +122,7 @@ class OrderDetailsActivity : AppCompatActivity() {
         
         // Inicializar managers
         orderManager = FirebaseOrderManager()
+        checklistManager = FirebaseChecklistManager()
         
         // Configurar a interface
         setupUI()
@@ -195,6 +202,7 @@ class OrderDetailsActivity : AppCompatActivity() {
                     val orderData = result.getOrNull()
                     if (orderData != null) {
                         order = orderData
+                        loadChecklistData(orderData.id)
                         updateUI(orderData)
                     } else {
                         showErrorMessage("Pedido não encontrado")
@@ -210,6 +218,24 @@ class OrderDetailsActivity : AppCompatActivity() {
                 finish()
             } finally {
                 showLoading(false)
+            }
+        }
+    }
+
+    /**
+     * Carrega dados do checklist da OS
+     */
+    private fun loadChecklistData(orderId: String) {
+        lifecycleScope.launch {
+            try {
+                val result = checklistManager.getChecklist(orderId)
+                if (result.isSuccess) {
+                    osChecklist = result.getOrNull()
+                    // Reconfigurar botões com base no checklist
+                    order?.let { setActionButtons(it) }
+                }
+            } catch (e: Exception) {
+                android.util.Log.w("OrderDetails", "Erro ao carregar checklist: ${e.message}")
             }
         }
     }
@@ -427,9 +453,18 @@ class OrderDetailsActivity : AppCompatActivity() {
         val (primaryText, secondaryText) = if (isProviderView) {
             when (order.status) {
                 OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING -> "Aceitar Pedido" to "Ver Detalhes"
-                OrderData.STATUS_ASSIGNED -> "Chat" to "Finalizar Pedido"
-                OrderData.STATUS_IN_PROGRESS -> "Chat" to "Finalizar Pedido"
-                OrderData.STATUS_COMPLETED -> "Ver Detalhes" to "—"
+                OrderData.STATUS_ASSIGNED -> "Iniciar OS" to "Chat"
+                OrderData.STATUS_IN_PROGRESS -> {
+                    val checklist = osChecklist
+                    when {
+                        checklist == null -> "Iniciar OS" to "Chat"
+                        checklist.status == OsChecklistData.STATUS_COMPLETED -> "Ver OS" to "Chat"
+                        else -> "Continuar OS" to "Chat"
+                    }
+                }
+                OrderData.STATUS_COMPLETED -> {
+                    if (osChecklist != null) "Ver OS" to "—" else "Ver Detalhes" to "—"
+                }
                 OrderData.STATUS_CANCELLED, OrderData.STATUS_EXPIRED -> "Ver Detalhes" to "—"
                 else -> "Ver Detalhes" to "—"
             }
@@ -497,6 +532,12 @@ class OrderDetailsActivity : AppCompatActivity() {
                     binding.btnSecondaryAction.isEnabled = true
                 }
             }
+            // Para provider, usar cor verde no botão primário de OS
+            if (primaryText.contains("OS", ignoreCase = true) || primaryText == "Continuar OS" || primaryText == "Ver OS") {
+                binding.btnPrimaryAction.backgroundTintList = ContextCompat.getColorStateList(this, R.color.secondary_color)
+            } else {
+                binding.btnPrimaryAction.backgroundTintList = ContextCompat.getColorStateList(this, R.color.primary_color)
+            }
         } else {
             when (order.status) {
                 "distributing" -> {
@@ -543,9 +584,20 @@ class OrderDetailsActivity : AppCompatActivity() {
             if (isProviderView) {
                 when (order.status) {
                     OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING -> acceptOrderAsProvider(order)
-                    OrderData.STATUS_ASSIGNED, OrderData.STATUS_IN_PROGRESS -> {
-                        // Abrir chat
-                        openChat()
+                    OrderData.STATUS_ASSIGNED -> {
+                        // Iniciar OS (checklist)
+                        startOsFlow(order)
+                    }
+                    OrderData.STATUS_IN_PROGRESS -> {
+                        val checklist = osChecklist
+                        when {
+                            checklist == null -> startOsFlow(order)
+                            checklist.status == OsChecklistData.STATUS_COMPLETED -> viewOsHistory(order)
+                            else -> continueOs(checklist)
+                        }
+                    }
+                    OrderData.STATUS_COMPLETED -> {
+                        if (osChecklist != null) viewOsHistory(order) else openChat()
                     }
                     else -> openChat()
                 }
@@ -687,14 +739,11 @@ class OrderDetailsActivity : AppCompatActivity() {
     private fun handleSecondaryAction() {
         order?.let { order ->
             if (isProviderView) {
-                // Prestador: botão secundário
                 when (order.status) {
                     OrderData.STATUS_ASSIGNED, OrderData.STATUS_IN_PROGRESS -> {
-                        // Finalizar pedido com código de verificação
-                        finishServiceWithCode(order)
+                        openChat()
                     }
                     OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING -> {
-                        // Já está nos detalhes — scroll para o topo
                         binding.contentLayout.smoothScrollTo(0, 0)
                     }
                     else -> {}
@@ -1522,6 +1571,108 @@ class OrderDetailsActivity : AppCompatActivity() {
             binding.loadingState.visibility = View.GONE
             binding.contentLayout.visibility = View.VISIBLE
         }
+    }
+
+    /**
+     * Inicia o fluxo da OS: registra GPS, cria checklist, navega para ChecklistActivity
+     */
+    private fun startOsFlow(order: OrderData) {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+            != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            AlertDialog.Builder(this)
+                .setTitle("Permissão de Localização")
+                .setMessage("Para iniciar o serviço, precisamos da sua localização GPS.")
+                .setPositiveButton("Permitir") { _, _ ->
+                    requestLocationPermissionLauncher.launch(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
+            return
+        }
+
+        lifecycleScope.launch {
+            try {
+                showLoading(true)
+
+                var latitude: Double? = null
+                var longitude: Double? = null
+                try {
+                    val location = fusedLocationClient.lastLocation.await()
+                    if (location != null) {
+                        latitude = location.latitude
+                        longitude = location.longitude
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.w("OrderDetails", "GPS não disponível: ${e.message}")
+                }
+
+                val statusResult = orderManager.startService(order.id)
+                if (statusResult.isFailure) {
+                    showErrorMessage("Erro ao iniciar serviço: ${statusResult.exceptionOrNull()?.message}")
+                    showLoading(false)
+                    return@launch
+                }
+
+                val checklistResult = checklistManager.startService(order.id, latitude, longitude)
+                if (checklistResult.isFailure) {
+                    showErrorMessage("Erro ao criar checklist")
+                    showLoading(false)
+                    return@launch
+                }
+
+                showLoading(false)
+                showSuccessMessage("Serviço iniciado!")
+
+                val intent = Intent(this@OrderDetailsActivity, ChecklistActivity::class.java).apply {
+                    putExtra("order_id", order.id)
+                    putExtra("is_provider_view", true)
+                }
+                startActivity(intent)
+
+            } catch (e: Exception) {
+                showLoading(false)
+                showErrorMessage("Erro ao iniciar OS: ${e.message}")
+            }
+        }
+    }
+
+    private val requestLocationPermissionLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            order?.let { startOsFlow(it) }
+        } else {
+            showErrorMessage("Permissão de localização necessária para iniciar o serviço")
+        }
+    }
+
+    /**
+     * Continua o checklist da OS
+     */
+    private fun continueOs(checklist: OsChecklistData) {
+        val intent = Intent(this, when (checklist.status) {
+            OsChecklistData.STATUS_CHECKLIST_PENDING -> ChecklistActivity::class.java
+            OsChecklistData.STATUS_PHOTOS_PENDING -> PhotoEvidenceActivity::class.java
+            OsChecklistData.STATUS_SIGNATURES_PENDING -> DigitalSignatureActivity::class.java
+            else -> OsHistoryActivity::class.java
+        }).apply {
+            putExtra("order_id", checklist.orderId)
+            putExtra("is_provider_view", true)
+            putExtra("client_name", order?.clientName)
+            putExtra("order_protocol", order?.protocol)
+        }
+        startActivity(intent)
+    }
+
+    /**
+     * Visualiza o histórico completo da OS
+     */
+    private fun viewOsHistory(order: OrderData) {
+        val intent = Intent(this, OsHistoryActivity::class.java).apply {
+            putExtra("order_id", order.id)
+        }
+        startActivity(intent)
     }
 
 } 

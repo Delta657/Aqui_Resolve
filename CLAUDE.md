@@ -20,7 +20,7 @@ AquiResolve — Android marketplace app connecting clients with service provider
 
 ## Build Configuration
 
-- **Compile/Target SDK:** 34 | **Min SDK:** 24
+- **Compile/Target SDK:** 35 | **Min SDK:** 24
 - **Kotlin:** 1.9.22 | **Gradle:** 8.8.0
 - **ViewBinding:** enabled
 - **ProGuard:** disabled (minifyEnabled false)
@@ -32,17 +32,20 @@ Three-layer architecture with Manager pattern as the central abstraction:
 
 **Presentation → Managers → Firebase**
 
-- **Activities (30+):** Each screen is a separate Activity using ViewBinding and coroutines (`lifecycleScope`).
+- **Activities (44+):** Each screen is a separate Activity using ViewBinding and coroutines (`lifecycleScope`).
 - **Managers:** All business logic lives in manager classes — not in Activities. Two categories:
-  - **Firebase Managers** (`FirebaseAuthManager`, `FirebaseOrderManager`, `FirebaseChatManager`, `FirebaseImageManager`, `FirebaseStorageManager`, `FirebaseProviderManager`, `FirebasePrivacyManager`, `FirebaseBankDataManager`) — wrap Firestore/Auth/Storage operations.
+  - **Firebase Managers** (`FirebaseAuthManager`, `FirebaseOrderManager`, `FirebaseChatManager`, `FirebaseImageManager`, `FirebaseStorageManager`, `FirebaseProviderManager`, `FirebasePrivacyManager`, `FirebaseBankDataManager`, `FirebaseChecklistManager`) — wrap Firestore/Auth/Storage operations.
   - **Business Logic Managers** (`OrderManager`, `OrderDistributionManager`, `PaymentManager`, `SchedulingManager`, `ChatManager`, `NotificationManager`, `RatingManager`, `ServiceHistoryManager`) — orchestrate workflows.
 - **Models** in `models/` with Firestore `@PropertyName` annotations and a `payment/` subdirectory.
-- **Adapters** in `adapters/` — 15 RecyclerView adapters.
+- **Adapters** in `adapters/` — 16 RecyclerView adapters.
+- **Views** in `views/` — custom component (SignaturePad for digital signatures).
 - **Utils** in `utils/` — permission helpers, code generators, image utilities.
 
 ## Key Subsystems
 
 **Order flow:** pending → distributing → assigned → in_progress → completed. Uses 6-digit verification codes. Cancellation refund policy changes after 5 minutes.
+
+**OS Checklist:** Ordem de Serviço lifecycle — GPS + timestamp on start, 10-question checklist (arrival + execution), 3-category photos (before/during/after), digital signatures (provider + client). Status: checklist_pending → photos_pending → signatures_pending → completed. Data in Firestore `checklists/{orderId}`.
 
 **Payment:** Pagar.me v5 API via Retrofit/OkHttp. Supports credit card (Luhn validation, brand detection) and PIX (QR code generation with ZXing, 5-second auto-polling for confirmation).
 
@@ -64,4 +67,4 @@ Firebase BOM 32.7.0 (Auth, Firestore, Storage, Messaging, Analytics), Retrofit 2
 
 ## Firebase
 
-Project: `aplicativoservico-143c2`. Config in `app/google-services.json`. Storage rules in `storage.rules`, indexes in `firestore.indexes.json`.
+Project: `aplicativoservico-143c2`. Config in `app/google-services.json`. Storage rules in `storage.rules`, indexes in `firestore.indexes.json`. Collections: `orders`, `checklists`, `chats`.

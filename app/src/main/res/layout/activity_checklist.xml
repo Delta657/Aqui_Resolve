@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_color"
+    tools:context=".ChecklistActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/secondary_color"
+        app:elevation="0dp">
+
+        <androidx.appcompat.widget.Toolbar
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/secondary_color">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/btnBack"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_back"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="12dp"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Checklist do Serviço"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/tvStep"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1/2"
+                    android:textSize="14sp"
+                    android:textColor="@color/white"
+                    android:paddingEnd="16dp" />
+
+            </LinearLayout>
+
+        </androidx.appcompat.widget.Toolbar>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Progress Indicator -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="20dp">
+
+                <View
+                    android:id="@+id/vProgress1"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/circle_background_secondary" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="4dp"
+                    android:layout_weight="1"
+                    android:id="@+id/vProgressLine"
+                    android:background="@color/gray_300"
+                    android:layout_marginHorizontal="4dp" />
+
+                <View
+                    android:id="@+id/vProgress2"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/circle_background_gray" />
+
+            </LinearLayout>
+
+            <!-- Step 1: Chegada ao local -->
+            <LinearLayout
+                android:id="@+id/layoutStep1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/white"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="1. Chegada ao Local"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="16dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbClientPresent"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Cliente presente no local?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbServiceMatches"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Serviço corresponde ao solicitado?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbVisibleDamage"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Existem avarias visíveis antes do início?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbMaterialAvailable"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Material necessário disponível?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbClientObservations"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Houve alguma observação do cliente?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/white"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2. Execução do Serviço"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="16dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbExecutedAsRequested"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Serviço executado conforme solicitado?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbAdditionalService"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Foi necessário serviço adicional?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbPartsReplaced"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Houve troca de peças?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbValueChanged"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Houve alteração no valor?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbServiceCompleted"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Serviço concluído com sucesso?"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary" />
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/white"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Descrição Detalhada do Serviço Realizado"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Descreva exatamente o que foi executado no local."
+                            android:textSize="13sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginBottom="12dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:hint="Descrição do serviço realizado">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etExecutionDescription"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:minHeight="120dp"
+                                android:gravity="top"
+                                android:textSize="14sp"
+                                android:inputType="textMultiLine" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
+            <!-- Step 2: Fotos (inicialmente oculto) -->
+            <LinearLayout
+                android:id="@+id/layoutStep2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="📷 Fotos do Serviço"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="16dp" />
+
+            </LinearLayout>
+
+            <!-- Botões -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="32dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnNext"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Próximo: Fotos"
+                    android:textSize="16sp"
+                    app:cornerRadius="8dp"
+                    android:backgroundTint="@color/secondary_color"
+                    android:textColor="@color/white"
+                    android:padding="16dp"
+                    android:layout_marginBottom="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveDraft"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Salvar Rascunho"
+                    android:textSize="14sp"
+                    app:cornerRadius="8dp"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:textColor="@color/text_secondary"
+                    app:strokeColor="@color/gray_300"
+                    android:padding="12dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

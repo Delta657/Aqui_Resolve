@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_color"
+    tools:context=".OsHistoryActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/primary_color"
+        app:elevation="0dp">
+
+        <androidx.appcompat.widget.Toolbar
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/primary_color">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/btnBack"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_back"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="12dp"
+                    app:tint="@color/white" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Histórico da OS"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/white"
+                    android:gravity="center" />
+
+                <ImageView
+                    android:id="@+id/btnExportPdf"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_share"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="12dp"
+                    app:tint="@color/white" />
+
+            </LinearLayout>
+
+        </androidx.appcompat.widget.Toolbar>
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+    <LinearLayout
+        android:id="@+id/loadingState"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:background="@color/background_color"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            app:indicatorColor="@color/primary_color"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Carregando histórico..."
+            android:textSize="16sp"
+            android:textColor="@color/text_secondary" />
+
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <LinearLayout
+            android:id="@+id/layoutContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- OS Info -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Informações da OS"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvOsProtocol"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Protocolo: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/tvOsClient"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Cliente: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/tvOsProvider"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Prestador: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/tvOsService"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Serviço: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/tvOsAddress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Endereço: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="6dp" />
+
+                    <TextView
+                        android:id="@+id/tvOsDate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Data: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Checklist Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardChecklist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✅ Checklist"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvClientPresent"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Cliente presente: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvServiceMatches"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Serviço corresponde: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvVisibleDamage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Avarias visíveis: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvMaterialAvailable"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Material disponível: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvClientObservations"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Observações do cliente: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="8dp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_color"
+                        android:layout_marginVertical="8dp" />
+
+                    <TextView
+                        android:id="@+id/tvExecutedAsRequested"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Executado conforme solicitado: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvAdditionalService"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Serviço adicional: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvPartsReplaced"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Troca de peças: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvValueChanged"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Alteração no valor: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvServiceCompleted"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Concluído com sucesso: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="8dp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_color"
+                        android:layout_marginVertical="8dp" />
+
+                    <TextView
+                        android:id="@+id/tvExecutionDescription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Descrição: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Photos Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPhotosBefore"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📷 Antes do Serviço"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvPhotosBefore"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPhotosDuring"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📷 Durante o Serviço"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvPhotosDuring"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPhotosAfter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📷 Depois do Serviço"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvPhotosAfter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Signatures Section -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSignatures"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="✍️ Assinaturas"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvProviderSignature"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Prestador: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvProviderSignedAt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Data/Hora: --"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="12dp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/divider_color"
+                        android:layout_marginVertical="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvClientSignature"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Cliente: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvClientDocument"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Documento: --"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvClientSignedAt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Data/Hora: --"
+                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- GPS Info -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginBottom="32dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📍 Localização de Início"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp" />
+
+                    <TextView
+                        android:id="@+id/tvGpsCoordinates"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Coordenadas: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvOsStartedAt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Iniciado em: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="4dp" />
+
+                    <TextView
+                        android:id="@+id/tvOsCompletedAt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Concluído em: --"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

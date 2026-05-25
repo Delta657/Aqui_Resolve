@@ -83,5 +83,17 @@
     <string name="document_rejected">Documento rejeitado</string>
     <string name="verification_submitted">Documentos enviados para verificação!</string>
     <string name="verification_notification">Você será notificado sobre o resultado em até 48 horas</string>
+
+    <!-- OS Checklist -->
+    <string name="os_title">Checklist de Serviço</string>
+    <string name="os_start_service">Iniciar Serviço</string>
+    <string name="os_continue">Continuar OS</string>
+    <string name="os_view_history">Ver Histórico da OS</string>
+    <string name="os_checklist_complete">Checklist concluído</string>
+    <string name="os_photos_pending">Fotos pendentes</string>
+    <string name="os_signatures_pending">Assinaturas pendentes</string>
+    <string name="os_completed">OS Concluída</string>
+    <string name="os_gps_required">Localização GPS necessária para iniciar o serviço</string>
+    <string name="os_location_permission">Permissão de localização necessária</string>
 </resources>
 

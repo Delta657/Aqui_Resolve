@@ -130,6 +130,28 @@
             android:exported="false"
             android:theme="@style/Theme.LoginApp" />
 
+        <!-- OS Checklist Activities -->
+        <activity
+            android:name=".ChecklistActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".PhotoEvidenceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".DigitalSignatureActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".OsHistoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:screenOrientation="portrait" />
+
         <!-- Admin Activities -->
 
 

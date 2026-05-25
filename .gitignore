@@ -19,6 +19,7 @@ local.properties
 *.keystore
 *.keystore.properties
 keystore.zip
+keystore/
 
 # Logs e dumps
 *.log

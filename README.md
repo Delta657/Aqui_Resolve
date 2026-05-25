@@ -25,11 +25,12 @@ Aplicativo Android para conectar clientes a prestadores de serviços. Clientes e
 Activities → Managers → Firebase
 ```
 
-- **Presentation:** ~40 Activities com ViewBinding + coroutines (`lifecycleScope`)
-- **Managers:** Toda a lógica de negócio em classes separadas (Firebase e negócio)
+- **Presentation:** ~44 Activities com ViewBinding + coroutines (`lifecycleScope`)
+- **Managers:** Toda a lógica de negócio em classes separadas (Firebase e negócio) — inclui FirebaseChecklistManager, FirebaseAuthManager, FirebaseOrderManager, etc.
 - **Models:** Anotados com `@PropertyName` do Firestore
-- **Adapters:** ~15 RecyclerView adapters
+- **Adapters:** ~16 RecyclerView adapters
 - **Utils:** `PriceFormatter`, `ProtocolGenerator`, `NotificationBadgeHelper`, `TextFormatter`, `LocationPermissionHelper`, `ServiceSearchHelper`, `ServiceNicheCatalog`
+- **Views:** Componentes customizados em `views/` (SignaturePad para assinaturas digitais)
 
 ## Funcionalidades
 
@@ -65,6 +66,15 @@ Activities → Managers → Firebase
 - Google Play Services (atualização a cada 5 min)
 - Mapas via OSMDroid (OpenStreetMap)
 - GeoPoint no Firestore
+
+### OS Checklist (Ordem de Serviço)
+- Checklist de execução com 10 perguntas (chegada ao local + execução do serviço)
+- Captura de GPS e timestamp no início do serviço
+- 3 categorias de fotos (antes/durante/depois), upload para Firebase Storage
+- Assinaturas digitais do prestador e do cliente com desenho à mão livre (SignaturePad)
+- Fluxo de status: `checklist_pending → photos_pending → signatures_pending → completed`
+- Histórico completo por pedido em OsHistoryActivity
+- Coleção `checklists/{orderId}` no Firestore
 
 ### Imagens
 - Compressão para max 1MB / 1920x1080
@@ -135,6 +145,7 @@ app/
 │   │   └── payment/       # Modelos de pagamento
 │   ├── payment/           # Lógica Pagar.me
 │   ├── utils/             # Helpers (PriceFormatter, ProtocolGenerator, permissões)
+│   ├── views/             # Custom views (SignaturePad)
 │   ├── *.kt               # Activities + Managers
 │   └── AppApplication.kt  # Application class
 ├── google-services.json   # Config Firebase
@@ -152,7 +163,7 @@ app/
 ## Firebase
 
 - **Projeto:** `aplicativoservico-143c2`
-- **Firestore:** Regras em `firestore.rules`, índices em `firestore.indexes.json`
+- **Firestore:** Regras em `firestore.rules`, índices em `firestore.indexes.json`. Coleções: `orders`, `checklists`, `chats`, etc.
 - **Storage:** Regras em `storage.rules`
 - **Realtime Database:** Regras em `database.rules.json`
 
