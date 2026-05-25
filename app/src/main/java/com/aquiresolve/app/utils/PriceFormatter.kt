@@ -8,7 +8,10 @@ import java.util.Locale
 object PriceFormatter {
     private val CURRENCY_FORMAT = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
 
-    fun format(value: Double): String = CURRENCY_FORMAT.format(value)
+    fun format(value: Double): String {
+        DebugPrice.overrideAmount?.let { return CURRENCY_FORMAT.format(it) }
+        return CURRENCY_FORMAT.format(value)
+    }
 
     fun formatOrderPrice(order: OrderData): String {
         val price = when {
@@ -19,6 +22,6 @@ object PriceFormatter {
                 serviceType = order.serviceType
             ) ?: ServicePricing.getDefaultPrice(order.serviceName)
         }
-        return CURRENCY_FORMAT.format(price)
+        return format(price)
     }
 }
