@@ -166,9 +166,10 @@ class DigitalSignatureActivity : AppCompatActivity() {
                     checklistManager.saveClientSignature(orderId!!, clientUrl, clientName, clientDocument)
                 }
 
-                // Complete the order
+                // Complete the order (ambas as partes assinaram)
                 val orderManager = FirebaseOrderManager()
                 orderManager.confirmCompletion(orderId!!, "provider")
+                orderManager.confirmCompletion(orderId!!, "client")
 
                 showSuccessAndFinish()
             } catch (e: Exception) {

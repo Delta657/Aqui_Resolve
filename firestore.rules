@@ -313,6 +313,16 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid;
     }
 
+    // ===== CHECKLIST OS =====
+
+    match /checklists/{orderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.orderId == orderId;
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+
     // ===== NEGA TUDO QUE NÃO FOI EXPLICITAMENTE PERMITIDO =====
 
     match /{document=**} {
