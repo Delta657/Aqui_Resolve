@@ -1,0 +1,306 @@
+[1mdiff --git a/app/users/verifications/page.tsx b/app/users/verifications/page.tsx[m
+[1mindex 1f5041b..cc689e6 100644[m
+[1m--- a/app/users/verifications/page.tsx[m
+[1m+++ b/app/users/verifications/page.tsx[m
+[36m@@ -182,8 +182,8 @@[m [mexport default function VerificationsPage() {[m
+     <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>[m
+       <div className="space-y-6 p-4 sm:p-6 lg:p-8">[m
+         {/* Header */}[m
+[31m-      <div className="flex items-center justify-between">[m
+[31m-        <div>[m
+[32m+[m[32m        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">[m
+[32m+[m[32m          <div className="space-y-1">[m
+             <h1 className="text-3xl font-bold" style={{ color: 'var(--foreground)' }}>[m
+               Verificações de Prestadores[m
+             </h1>[m
+[36m@@ -191,11 +191,11 @@[m [mexport default function VerificationsPage() {[m
+               Aprove ou recuse cadastros de prestadores de serviço[m
+             </p>[m
+           </div>[m
+[31m-          <div className="flex items-center gap-2">[m
+[32m+[m[32m          <div className="flex flex-col gap-2 w-full sm:flex-row sm:w-auto sm:items-center">[m
+             <Button [m
+               variant="outline" [m
+               onClick={() => refetch()}[m
+[31m-              className="flex items-center gap-2"[m
+[32m+[m[32m              className="flex items-center gap-2 w-full sm:w-auto"[m
+             >[m
+               <RefreshCw className="h-4 w-4" />[m
+               Atualizar[m
+[36m@@ -215,7 +215,7 @@[m [mexport default function VerificationsPage() {[m
+                 })[m
+                 setShowDetails(true)[m
+               }}[m
+[31m-              className="flex items-center gap-2"[m
+[32m+[m[32m              className="flex items-center gap-2 w-full sm:w-auto"[m
+             >[m
+               Testar Modal[m
+             </Button>[m
+[36m@@ -223,7 +223,7 @@[m [mexport default function VerificationsPage() {[m
+         </div>[m
+ [m
+         {/* Stats Cards */}[m
+[31m-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">[m
+[32m+[m[32m        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">[m
+           <Card className="border-0 shadow-lg" style={{ backgroundColor: 'var(--card)' }}>[m
+             <CardContent className="p-6">[m
+               <div className="flex items-center justify-between">[m
+[36m@@ -289,8 +289,8 @@[m [mexport default function VerificationsPage() {[m
+               Filtros e Busca[m
+             </CardTitle>[m
+         </CardHeader>[m
+[31m-        <CardContent>[m
+[31m-          <div className="flex flex-col md:flex-row gap-4">[m
+[32m+[m[32m          <CardContent>[m
+[32m+[m[32m            <div className="flex flex-col gap-4 md:flex-row">[m
+               <div className="flex-1">[m
+                 <div className="relative">[m
+                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />[m
+[36m@@ -302,7 +302,7 @@[m [mexport default function VerificationsPage() {[m
+                   />[m
+                 </div>[m
+               </div>[m
+[31m-              <div className="flex gap-2">[m
+[32m+[m[32m              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">[m
+                 <Button [m
+                   variant={statusFilter === "all" ? "default" : "outline"}[m
+                   onClick={() => setStatusFilter("all")}[m
+[36m@@ -367,91 +367,88 @@[m [mexport default function VerificationsPage() {[m
+               <div className="space-y-4">[m
+                 {filteredVerifications.map((verification) => ([m
+                   <Card key={verification.id} className="border shadow-sm hover:shadow-md transition-shadow">[m
+[31m-                    <CardContent className="p-6">[m
+[31m-                      <div className="flex items-start justify-between">[m
+[31m-                        <div className="flex-1">[m
+[31m-                          <div className="flex items-center gap-3 mb-4">[m
+[31m-                            <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">[m
+[31m-                              <span className="font-semibold text-primary-foreground">[m
+[31m-                                {verification.providerName.charAt(0).toUpperCase()}[m
+[31m-                              </span>[m
+[31m-                            </div>[m
+[31m-                            <div>[m
+[31m-                              <h3 className="font-semibold text-lg" style={{ color: 'var(--foreground)' }}>[m
+[31m-                                {verification.providerName}[m
+[31m-                              </h3>[m
+[31m-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">[m
+[32m+[m[32m                    <CardContent className="p-6 space-y-4">[m
+[32m+[m[32m                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">[m
+[32m+[m[32m                        <div className="flex items-center gap-3">[m
+[32m+[m[32m                          <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">[m
+[32m+[m[32m                            <span className="font-semibold text-primary-foreground">[m
+[32m+[m[32m                              {verification.providerName.charAt(0).toUpperCase()}[m
+[32m+[m[32m                            </span>[m
+[32m+[m[32m                          </div>[m
+[32m+[m[32m                          <div>[m
+[32m+[m[32m                            <h3 className="font-semibold text-lg" style={{ color: 'var(--foreground)' }}>[m
+[32m+[m[32m                              {verification.providerName}[m
+[32m+[m[32m                            </h3>[m
+[32m+[m[32m                            <div className="flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">[m
+[32m+[m[32m                              <div className="flex items-center gap-1">[m
+[32m+[m[32m                                <Mail className="h-4 w-4" />[m
+[32m+[m[32m                                {verification.providerEmail}[m
+[32m+[m[32m                              </div>[m
+[32m+[m[32m                              {verification.providerPhone && ([m
+                                 <div className="flex items-center gap-1">[m
+[31m-                                  <Mail className="h-4 w-4" />[m
+[31m-                                  {verification.providerEmail}[m
+[32m+[m[32m                                  <Phone className="h-4 w-4" />[m
+[32m+[m[32m                                  {verification.providerPhone}[m
+                                 </div>[m
+[31m-                                {verification.providerPhone && ([m
+[31m-                                  <div className="flex items-center gap-1">[m
+[31m-                                    <Phone className="h-4 w-4" />[m
+[31m-                                    {verification.providerPhone}[m
+[31m-                                  </div>[m
+[31m-                                )}[m
+[31m-                              </div>[m
+[32m+[m[32m                              )}[m
+                             </div>[m
+                           </div>[m
+[31m-[m
+[31m-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">[m
+[31m-                            <div>[m
+[31m-                              <p className="text-sm font-medium text-muted-foreground mb-1">Status</p>[m
+[31m-                              {getStatusBadge(verification.status)}[m
+[31m-                            </div>[m
+[31m-                            <div>[m
+[31m-                              <p className="text-sm font-medium text-muted-foreground mb-1">Documentos</p>[m
+[31m-                              <p className="text-sm">{verification.documents.length} documentos</p>[m
+[31m-                            </div>[m
+[31m-                            <div>[m
+[31m-                              <p className="text-sm font-medium text-muted-foreground mb-1">Enviado</p>[m
+[31m-                              <p className="text-sm">[m
+[31m-                                {formatDistanceToNow(verification.submittedAt, { [m
+[31m-                                  addSuffix: true, [m
+[31m-                                  locale: ptBR [m
+[31m-                                })}[m
+[31m-                              </p>[m
+[31m-                            </div>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                        <div className="flex flex-col gap-2 text-sm sm:text-right">[m
+[32m+[m[32m                          <div>[m
+[32m+[m[32m                            <p className="text-muted-foreground">Status</p>[m
+[32m+[m[32m                            {getStatusBadge(verification.status)}[m
+                           </div>[m
+[32m+[m[32m                          <div>[m
+[32m+[m[32m                            <p className="text-muted-foreground">Documentos</p>[m
+[32m+[m[32m                            <p>{verification.documents.length} documentos</p>[m
+[32m+[m[32m                          </div>[m
+[32m+[m[32m                          <div>[m
+[32m+[m[32m                            <p className="text-muted-foreground">Enviado</p>[m
+[32m+[m[32m                            <p>[m
+[32m+[m[32m                              {formatDistanceToNow(verification.submittedAt, {[m[41m [m
+[32m+[m[32m                                addSuffix: true,[m[41m [m
+[32m+[m[32m                                locale: ptBR[m[41m [m
+[32m+[m[32m                              })}[m
+[32m+[m[32m                            </p>[m
+[32m+[m[32m                          </div>[m
+[32m+[m[32m                        </div>[m
+[32m+[m[32m                      </div>[m
+ [m
+[31m-                          <div className="flex items-center gap-2">[m
+[32m+[m[32m                      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">[m
+[32m+[m[32m                        <Button[m
+[32m+[m[32m                          variant="outline"[m
+[32m+[m[32m                          size="sm"[m
+[32m+[m[32m                          onClick={() => {[m
+[32m+[m[32m                            setSelectedVerification(verification)[m
+[32m+[m[32m                            setShowDetails(true)[m
+[32m+[m[32m                          }}[m
+[32m+[m[32m                          className="flex items-center gap-2 w-full sm:w-auto"[m
+[32m+[m[32m                        >[m
+[32m+[m[32m                          <Eye className="h-4 w-4" />[m
+[32m+[m[32m                          Ver Detalhes[m
+[32m+[m[32m                        </Button>[m
+[32m+[m[41m                        [m
+[32m+[m[32m                        {verification.status === 'pending' && ([m
+[32m+[m[32m                          <>[m
+                             <Button[m
+[31m-                              variant="outline"[m
+                               size="sm"[m
+[31m-                              onClick={() => {[m
+[31m-                                setSelectedVerification(verification)[m
+[31m-                                setShowDetails(true)[m
+[31m-                              }}[m
+[31m-                              className="flex items-center gap-2"[m
+[32m+[m[32m                              onClick={() => handleApprove(verification.id)}[m
+[32m+[m[32m                              className="bg-green-600 hover:bg-green-700 flex items-center gap-2 w-full sm:w-auto"[m
+                             >[m
+[31m-                              <Eye className="h-4 w-4" />[m
+[31m-                              Ver Detalhes[m
+[32m+[m[32m                              <CheckCircle className="h-4 w-4" />[m
+[32m+[m[32m                              Aprovar[m
+                             </Button>[m
+[31m-                            [m
+[31m-                            {verification.status === 'pending' && ([m
+[31m-                              <>[m
+[31m-                                <Button[m
+[31m-                                  size="sm"[m
+[31m-                                  onClick={() => handleApprove(verification.id)}[m
+[31m-                                  className="bg-green-600 hover:bg-green-700 flex items-center gap-2"[m
+[31m-                                >[m
+[31m-                                  <CheckCircle className="h-4 w-4" />[m
+[31m-                                  Aprovar[m
+[31m-                                </Button>[m
+[31m-                                <Button[m
+[31m-                                  variant="destructive"[m
+[31m-                                  size="sm"[m
+[31m-                                  onClick={() => handleReject(verification.id)}[m
+[31m-                                  className="flex items-center gap-2"[m
+[31m-                                >[m
+[31m-                                  <XCircle className="h-4 w-4" />[m
+[31m-                                  Rejeitar[m
+[31m-                                </Button>[m
+[31m-                              </>[m
+[31m-                            )}[m
+[31m-                          </div>[m
+[31m-                        </div>[m
+[32m+[m[32m                            <Button[m
+[32m+[m[32m                              variant="destructive"[m
+[32m+[m[32m                              size="sm"[m
+[32m+[m[32m                              onClick={() => handleReject(verification.id)}[m
+[32m+[m[32m                              className="flex items-center gap-2 w-full sm:w-auto"[m
+[32m+[m[32m                            >[m
+[32m+[m[32m                              <XCircle className="h-4 w-4" />[m
+[32m+[m[32m                              Rejeitar[m
+[32m+[m[32m                            </Button>[m
+[32m+[m[32m                          </>[m
+[32m+[m[32m                        )}[m
+                       </div>[m
+                     </CardContent>[m
+                   </Card>[m
+[1mdiff --git a/components/users/verification-document-viewer.tsx b/components/users/verification-document-viewer.tsx[m
+[1mindex 6265cc1..4ce57fa 100644[m
+[1m--- a/components/users/verification-document-viewer.tsx[m
+[1m+++ b/components/users/verification-document-viewer.tsx[m
+[36m@@ -111,9 +111,9 @@[m [mexport function VerificationDocumentViewer({[m
+ [m
+   return ([m
+     <div className="space-y-4">[m
+[31m-      <div className="flex items-center justify-between">[m
+[32m+[m[32m      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">[m
+         <h3 className="text-lg font-semibold">Documentos Enviados ({documents.length})</h3>[m
+[31m-        <div className="flex items-center gap-2">[m
+[32m+[m[32m        <div className="flex flex-wrap items-center gap-2">[m
+           <Badge variant="outline" className="flex items-center gap-1">[m
+             <Clock className="h-3 w-3" />[m
+             {documents.filter(d => d.status === 'pending').length} Pendentes[m
+[36m@@ -125,7 +125,7 @@[m [mexport function VerificationDocumentViewer({[m
+         </div>[m
+       </div>[m
+ [m
+[31m-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">[m
+[32m+[m[32m      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">[m
+         {documents.map((document) => ([m
+           <Card key={document.id} className="border shadow-sm hover:shadow-md transition-shadow">[m
+             <CardContent className="p-4">[m
+[36m@@ -158,7 +158,7 @@[m [mexport function VerificationDocumentViewer({[m
+                 )}[m
+               </div>[m
+ [m
+[31m-              <div className="flex items-center gap-2">[m
+[32m+[m[32m              <div className="flex flex-wrap items-center gap-2">[m
+                 <Button[m
+                   variant="outline"[m
+                   size="sm"[m
+[36m@@ -260,6 +260,7 @@[m [mexport function VerificationDocumentViewer({[m
+                 </p>[m
+                 <div className="flex items-center justify-center gap-3">[m
+                   <Button[m
+[32m+[m[32m                    variant="outline"[m
+                     onClick={() => onViewDocument?.(selectedDocument.id)}[m
+                     className="flex items-center gap-2"[m
+                   >[m
+[36m@@ -267,7 +268,6 @@[m [mexport function VerificationDocumentViewer({[m
+                     Abrir em Nova Aba[m
+                   </Button>[m
+                   <Button[m
+[31m-                    variant="outline"[m
+                     onClick={() => onDownloadDocument?.(selectedDocument.id)}[m
+                     className="flex items-center gap-2"[m
+                   >[m
+[36m@@ -279,13 +279,13 @@[m [mexport function VerificationDocumentViewer({[m
+ [m
+               {/* Document Actions */}[m
+               {selectedDocument.status === 'pending' && ([m
+[31m-                <div className="flex items-center gap-3 pt-4 border-t">[m
+[32m+[m[32m                <div className="flex flex-col gap-3 pt-4 border-t sm:flex-row sm:items-center">[m
+                   <Button[m
+                     onClick={() => {[m
+                       onApproveDocument?.(selectedDocument.id)[m
+                       setSelectedDocument(null)[m
+                     }}[m
+[31m-                    className="bg-green-600 hover:bg-green-700 flex items-center gap-2"[m
+[32m+[m[32m                    className="bg-green-600 hover:bg-green-700 flex items-center gap-2 w-full sm:w-auto"[m
+                   >[m
+                     <CheckCircle className="h-4 w-4" />[m
+                     Aprovar Documento[m
+[36m@@ -296,7 +296,7 @@[m [mexport function VerificationDocumentViewer({[m
+                       onRejectDocument?.(selectedDocument.id)[m
+                       setSelectedDocument(null)[m
+                     }}[m
+[31m-                    className="flex items-center gap-2"[m
+[32m+[m[32m                    className="flex items-center gap-2 w-full sm:w-auto"[m
+                   >[m
+                     <XCircle className="h-4 w-4" />[m
+                     Rejeitar Documento[m

@@ -3,22 +3,51 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ===== FUNÇÕES AUXILIARES =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HELPERS — autenticação e papéis
+    // ═══════════════════════════════════════════════════════════════════════════
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function orderDeleteAllowed() {
+    // Admin/operador autenticado via custom claim
+    //   admin.auth().setCustomUserClaims(uid, { role: 'admin' })
+    function isAdmin() {
       return isSignedIn() && (
-        resource.data.clientId == request.auth.uid ||
-        resource.data.assignedProvider == request.auth.uid
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'operador'
       );
     }
+
+    // Prestador autenticado no app mobile
+    function isProvider() {
+      return isSignedIn() && (
+        request.auth.token.role == 'prestador' ||
+        request.auth.token.role == 'provider'
+      );
+    }
+
+    // Cliente autenticado no app mobile
+    function isClient() {
+      return isSignedIn() && (
+        request.auth.token.role == 'cliente' ||
+        request.auth.token.role == 'client'
+      );
+    }
+
+    function isProviderOrAdmin() {
+      return isProvider() || isAdmin();
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HELPERS — validação de pedidos (app mobile)
+    // ═══════════════════════════════════════════════════════════════════════════
 
     function isOrderClient() {
       return isSignedIn() && resource.data.clientId == request.auth.uid;
@@ -26,6 +55,14 @@ service cloud.firestore {
 
     function isOrderAssignedProvider() {
       return isSignedIn() && resource.data.assignedProvider == request.auth.uid;
+    }
+
+    function orderDeleteAllowed() {
+      return isAdmin() || (isSignedIn() && (
+        resource.data.clientId == request.auth.uid ||
+        resource.data.assignedProvider == request.auth.uid ||
+        resource.data.clienteId == request.auth.uid
+      ));
     }
 
     function orderPriceFieldsUnchanged() {
@@ -127,20 +164,35 @@ service cloud.firestore {
         );
     }
 
-    // ===== USUÁRIOS =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // adminmaster (dashboard — escrita apenas via Admin SDK, leitura bloqueada ao client)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    match /adminmaster/{document=**} {
+      allow read, write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Configurações do app (escrita apenas via Admin SDK / dashboard)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    match /app_config/{configId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Dashboard usa Admin SDK
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Usuários
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isOwner(userId)
         && request.resource.data.uid == userId;
       allow update: if isOwner(userId)
-        && (
-          request.resource.data.uid == userId ||
-          resource.data.uid == null
-        );
+        && (request.resource.data.uid == userId || resource.data.uid == null);
       allow delete: if isOwner(userId);
 
-      // Extrato de cashback do próprio cliente
       match /cashback_transactions/{txId} {
         allow read: if isOwner(userId);
         allow create: if isOwner(userId);
@@ -148,29 +200,23 @@ service cloud.firestore {
       }
     }
 
-    // ===== CONFIGURAÇÕES DO APP (editadas pelo painel admin) =====
-    // O app só lê. A escrita é feita pelo painel admin (Admin SDK ignora as regras).
-
-    match /app_config/{configId} {
-      allow read: if isSignedIn();
-      allow write: if false;
-    }
-
-    // ===== PRESTADORES =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Prestadores
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /providers/{providerId} {
       allow read: if isSignedIn();
       allow create: if isOwner(providerId)
         && request.resource.data.uid == providerId;
       allow update: if isOwner(providerId)
-        && (
-          request.resource.data.uid == providerId ||
-          resource.data.uid == null
-        );
+        && (request.resource.data.uid == providerId || resource.data.uid == null);
       allow delete: if isOwner(providerId);
     }
 
-    // ===== DOCUMENTOS DE PRESTADORES =====
+    match /provider_verifications/{verificationId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
 
     match /provider_documents/{documentId} {
       allow read: if isSignedIn() && (
@@ -194,7 +240,16 @@ service cloud.firestore {
       );
     }
 
-    // ===== PEDIDOS =====
+    match /provider_bank_data/{docId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Pedidos (orders)
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /orders/{orderId} {
       allow read: if isSignedIn();
@@ -209,27 +264,44 @@ service cloud.firestore {
       }
     }
 
-    // ===== CHAT =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Checklists (top-level — app mobile)
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    match /checklists/{orderId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.orderId == orderId;
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Chat
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /chatRooms/{chatRoomId} {
-      allow read: if isSignedIn() && resource.data.participants != null
+      allow read: if isSignedIn()
+        && resource.data.participants != null
         && resource.data.participants.hasAny([request.auth.uid]);
       allow create: if isSignedIn()
         && request.resource.data.participants != null
         && request.resource.data.participants.hasAny([request.auth.uid]);
-      allow update: if isSignedIn() && resource.data.participants != null
+      allow update: if isSignedIn()
+        && resource.data.participants != null
         && resource.data.participants.hasAny([request.auth.uid]);
-      allow delete: if isSignedIn() && resource.data.participants != null
+      allow delete: if isSignedIn()
+        && resource.data.participants != null
         && resource.data.participants.hasAny([request.auth.uid]);
     }
 
-    // Coleção legada ainda usada em rotinas de exclusão de conta
     match /chats/{chatId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
-    // ===== NOTIFICAÇÕES =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Notificações
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /notifications/{notificationId} {
       allow read, update, delete: if isSignedIn()
@@ -239,11 +311,12 @@ service cloud.firestore {
     }
 
     match /userTokens/{userId} {
-      allow read: if isOwner(userId);
-      allow write: if isOwner(userId);
+      allow read, write: if isOwner(userId);
     }
 
-    // ===== CARRINHO =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Carrinho
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /carts/{userId} {
       allow read, write: if isOwner(userId);
@@ -253,7 +326,9 @@ service cloud.firestore {
       }
     }
 
-    // ===== PRIVACIDADE =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Privacidade / LGPD
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /privacy_settings/{userId} {
       allow read, write: if isOwner(userId);
@@ -266,33 +341,19 @@ service cloud.firestore {
         && resource.data.userData.uid == request.auth.uid;
     }
 
-    // ===== DADOS BANCÁRIOS =====
-
-    match /provider_bank_data/{docId} {
-      allow read: if isSignedIn()
-        && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn()
-        && resource.data.userId == request.auth.uid;
-      allow delete: if isSignedIn()
-        && resource.data.userId == request.auth.uid;
+    match /lgpd_consents/{consentId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create: if isOwner(request.resource.data.userId);
     }
 
-    // ===== ENDEREÇOS SALVOS =====
-
-    match /saved_addresses/{addressId} {
-      allow read: if isSignedIn()
-        && resource.data.clientId == request.auth.uid;
-      allow create: if isSignedIn()
-        && request.resource.data.clientId == request.auth.uid;
-      allow update: if isSignedIn()
-        && resource.data.clientId == request.auth.uid;
-      allow delete: if isSignedIn()
-        && resource.data.clientId == request.auth.uid;
+    match /lgpd_requests/{requestId} {
+      allow create: if isSignedIn();
+      allow read: if isOwner(resource.data.userId);
     }
 
-    // ===== CATÁLOGO DE SERVIÇOS =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Catálogo de serviços
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /service_categories/{docId} {
       allow read: if isSignedIn();
@@ -328,17 +389,24 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid;
     }
 
-    // ===== CHECKLIST OS =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Endereços salvos
+    // ═══════════════════════════════════════════════════════════════════════════
 
-    match /checklists/{orderId} {
-      allow read: if isSignedIn();
+    match /saved_addresses/{addressId} {
+      allow read: if isSignedIn()
+        && (resource.data.clientId == request.auth.uid || resource.data.userId == request.auth.uid);
       allow create: if isSignedIn()
-        && request.resource.data.orderId == orderId;
-      allow update: if isSignedIn();
-      allow delete: if false;
+        && (request.resource.data.clientId == request.auth.uid || request.resource.data.userId == request.auth.uid);
+      allow update: if isSignedIn()
+        && (resource.data.clientId == request.auth.uid || resource.data.userId == request.auth.uid);
+      allow delete: if isSignedIn()
+        && (resource.data.clientId == request.auth.uid || resource.data.userId == request.auth.uid);
     }
 
-    // ===== NEGA TUDO QUE NÃO FOI EXPLICITAMENTE PERMITIDO =====
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Fallback — nega tudo não coberto acima
+    // ═══════════════════════════════════════════════════════════════════════════
 
     match /{document=**} {
       allow read, write: if false;

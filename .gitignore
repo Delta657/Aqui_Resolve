@@ -36,6 +36,12 @@ app/**/outputs/
 google-services.json
 app/google-services.json
 
+# Variáveis de ambiente (credenciais — NUNCA versionar)
+**/.env
+**/.env.*
+**/.env*.local
+**/node_modules/
+
 # Sistema/OS
 .DS_Store
 Thumbs.db

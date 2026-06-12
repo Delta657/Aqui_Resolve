@@ -1,0 +1,37 @@
+#!/usr/bin/env node
+
+const { createAdminMasterCollection } = require('./create-adminmaster-collection.js')
+
+console.log('🚀 Criando coleção "adminmaster" no Firebase...')
+console.log('')
+
+createAdminMasterCollection()
+  .then(() => {
+    console.log('')
+    console.log('✨ Coleção "adminmaster" criada com sucesso!')
+    console.log('')
+    console.log('📋 Próximos passos:')
+    console.log('1. Acesse /master no seu navegador')
+    console.log('2. Faça login com: master@aquiresolve.com / admin123')
+    console.log('3. Configure usuários e permissões')
+    console.log('4. Altere a senha padrão em produção!')
+    console.log('')
+    console.log('🔧 Estrutura da coleção:')
+    console.log('adminmaster/')
+    console.log('├── master/ (AdminMaster principal)')
+    console.log('│   └── usuarios/ (Subcoleção de usuários)')
+    console.log('└── config/ (Configurações do sistema)')
+    console.log('')
+    process.exit(0)
+  })
+  .catch((error) => {
+    console.error('❌ Erro ao criar coleção:', error.message)
+    console.error('')
+    console.error('🔧 Soluções possíveis:')
+    console.error('1. Verifique se as variáveis de ambiente do Firebase estão configuradas')
+    console.error('2. Confirme se o projeto Firebase está ativo')
+    console.error('3. Verifique as regras do Firestore')
+    console.error('4. Teste a conectividade com o Firebase')
+    console.error('')
+    process.exit(1)
+  })

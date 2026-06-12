@@ -1,0 +1,248 @@
+@config "../tailwind.config.js";
+@import "tailwindcss";
+
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ─── Design Tokens ─────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --background: #f9fafb;
+  --surface: #ffffff;
+
+  /* Text */
+  --foreground: #111827;
+
+  /* Cards & Overlays */
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+
+  /* Brand — Orange */
+  --primary: #f97316;
+  --primary-hover: #ea580c;
+  --primary-light: #fff7ed;
+  --primary-foreground: #ffffff;
+
+  /* Secondary */
+  --secondary: #f3f4f6;
+  --secondary-foreground: #374151;
+
+  /* Muted */
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+
+  /* Accent */
+  --accent: #fff7ed;
+  --accent-foreground: #c2410c;
+
+  /* Semantic */
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --success: #10b981;
+  --success-bg: #ecfdf5;
+  --success-foreground: #065f46;
+  --warning: #f59e0b;
+  --warning-bg: #fffbeb;
+  --warning-foreground: #92400e;
+  --info: #3b82f6;
+  --info-bg: #eff6ff;
+  --info-foreground: #1e40af;
+
+  /* Borders */
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --input: #e5e7eb;
+  --ring: #f97316;
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Charts */
+  --chart-1: #f97316;
+  --chart-2: #f59e0b;
+  --chart-3: #10b981;
+  --chart-4: #3b82f6;
+  --chart-5: #8b5cf6;
+
+  /* Sidebar */
+  --sidebar-bg: #ffffff;
+  --sidebar-foreground: #374151;
+  --sidebar-primary: #f97316;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fff7ed;
+  --sidebar-accent-foreground: #9a3412;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #f97316;
+}
+
+.dark {
+  --background: #0c0e10;
+  --surface: #111315;
+  --foreground: #f9fafb;
+  --card: #1a1d20;
+  --card-foreground: #f9fafb;
+  --popover: #1a1d20;
+  --popover-foreground: #f9fafb;
+  --primary: #fb923c;
+  --primary-hover: #f97316;
+  --primary-light: #1f1208;
+  --primary-foreground: #ffffff;
+  --secondary: #1f2226;
+  --secondary-foreground: #e5e7eb;
+  --muted: #1f2226;
+  --muted-foreground: #6b7280;
+  --accent: #1f1208;
+  --accent-foreground: #fb923c;
+  --destructive: #dc2626;
+  --destructive-foreground: #f9fafb;
+  --success: #10b981;
+  --success-bg: #0a1f15;
+  --success-foreground: #6ee7b7;
+  --warning: #f59e0b;
+  --warning-bg: #1a1203;
+  --warning-foreground: #fcd34d;
+  --info: #60a5fa;
+  --info-bg: #0c1525;
+  --info-foreground: #93c5fd;
+  --border: #2a2d32;
+  --border-strong: #383c42;
+  --input: #2a2d32;
+  --ring: #fb923c;
+  --chart-1: #fb923c;
+  --chart-2: #fbbf24;
+  --chart-3: #34d399;
+  --chart-4: #60a5fa;
+  --chart-5: #a78bfa;
+  --sidebar-bg: #111315;
+  --sidebar-foreground: #e5e7eb;
+  --sidebar-primary: #fb923c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1f1208;
+  --sidebar-accent-foreground: #fb923c;
+  --sidebar-border: #2a2d32;
+  --sidebar-ring: #fb923c;
+}
+
+/* ─── Radix / ShadCN Fallbacks ──────────────────────────────────── */
+[data-slot="card"] {
+  background-color: var(--card);
+  color: var(--card-foreground);
+  border-color: var(--border);
+}
+
+[data-slot="dialog-content"] {
+  background-color: var(--card);
+  color: var(--card-foreground);
+}
+
+[data-slot="dialog-overlay"] {
+  background-color: rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(4px);
+}
+
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"],
+[data-slot="select-content"],
+[data-slot="popover-content"] {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+  border-color: var(--border);
+}
+
+* {
+  border-color: var(--border);
+}
+
+/* ─── Base ──────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/* ─── Focus ─────────────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: calc(var(--radius) - 1px);
+}
+
+/* ─── Selection ─────────────────────────────────────────────────── */
+::selection {
+  background-color: rgb(249 115 22 / 0.15);
+  color: var(--foreground);
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ─── Links ─────────────────────────────────────────────────────── */
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── Utilities ─────────────────────────────────────────────────── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.glass {
+  background: rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.dark .glass {
+  background: rgb(26 29 32 / 0.85);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, #fbbf24 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Sidebar gradient aplicado por classe direta (CSS vars não funcionam em bg-* para gradients) */
+.sidebar-bg {
+  background: var(--sidebar-bg);
+}
+
+/* ─── Print ─────────────────────────────────────────────────────── */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

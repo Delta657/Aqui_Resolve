@@ -1,0 +1,34 @@
+/* Performance optimizations */
+.performance-optimizer.tab-hidden {
+  animation-play-state: paused !important;
+  transition-duration: 0.1s !important;
+}
+
+.performance-optimizer.throttled {
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Reduce animations when tab is not visible */
+.tab-hidden * {
+  animation-play-state: paused !important;
+}
+
+/* Optimize scroll performance */
+.performance-optimizer {
+  will-change: auto;
+  contain: layout style paint;
+}
+
+/* Reduce repaints */
+.performance-optimizer.throttled .animate-fade-in-up,
+.performance-optimizer.throttled .animate-pulse,
+.performance-optimizer.throttled .animate-bounce {
+  animation: none !important;
+}
+
+/* Optimize hover effects */
+.performance-optimizer.throttled *:hover {
+  transform: none !important;
+  transition: none !important;
+}

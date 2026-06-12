@@ -1,0 +1,10 @@
+<svg width="200" height="60" viewBox="0 0 200 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Stylized A graphic -->
+  <path d="M20 50 L30 20 L40 50 M25 40 L35 40" stroke="#1e3a8a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Orange swoosh underneath right leg -->
+  <path d="M40 50 Q42 48 45 50 Q48 52 50 50" stroke="#f97316" stroke-width="3" stroke-linecap="round" fill="none"/>
+  
+  <!-- Text: AquiResolve -->
+  <text x="80" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1e3a8a">Aqui</text>
+  <text x="130" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#f97316">Resolve</text>
+</svg>

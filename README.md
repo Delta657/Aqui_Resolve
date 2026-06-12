@@ -1,182 +1,133 @@
 # AquiResolve — Marketplace de Serviços
 
-Aplicativo Android para conectar clientes a prestadores de serviços. Clientes encontram, contratam e pagam por serviços; prestadores gerenciam pedidos, agenda e recebimentos.
+Plataforma que conecta clientes a prestadores de serviços domésticos e profissionais. Composta por app Android, painel administrativo web e backend de pagamentos.
 
-## Stack
+---
 
-| Tecnologia | Versão |
-|---|---|
-| Kotlin | 1.9.22 |
-| Compile/Target SDK | 35 |
-| Min SDK | 24 |
-| Gradle | 8.8.0 |
-| Firebase BOM | 32.7.0 |
-| Retrofit | 2.9.0 |
-| OkHttp | 4.12.0 |
-| Glide | 4.16.0 |
-| ZXing | 3.5.2 |
-| OSMDroid | 6.1.18 |
-| Material Design | 3 |
-| Coroutines | 1.7.3 |
-
-## Arquitetura
+## Estrutura do Repositório
 
 ```
-Activities → Managers → Firebase
+AquiResolve/
+├── app/                    # App Android (Kotlin)
+├── dashboard_admin/        # Painel Admin (Next.js 15)
+├── backend/                # Backend de Pagamentos (Node.js + Pagar.me)
+├── web/                    # Páginas web estáticas
+├── docs/                   # Documentação técnica detalhada
+├── firestore.rules         # Regras de segurança do Firestore
+├── storage.rules           # Regras de segurança do Storage
+├── firestore.indexes.json  # Índices compostos do Firestore
+└── CLAUDE.md               # Guia completo para agentes de IA
 ```
 
-- **Presentation:** ~44 Activities com ViewBinding + coroutines (`lifecycleScope`)
-- **Managers:** Toda a lógica de negócio em classes separadas (Firebase e negócio) — inclui FirebaseChecklistManager, FirebaseAuthManager, FirebaseOrderManager, etc.
-- **Models:** Anotados com `@PropertyName` do Firestore
-- **Adapters:** ~16 RecyclerView adapters
-- **Utils:** `PriceFormatter`, `ProtocolGenerator`, `NotificationBadgeHelper`, `TextFormatter`, `LocationPermissionHelper`, `ServiceSearchHelper`, `ServiceNicheCatalog`
-- **Views:** Componentes customizados em `views/` (SignaturePad para assinaturas digitais)
+---
 
-## Funcionalidades
+## Início Rápido
 
-### Autenticação
-- Cadastro e login para **cliente** e **prestador** (fluxos separados)
-- Telefone obrigatório no cadastro de cliente
-- Recuperação de senha
-- Firebase Authentication
+### Pré-requisitos
+- Node.js 20+ / pnpm
+- Android Studio (para o app mobile)
+- Firebase CLI: `npm install -g firebase-tools`
+- Conta no Firebase, Pagar.me e (opcional) Vercel + Render
 
-### Pedidos
-- Criação de pedidos com categorias de serviço
-- Fluxo de status: `pending → distributing → assigned → in_progress → completed`
-- Distribuição automática para prestadores disponíveis
-- Código de verificação de 6 dígitos na conclusão
-- Cancelamento com política de reembolso (5 min)
-
-### Pagamentos (Pagar.me v5)
-- **Cartão de crédito:** Validação Luhn, detecção de bandeira
-- **PIX:** Geração de QR Code (ZXing), polling automático a cada 5s
-- API em `https://aquiresolve.onrender.com/api/payments/`
-
-### Cashback / Fidelidade (AquiCash)
-- Programa configurável por **um único documento** Firestore `app_config/cashback`
-- **Duas fases** alternadas pelo painel admin (`activePhase`):
-  - **Crescimento (padrão):** cashback em **níveis** — Bronze (≤R$500) 3%, Prata (R$500–1.500) 5%, Ouro (>R$1.500) 8%, pelo total gasto acumulado
-  - **Lançamento:** desconto direto no carrinho por nº de serviços (2→5%, 3→10%, 4+→15%)
-- **Combos especiais** (valem nas duas fases): Elétrica+Hidráulica+Instalações 15%, Elétrica+Hidráulica 10%, Instalações+Hidráulica 10%, Manutenção de veículos 15%; aplica-se o **maior** desconto
-- Saldo, extrato e progresso de nível na tela do cliente; resgate como desconto no pagamento
-- Crédito idempotente por pedido; valor do prestador não é afetado pelo desconto
-- Detalhes técnicos em `docs/SISTEMA_CASHBACK_AQUICASH.md`; campos do painel em `docs/cashback-painel-admin.md`
-
-### Segurança
-- Network security config com domains confiáveis
-- ProGuard ativado no release build
-- reCAPTCHA Enterprise 18.4.0
-- Regras de segurança Firestore e Storage versionadas
-
-### Chat
-- Tempo real via Firestore listeners
-- Bloqueio de acesso de 5 minutos após aceitação do pedido
-
-### Localização
-- Google Play Services (atualização a cada 5 min)
-- Mapas via OSMDroid (OpenStreetMap)
-- GeoPoint no Firestore
-
-### OS Checklist (Ordem de Serviço)
-- Checklist de execução com 10 perguntas (chegada ao local + execução do serviço)
-- Captura de GPS e timestamp no início do serviço
-- 3 categorias de fotos (antes/durante/depois), upload para Firebase Storage
-- Assinaturas digitais do prestador e do cliente com desenho à mão livre (SignaturePad)
-- Fluxo de status: `checklist_pending → photos_pending → signatures_pending → completed`
-- Histórico completo por pedido em OsHistoryActivity
-- Coleção `checklists/{orderId}` no Firestore
-
-### Imagens
-- Compressão para max 1MB / 1920x1080
-- Firebase Storage
-- Glide para carregamento
-- PhotoView para zoom
-- uCrop para recorte de avatar
-
-### Notificações
-- Firebase Cloud Messaging
-- Múltiplos canais de notificação
-- Privacidade na entrega
-
-### Outros
-- Agendamento de serviços
-- Avaliações
-- Histórico de serviços
-- Documentos do prestador (upload e verificação)
-- Gerenciamento de endereços
-- Localização em foreground (ProviderLocationForegroundService)
-- Dados bancários do prestador
-- Privacidade e exportação de dados (GDPR)
-- Favoritos
-
-## Pré-requisitos
-
-- Android Studio Hedgehog ou superior
-- Android SDK 35
-- JDK 17
-- Conta Firebase com projeto configurado
-- Firebase CLI (opcional, para deploy de regras/índices)
-
-## Configuração
-
-1. Clone o repositório:
+### 1. Clone e configure o Firebase
 ```bash
 git clone git@github.com:alvaro209890/AquiResolve.git
+cd AquiResolve
+firebase login
+firebase use aplicativoservico-143c2
+firebase deploy --only firestore:rules,firestore:indexes,storage:rules
 ```
 
-2. Adicione o arquivo `app/google-services.json` do Firebase Console
-
-3. Configure keystore de release em `keystore/upload-keystore.credentials.txt`
-4. (Opcional) Deploy das regras Firebase:
+### 2. Painel Admin
 ```bash
-firebase --project aplicativoservico-143c2 deploy --only firestore:rules,firestore:indexes,storage:rules
+cd dashboard_admin
+cp .env.local.example .env.local   # preencher com os valores reais
+npm install
+npm run dev
+# Acesse http://localhost:3000
 ```
 
-## Build
-
+### 3. Backend de Pagamentos
 ```bash
-./gradlew assembleDebug          # APK debug
-./gradlew installDebug           # Instalar em dispositivo
-./gradlew assembleRelease        # APK release (minificado + ofuscado)
-./gradlew bundleRelease          # AAB release (Play Store)
-./gradlew lint                   # Verificações de lint
-./gradlew test                   # Testes unitários
+cd backend
+cp .env.example .env               # preencher com chaves Pagar.me e Firebase
+npm install
+npm start
 ```
 
-## Estrutura do Projeto
+### 4. App Android
+- Abra a pasta `app/` no Android Studio
+- Adicione `app/google-services.json` (baixar do Firebase Console)
+- Execute no emulador ou dispositivo físico
 
-```
-app/
-├── src/main/java/com/aquiresolve/app/
-│   ├── adapters/          # RecyclerView adapters
-│   ├── api/               # Retrofit (Pagar.me)
-│   ├── constants/         # Constantes (códigos de pagamento)
-│   ├── models/            # Data classes Firestore
-│   │   └── payment/       # Modelos de pagamento
-│   ├── payment/           # Lógica Pagar.me
-│   ├── utils/             # Helpers (PriceFormatter, ProtocolGenerator, permissões)
-│   ├── views/             # Custom views (SignaturePad)
-│   ├── *.kt               # Activities + Managers
-│   └── AppApplication.kt  # Application class
-├── google-services.json   # Config Firebase
-├── build.gradle           # Build do módulo
-├── proguard-rules.pro     # Regras ProGuard
-├── firestore.rules        # Regras Firestore
-├── firestore.indexes.json # Índices compostos Firestore
-├── storage.rules          # Regras Storage
-├── keystore/              # Keystore de release
-├── docs/                  # Documentação complementar
-├── backend/               # Backend Node.js (Render)
-└── web/                   # Página web auxiliar
-```
+---
 
-## Firebase
+## Tecnologias
 
-- **Projeto:** `aplicativoservico-143c2`
-- **Firestore:** Regras em `firestore.rules`, índices em `firestore.indexes.json`. Coleções: `orders`, `checklists`, `chats`, `carts`, `users` (subcoleção `cashback_transactions`), `app_config` (doc `cashback`), etc.
-- **Storage:** Regras em `storage.rules`
-- **Realtime Database:** Regras em `database.rules.json`
+| Camada | Tecnologia |
+|---|---|
+| App Mobile | Kotlin, Firebase SDK, Retrofit, Material Design 3 |
+| Painel Admin | Next.js 15, React 19, TypeScript, Tailwind CSS, Firebase Admin SDK |
+| Backend Pagamentos | Node.js 20, Express, Firebase Admin SDK, Pagar.me v5 |
+| Banco de Dados | Firebase Firestore |
+| Autenticação | Firebase Authentication |
+| Armazenamento | Firebase Storage |
+| Pagamentos | Pagar.me v5 (cartão de crédito + PIX) |
+
+---
+
+## Firebase Project
+
+**Project ID:** `aplicativoservico-143c2`
+
+Coleções principais:
+- `users` — clientes e prestadores
+- `providers` — perfil detalhado dos prestadores
+- `orders` — pedidos de serviço
+- `checklists` — ordens de serviço (OS)
+- `chatRooms` — mensagens em tempo real
+- `app_config/cashback` — configurações do programa AquiCash
+
+---
+
+## Documentação Técnica
+
+Consulte a pasta `docs/` para documentação detalhada de cada subsistema:
+
+- `SISTEMA_CASHBACK_AQUICASH.md` — Programa de fidelidade AquiCash
+- `SISTEMA_PAGAMENTO_PAGARME.md` — Fluxo de pagamentos
+- `SISTEMA_CHECKLIST_OS.md` — Ordem de Serviço digital
+- `FIREBASE_SETUP_GUIDE.md` — Configuração do Firebase
+- `SISTEMA_LOCALIZACAO_PRESTADORES.md` — Rastreamento em tempo real
+- `TABELA_PRECOS_SERVICOS.md` — Tabela de preços
+
+**Para agentes de IA:** leia o `CLAUDE.md` na raiz — contém toda a arquitetura, decisões de design e fluxos de trabalho.
+
+---
+
+## Variáveis de Ambiente
+
+**Painel Admin** (nunca vão ao GitHub):
+- `dashboard_admin/.env.local` — credenciais Firebase + Pagar.me (ver `.env.local.example`)
+
+**Backend** (nunca vai ao GitHub):
+- `backend/.env` — credenciais Firebase + chave secreta Pagar.me (ver `.env.example`)
+
+**App Mobile** (nunca vai ao GitHub):
+- `app/google-services.json` — configuração Firebase do Android
+
+---
+
+## Deploy
+
+| Componente | Plataforma | Trigger |
+|---|---|---|
+| Painel Admin | Vercel | Push no `master` |
+| Backend Pagamentos | Render.com | Manual ou webhook |
+| App Mobile | Google Play | Manual via Android Studio |
+
+---
 
 ## Licença
 
-MIT
+Projeto privado — todos os direitos reservados.
