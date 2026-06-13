@@ -23,6 +23,9 @@ interface ChecklistData {
   additionalService?: boolean
   serviceCompleted?: boolean
   cleanAfterService?: boolean
+  preExistingDamages?: string
+  problemResolution?: string
+  declarationAccepted?: boolean
   executionDescription?: string
   photosBefore?: string[]
   photosDuring?: string[]
@@ -174,6 +177,20 @@ export default function OsDetailPage() {
             </CardContent>
           </Card>
 
+          {/* Avarias pré-existentes */}
+          {checklist.preExistingDamages !== undefined && (
+            <Card>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-500" />Avarias Pré-existentes</CardTitle></CardHeader>
+              <CardContent>
+                {checklist.preExistingDamages ? (
+                  <p className="text-sm whitespace-pre-wrap">{checklist.preExistingDamages}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Nenhuma avaria pré-existente registrada</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Checklist */}
           <Card>
             <CardHeader><CardTitle className="text-base flex items-center gap-2"><CheckCircle className="h-4 w-4" />Checklist</CardTitle></CardHeader>
@@ -183,6 +200,16 @@ export default function OsDetailPage() {
               <BoolField label="Necessitou material adicional?" value={checklist.additionalService} />
               <BoolField label="Serviço concluído?" value={checklist.serviceCompleted} />
               <BoolField label="Local limpo após execução?" value={checklist.cleanAfterService} />
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm">Resolução do problema</span>
+                <span className="text-sm font-medium">
+                  {checklist.problemResolution === "resolved" && "✅ Sim, concluído com sucesso"}
+                  {checklist.problemResolution === "return_needed" && "🔄 Não, haverá retorno"}
+                  {checklist.problemResolution === "not_resolved" && "❌ Não, sem retorno"}
+                  {!checklist.problemResolution && <span className="text-muted-foreground text-xs">Não respondido</span>}
+                </span>
+              </div>
+              <BoolField label="Declaração de concordância assinada" value={checklist.declarationAccepted} />
             </CardContent>
           </Card>
 

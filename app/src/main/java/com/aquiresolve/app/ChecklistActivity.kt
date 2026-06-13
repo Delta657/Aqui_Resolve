@@ -67,15 +67,19 @@ class ChecklistActivity : AppCompatActivity() {
     }
 
     private fun validateStep1(): Boolean {
-        val allChecked = binding.cbClientPresent.isChecked ||
-                binding.cbServiceMatches.isChecked ||
-                binding.cbVisibleDamage.isChecked ||
-                binding.cbMaterialAvailable.isChecked ||
-                binding.cbClientObservations.isChecked
-
         if (binding.etExecutionDescription.text?.toString()?.trim().isNullOrEmpty()) {
             Toast.makeText(this, "Preencha a descrição detalhada do serviço realizado", Toast.LENGTH_LONG).show()
             binding.etExecutionDescription.error = "Campo obrigatório"
+            return false
+        }
+
+        if (binding.rgProblemResolution.checkedRadioButtonId == -1) {
+            Toast.makeText(this, "Selecione se o problema foi solucionado", Toast.LENGTH_LONG).show()
+            return false
+        }
+
+        if (!binding.cbDeclarationAccepted.isChecked) {
+            Toast.makeText(this, "Confirme a declaração de veracidade das informações", Toast.LENGTH_LONG).show()
             return false
         }
 
@@ -94,8 +98,18 @@ class ChecklistActivity : AppCompatActivity() {
             "partsReplaced" to binding.cbPartsReplaced.isChecked,
             "valueChanged" to binding.cbValueChanged.isChecked,
             "serviceCompleted" to binding.cbServiceCompleted.isChecked,
-            "cleanAfterService" to binding.cbCleanAfterService.isChecked
+            "cleanAfterService" to binding.cbCleanAfterService.isChecked,
+            "declarationAccepted" to binding.cbDeclarationAccepted.isChecked
         )
+    }
+
+    private fun getProblemResolution(): String {
+        return when (binding.rgProblemResolution.checkedRadioButtonId) {
+            R.id.rbResolved -> "resolved"
+            R.id.rbReturnNeeded -> "return_needed"
+            R.id.rbNotResolved -> "not_resolved"
+            else -> ""
+        }
     }
 
     private fun saveChecklist() {
@@ -103,8 +117,12 @@ class ChecklistActivity : AppCompatActivity() {
             try {
                 val answers = collectAnswers()
                 val description = binding.etExecutionDescription.text?.toString()?.trim() ?: ""
+                val preExistingDamages = binding.etPreExistingDamages.text?.toString()?.trim() ?: ""
+                val problemResolution = getProblemResolution()
 
-                val result = checklistManager.saveChecklistAnswers(orderId!!, answers, description)
+                val result = checklistManager.saveChecklistAnswers(
+                    orderId!!, answers, description, preExistingDamages, problemResolution
+                )
 
                 if (result.isSuccess) {
                     val intent = Intent(this@ChecklistActivity, PhotoEvidenceActivity::class.java).apply {
@@ -126,6 +144,8 @@ class ChecklistActivity : AppCompatActivity() {
             try {
                 val answers = collectAnswers()
                 val description = binding.etExecutionDescription.text?.toString()?.trim() ?: ""
+                val preExistingDamages = binding.etPreExistingDamages.text?.toString()?.trim() ?: ""
+                val problemResolution = getProblemResolution()
 
                 val currentChecklist = existingChecklist
                 val checklist = if (currentChecklist != null) {
@@ -141,6 +161,9 @@ class ChecklistActivity : AppCompatActivity() {
                         valueChanged = answers["valueChanged"],
                         serviceCompleted = answers["serviceCompleted"],
                         cleanAfterService = answers["cleanAfterService"],
+                        preExistingDamages = preExistingDamages,
+                        problemResolution = problemResolution,
+                        declarationAccepted = answers["declarationAccepted"],
                         executionDescription = description,
                         updatedAt = Timestamp.now()
                     )
@@ -159,6 +182,9 @@ class ChecklistActivity : AppCompatActivity() {
                         valueChanged = answers["valueChanged"],
                         serviceCompleted = answers["serviceCompleted"],
                         cleanAfterService = answers["cleanAfterService"],
+                        preExistingDamages = preExistingDamages,
+                        problemResolution = problemResolution,
+                        declarationAccepted = answers["declarationAccepted"],
                         executionDescription = description,
                         createdAt = Timestamp.now(),
                         updatedAt = Timestamp.now()

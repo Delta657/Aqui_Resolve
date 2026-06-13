@@ -86,7 +86,9 @@ class FirebaseChecklistManager {
     suspend fun saveChecklistAnswers(
         orderId: String,
         answers: Map<String, Boolean?>,
-        executionDescription: String
+        executionDescription: String,
+        preExistingDamages: String = "",
+        problemResolution: String = ""
     ): Result<Unit> {
         return try {
             val data = mutableMapOf<String, Any>(
@@ -98,6 +100,8 @@ class FirebaseChecklistManager {
                 }
             }
             data["executionDescription"] = executionDescription
+            data["preExistingDamages"] = preExistingDamages
+            if (problemResolution.isNotEmpty()) data["problemResolution"] = problemResolution
             data["status"] = OsChecklistData.STATUS_PHOTOS_PENDING
 
             db.collection(CHECKLISTS_COLLECTION)

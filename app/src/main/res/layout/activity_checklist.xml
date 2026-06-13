@@ -178,6 +178,59 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Card: Avarias pré-existentes -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/white"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Avarias pré-existentes"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="6dp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Informe avarias ou condições existentes antes do início do serviço para conhecimento do beneficiário."
+                            android:textSize="13sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginBottom="12dp" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:hint="Descreva as avarias (deixe em branco se não houver)">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etPreExistingDamages"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:minHeight="80dp"
+                                android:gravity="top"
+                                android:textSize="14sp"
+                                android:inputType="textMultiLine" />
+
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -305,6 +358,95 @@
                                 android:inputType="textMultiLine" />
 
                         </com.google.android.material.textfield.TextInputLayout>
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Card: O problema foi solucionado? -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/white"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="O problema foi solucionado?"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="12dp" />
+
+                        <RadioGroup
+                            android:id="@+id/rgProblemResolution"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <RadioButton
+                                android:id="@+id/rbResolved"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Sim, concluído com sucesso."
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary"
+                                android:layout_marginBottom="8dp" />
+
+                            <RadioButton
+                                android:id="@+id/rbReturnNeeded"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Não, mas haverá retorno."
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary"
+                                android:layout_marginBottom="8dp" />
+
+                            <RadioButton
+                                android:id="@+id/rbNotResolved"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="Não, e não haverá retorno."
+                                android:textSize="14sp"
+                                android:textColor="@color/text_primary" />
+
+                        </RadioGroup>
+
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Card: Declaração de concordância -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardCornerRadius="12dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/white"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <CheckBox
+                            android:id="@+id/cbDeclarationAccepted"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Declaro que concordo com as informações prestadas por mim, as quais são verdadeiras e autênticas, e autorizo o serviço com base nessas informações."
+                            android:textSize="14sp"
+                            android:textColor="@color/text_primary" />
 
                     </LinearLayout>
 
