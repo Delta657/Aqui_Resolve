@@ -2,6 +2,71 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as admin from 'firebase-admin'
 import { adminApp, getAdminAuth, getAdminFirestore } from '@/lib/firebase-admin'
 
+export async function GET(_req: NextRequest) {
+  try {
+    let db: admin.firestore.Firestore
+    try {
+      db = getAdminFirestore()
+    } catch {
+      return NextResponse.json({ success: false, error: 'Firebase Admin não inicializado' }, { status: 500 })
+    }
+    const snapshot = await db.collection('adminmaster').doc('master').collection('usuarios').get()
+    const usuarios = snapshot.docs.map(doc => ({
+      id: doc.id,
+      email: doc.data().email ?? '',
+      nome: doc.data().nome ?? '',
+      permissoes: doc.data().permissoes ?? {},
+    }))
+    return NextResponse.json({ success: true, usuarios })
+  } catch (error: any) {
+    console.error('❌ Erro ao listar usuários master:', error)
+    return NextResponse.json({ success: false, error: error?.message || 'Erro interno' }, { status: 500 })
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ success: false, error: 'ID obrigatório' }, { status: 400 })
+
+    let db: admin.firestore.Firestore
+    try {
+      db = getAdminFirestore()
+    } catch {
+      return NextResponse.json({ success: false, error: 'Firebase Admin não inicializado' }, { status: 500 })
+    }
+
+    const body = await req.json()
+    await db.collection('adminmaster').doc('master').collection('usuarios').doc(id).update(body)
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('❌ Erro ao atualizar usuário master:', error)
+    return NextResponse.json({ success: false, error: error?.message || 'Erro interno' }, { status: 500 })
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ success: false, error: 'ID obrigatório' }, { status: 400 })
+
+    let db: admin.firestore.Firestore
+    try {
+      db = getAdminFirestore()
+    } catch {
+      return NextResponse.json({ success: false, error: 'Firebase Admin não inicializado' }, { status: 500 })
+    }
+
+    await db.collection('adminmaster').doc('master').collection('usuarios').doc(id).delete()
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error('❌ Erro ao deletar usuário master:', error)
+    return NextResponse.json({ success: false, error: error?.message || 'Erro interno' }, { status: 500 })
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     console.log('🚀 Iniciando criação de usuário master...')

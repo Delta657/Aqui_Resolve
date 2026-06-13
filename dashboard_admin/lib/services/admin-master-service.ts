@@ -150,31 +150,20 @@ export class AdminMasterService {
     }
   }
 
-  // Listar usuários da subcoleção
-  static async getUsuarios(adminId: string): Promise<MasterUser[]> {
+  // Listar usuários da subcoleção via Admin SDK (client SDK bloqueado pelas Firestore rules)
+  static async getUsuarios(_adminId: string): Promise<MasterUser[]> {
     try {
-      const usuariosRef = collection(db, 'adminmaster', adminId, 'usuarios')
-      const usuariosSnapshot = await getDocs(usuariosRef)
-      
-      const usuarios: MasterUser[] = []
-      usuariosSnapshot.forEach((doc) => {
-        const data = doc.data()
-        usuarios.push({
-          id: doc.id,
-          email: data.email,
-          nome: data.nome,
-          permissoes: data.permissoes
-        })
-      })
-      
-      return usuarios
+      const res = await fetch('/api/adminmaster/users', { cache: 'no-store' })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Erro ao buscar usuários')
+      return data.usuarios as MasterUser[]
     } catch (error) {
       console.error('Erro ao buscar usuários:', error)
       throw error
     }
   }
 
-  // Adicionar usuário
+  // Adicionar usuário (fluxo real usa POST /api/adminmaster/users direto do dashboard)
   static async addUsuario(adminId: string, usuario: Omit<MasterUser, 'id'>): Promise<string> {
     try {
       const usuariosRef = collection(db, 'adminmaster', adminId, 'usuarios')
@@ -186,32 +175,36 @@ export class AdminMasterService {
     }
   }
 
-  // Atualizar usuário
-  static async updateUsuario(adminId: string, usuarioId: string, data: Partial<MasterUser> | MasterUser['permissoes']): Promise<void> {
+  // Atualizar usuário via Admin SDK
+  static async updateUsuario(_adminId: string, usuarioId: string, data: Partial<MasterUser> | MasterUser['permissoes']): Promise<void> {
     try {
-      const usuarioRef = doc(db, 'adminmaster', adminId, 'usuarios', usuarioId)
-      // Se vier apenas o objeto de permissões, atualiza o campo aninhado 'permissoes'
-      if (
+      const isPermissionsOnly =
         data &&
         !('email' in (data as any)) &&
         !('nome' in (data as any)) &&
         !('permissoes' in (data as any))
-      ) {
-        await updateDoc(usuarioRef, { permissoes: data })
-      } else {
-        await updateDoc(usuarioRef, data as any)
-      }
+      const body = isPermissionsOnly ? { permissoes: data } : data
+      const res = await fetch(`/api/adminmaster/users?id=${encodeURIComponent(usuarioId)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const result = await res.json()
+      if (!res.ok || !result.success) throw new Error(result.error || 'Erro ao atualizar usuário')
     } catch (error) {
       console.error('Erro ao atualizar usuário:', error)
       throw error
     }
   }
 
-  // Deletar usuário
-  static async deleteUsuario(adminId: string, usuarioId: string): Promise<void> {
+  // Deletar usuário via Admin SDK
+  static async deleteUsuario(_adminId: string, usuarioId: string): Promise<void> {
     try {
-      const usuarioRef = doc(db, 'adminmaster', adminId, 'usuarios', usuarioId)
-      await deleteDoc(usuarioRef)
+      const res = await fetch(`/api/adminmaster/users?id=${encodeURIComponent(usuarioId)}`, {
+        method: 'DELETE',
+      })
+      const result = await res.json()
+      if (!res.ok || !result.success) throw new Error(result.error || 'Erro ao deletar usuário')
     } catch (error) {
       console.error('Erro ao deletar usuário:', error)
       throw error
