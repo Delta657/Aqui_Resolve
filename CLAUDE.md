@@ -431,7 +431,7 @@ Cashback é uma configuração financeira crítica. Só o Firebase Admin SDK (vi
 
 | Problema | Causa | Solução |
 |---|---|---|
-| Firebase Admin não inicializa | `FIREBASE_SERVICE_ACCOUNT` não configurado ou com aspas extras | Preencher `.env.local` no painel; no Vercel usar o script da seção 11 (aspas extras corrompem o JSON) |
+| Firebase Admin não inicializa / "Login master indisponível" | `FIREBASE_SERVICE_ACCOUNT` no Vercel com double-encoding (`\"` e `\n` literais) | Ver script Python na seção 11 para gerar o JSON limpo e re-upload correto |
 | Backend Render não autentica | Valores quebrados com prefixos JSON no env | Ver seção "Render — Env Vars Corretas" abaixo |
 | Aprovação de prestador falha com 403 | Client SDK não pode escrever em `providers/` (Firestore rules) | O hook agora usa `PATCH /api/providers/[id]/verify` (Admin SDK) |
 | Cashback não atualiza no app | Admin não tinha UI para configurar `app_config/cashback` | Acesse `/dashboard/configuracoes/aquicash` |
@@ -533,14 +533,40 @@ npx vercel deploy --prod --yes
 | `ID_PUBLIC_PAGARME` | Pagar.me public ID |
 
 **ATENÇÃO ao atualizar `FIREBASE_SERVICE_ACCOUNT` no Vercel:**
-O valor deve ser o JSON puro, **sem aspas envolvendo o objeto**. Use o script abaixo para substituir:
+
+O `.env.local` armazena o valor com double-encoding (`\"` e `\n` literais). Enviar esse valor diretamente para o Vercel causa erro "Login master indisponível" / Firebase Admin não inicializa.
+
+Use o script Python abaixo para extrair o JSON limpo e fazer o upload correto:
+
 ```bash
 cd dashboard_admin
-VALUE=$(grep "^FIREBASE_SERVICE_ACCOUNT=" .env.local | cut -d'=' -f2-)
+
+# 1. Gera o JSON limpo
+python3 << 'EOF'
+import re, json
+with open('.env.local') as f:
+    content = f.read()
+match = re.search(r'^FIREBASE_SERVICE_ACCOUNT=(.+)$', content, re.MULTILINE)
+raw = match.group(1)
+step1 = raw.strip('"').replace('\\n', '\n').replace('\\"', '"')
+fixed = re.sub(
+    r'("private_key":\s*")(.*?)(")',
+    lambda m: m.group(1) + m.group(2).replace('\n', '\\n') + m.group(3),
+    step1, flags=re.DOTALL
+)
+sa = json.loads(fixed)
+with open('/tmp/sa_clean.json', 'w') as f:
+    f.write(json.dumps(sa, separators=(',', ':')))
+print("OK:", sa['client_email'])
+EOF
+
+# 2. Faz o upload para o Vercel (sem aspas extras)
 npx vercel env rm FIREBASE_SERVICE_ACCOUNT production --yes
-printf '%s' "$VALUE" | npx vercel env add FIREBASE_SERVICE_ACCOUNT production --yes
+cat /tmp/sa_clean.json | npx vercel env add FIREBASE_SERVICE_ACCOUNT production --yes
 npx vercel deploy --prod --yes
 ```
+
+**Sinal de que está correto:** `vercel env add` não deve exibir o aviso "Value includes surrounding quotes". Se exibir, o script não removeu as aspas externas.
 
 ### Deploy do Backend (Render)
 - **Render:** deploy manual ou via webhook — `cd backend && git push render master`

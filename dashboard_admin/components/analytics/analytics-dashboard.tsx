@@ -5,8 +5,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useFirebaseAnalytics } from "@/hooks/use-firebase-analytics"
 import { RealtimeDashboard } from "@/components/analytics/realtime-dashboard"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts"
-import { TrendingUp, Users, Eye, MousePointer, FileText, AlertTriangle, Activity, BarChart3 } from "lucide-react"
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell, Legend
+} from "recharts"
+import { TrendingUp, Users, ShoppingCart, CheckCircle, AlertTriangle, Activity, BarChart3, Package } from "lucide-react"
+
+const COLORS = ["#6366f1", "#22c55e", "#ef4444", "#f59e0b", "#3b82f6", "#ec4899"]
+
+// Pivota a série temporal por data para o LineChart multi-linha
+function pivotTimeSeries(data: { date: string; value: number; category: string }[]) {
+  const map = new Map<string, Record<string, number>>()
+  data.forEach(({ date, value, category }) => {
+    if (!map.has(date)) map.set(date, {})
+    map.get(date)![category] = value
+  })
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, vals]) => ({
+      date: new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }),
+      ...vals,
+    }))
+}
 
 export function AnalyticsDashboard() {
   const { analyticsData, timeSeriesData, topPages, userActivity, loading, error } = useFirebaseAnalytics()
@@ -29,22 +49,12 @@ export function AnalyticsDashboard() {
           ))}
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-64 w-full" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-32" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-64 w-full" />
-            </CardContent>
-          </Card>
+          {[0, 1].map(i => (
+            <Card key={i}>
+              <CardHeader><Skeleton className="h-6 w-32" /></CardHeader>
+              <CardContent><Skeleton className="h-64 w-full" /></CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     )
@@ -63,33 +73,18 @@ export function AnalyticsDashboard() {
     )
   }
 
-  // Preparar dados para os gráficos
-  const pageViewsData = timeSeriesData
-    .filter(item => item.category === 'pageViews')
-    .map(item => ({
-      date: new Date(item.date).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }),
-      value: item.value
-    }))
+  // Pivota série temporal para múltiplas linhas no mesmo gráfico
+  const timeSeriesPivoted = pivotTimeSeries(timeSeriesData)
+  const categories = Array.from(new Set(timeSeriesData.map(d => d.category)))
 
-  const userActionsData = timeSeriesData
-    .filter(item => item.category === 'userActions')
-    .map(item => ({
-      date: new Date(item.date).toLocaleDateString('pt-BR', { month: 'short', day: 'numeric' }),
-      value: item.value
-    }))
-
-  const topPagesData = topPages.slice(0, 5).map(page => ({
-    name: page.page.length > 20 ? page.page.substring(0, 20) + '...' : page.page,
-    views: page.views
+  // Top serviços (substitui "top pages" — são tipos de serviço reais)
+  const topServicesData = topPages.slice(0, 8).map(p => ({
+    name: p.page.length > 22 ? p.page.slice(0, 22) + "…" : p.page,
+    Pedidos: p.views,
   }))
 
-  const userActivityData = userActivity.slice(0, 5).map(activity => ({
-    name: activity.action.length > 15 ? activity.action.substring(0, 15) + '...' : activity.action,
-    count: activity.count,
-    category: activity.category
-  }))
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
+  // Distribuição por status (para o PieChart)
+  const pieData = userActivity.filter(a => a.count > 0).map(a => ({ name: a.action, value: a.count }))
 
   return (
     <div className="space-y-6">
@@ -106,186 +101,217 @@ export function AnalyticsDashboard() {
         </TabsList>
 
         <TabsContent value="historical" className="space-y-6">
-          {/* Métricas principais */}
+          {/* KPIs */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
+                <CardTitle className="text-sm font-medium">Clientes</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{analyticsData.activeUsers.toLocaleString()}</div>
+                <div className="text-2xl font-bold">{analyticsData.activeUsers.toLocaleString("pt-BR")}</div>
+                <p className="text-xs text-muted-foreground">Usuários cadastrados</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Pedidos (30 dias)</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{analyticsData.orderActions.toLocaleString("pt-BR")}</div>
                 <p className="text-xs text-muted-foreground">Últimos 30 dias</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Visualizações</CardTitle>
-                <Eye className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
+                <CheckCircle className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{analyticsData.pageViews.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">Páginas visualizadas</p>
+                <div className="text-2xl font-bold text-green-600">{analyticsData.businessEvents.toLocaleString("pt-BR")}</div>
+                <p className="text-xs text-muted-foreground">Serviços entregues</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Ações de Usuário</CardTitle>
-                <MousePointer className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Prestadores</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{analyticsData.userActions.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">Interações registradas</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Eventos de Negócio</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{analyticsData.businessEvents.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">Eventos importantes</p>
+                <div className="text-2xl font-bold">{analyticsData.providerActions.toLocaleString("pt-BR")}</div>
+                <p className="text-xs text-muted-foreground">Ativos na plataforma</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Gráficos */}
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Gráfico de visualizações ao longo do tempo */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Visualizações ao Longo do Tempo</CardTitle>
-                <CardDescription>Evolução das visualizações de página</CardDescription>
-              </CardHeader>
-              <CardContent>
+          {/* Série temporal — multi-linha por status */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Pedidos ao Longo do Tempo</CardTitle>
+              <CardDescription>Evolução diária por status nos últimos 30 dias</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {timeSeriesPivoted.length === 0 ? (
+                <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+                  <ShoppingCart className="h-6 w-6 mr-2 opacity-40" />
+                  Nenhum pedido no período
+                </div>
+              ) : (
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={pageViewsData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
+                    <LineChart data={timeSeriesPivoted} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                       <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke="#8884d8" strokeWidth={2} />
+                      <Legend />
+                      {categories.map((cat, i) => (
+                        <Line
+                          key={cat}
+                          type="monotone"
+                          dataKey={cat}
+                          stroke={COLORS[i % COLORS.length]}
+                          strokeWidth={2}
+                          dot={false}
+                          activeDot={{ r: 4 }}
+                        />
+                      ))}
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+            </CardContent>
+          </Card>
 
-            {/* Gráfico de ações de usuário */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Ações de Usuário</CardTitle>
-                <CardDescription>Evolução das interações do usuário</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={userActionsData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke="#82ca9d" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Páginas mais visitadas e atividades */}
+          {/* Serviços mais solicitados + Distribuição por status */}
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Páginas Mais Visitadas</CardTitle>
-                <CardDescription>Top 5 páginas com mais visualizações</CardDescription>
+                <CardTitle>Serviços Mais Solicitados</CardTitle>
+                <CardDescription>Top tipos de serviço por volume de pedidos</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={topPagesData} layout="horizontal">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="name" type="category" width={100} />
-                      <Tooltip />
-                      <Bar dataKey="views" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Atividades Mais Comuns</CardTitle>
-                <CardDescription>Top 5 ações realizadas pelos usuários</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={userActivityData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={(props: any) => `${props.name} ${((props.percent ?? 0) * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="count"
+                {topServicesData.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+                    Nenhum serviço registrado
+                  </div>
+                ) : (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={topServicesData}
+                        layout="vertical"
+                        margin={{ top: 0, right: 16, left: 8, bottom: 0 }}
                       >
-                        {userActivityData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                        <YAxis dataKey="name" type="category" width={130} tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Bar dataKey="Pedidos" fill={COLORS[0]} radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Distribuição por Status</CardTitle>
+                <CardDescription>Proporção de pedidos por status atual</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {pieData.length === 0 ? (
+                  <div className="h-64 flex items-center justify-center text-muted-foreground text-sm">
+                    Nenhum dado disponível
+                  </div>
+                ) : (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={85}
+                          innerRadius={40}
+                          dataKey="value"
+                          nameKey="name"
+                          labelLine={false}
+                          label={(props: Record<string, unknown>) => {
+                            const percent = props.percent as number | undefined
+                            if ((percent ?? 0) < 0.05) return null
+                            const RADIAN = Math.PI / 180
+                            const cx = props.cx as number
+                            const cy = props.cy as number
+                            const midAngle = props.midAngle as number
+                            const innerR = props.innerRadius as number
+                            const outerR = props.outerRadius as number
+                            const radius = innerR + (outerR - innerR) * 0.5
+                            const x = cx + radius * Math.cos(-midAngle * RADIAN)
+                            const y = cy + radius * Math.sin(-midAngle * RADIAN)
+                            return (
+                              <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={600}>
+                                {`${((percent ?? 0) * 100).toFixed(0)}%`}
+                              </text>
+                            )
+                          }}
+                        >
+                          {pieData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value, name) => [value, name]} />
+                        <Legend formatter={(value) => <span className="text-xs">{value}</span>} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Resumo de eventos */}
+          {/* Resumo de operações */}
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Ações Financeiras</CardTitle>
+                <CardTitle className="text-base">Ações Financeiras</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-green-600">
-                  {analyticsData.financialActions.toLocaleString()}
+                  {analyticsData.financialActions.toLocaleString("pt-BR")}
                 </div>
-                <p className="text-sm text-muted-foreground">Transações processadas</p>
+                <p className="text-sm text-muted-foreground mt-1">Pedidos concluídos com pagamento</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Ações de Pedidos</CardTitle>
+                <CardTitle className="text-base">Operações com Pedidos</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-blue-600">
-                  {analyticsData.orderActions.toLocaleString()}
+                  {analyticsData.orderActions.toLocaleString("pt-BR")}
                 </div>
-                <p className="text-sm text-muted-foreground">Operações com pedidos</p>
+                <p className="text-sm text-muted-foreground mt-1">Total de pedidos nos últimos 30 dias</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Relatórios Gerados</CardTitle>
+                <CardTitle className="text-base">Taxa de Conclusão</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-purple-600">
-                  {analyticsData.reportsGenerated.toLocaleString()}
+                  {analyticsData.orderActions > 0
+                    ? `${((analyticsData.businessEvents / analyticsData.orderActions) * 100).toFixed(1)}%`
+                    : "—"}
                 </div>
-                <p className="text-sm text-muted-foreground">Documentos criados</p>
+                <p className="text-sm text-muted-foreground mt-1">Pedidos concluídos / total</p>
               </CardContent>
             </Card>
           </div>
