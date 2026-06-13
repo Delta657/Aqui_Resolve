@@ -86,7 +86,30 @@ awaiting_payment → pending → distributing → assigned → in_progress → c
 - Layout: `app/src/main/res/layout/activity_provider_financial.xml`
 - Lê `providerBalance` e `providerTotalEarned` de `providers/{uid}`
 - Lista pedidos concluídos (`status=completed`, `assignedProvider=uid`) com comissão de cada um
-- Disparar via: `startActivity(Intent(context, ProviderFinancialActivity::class.java))`
+- **Acesso:** botão "💰 Financeiro" na `ProviderHomeActivity` (segundo botão na linha de ação)
+
+### Tela Status de Verificação (`ProviderVerificationStatusActivity`)
+- Arquivo: `app/src/main/java/com/aquiresolve/app/ProviderVerificationStatusActivity.kt`
+- Layout: `app/src/main/res/layout/activity_provider_verification_status.xml`
+- Lê `verificationStatus`, `rejectionReason`, `verificationNotes` de `providers/{uid}`
+- Mostra histórico de revisões de `provider_verifications` (where providerId == uid)
+- **Acesso:** banner na `ProviderHomeActivity` (visível quando status é pending ou rejected)
+
+### ProviderHomeActivity — melhorias
+- Banner de verificação (pending=âmbar, rejected=vermelho, approved=oculto) com link para ProviderVerificationStatusActivity
+- Campo `tvEarnings` agora lê `providerBalance` (acumulado pelo painel admin) com fallback para `totalEarnings`
+- Botão "💰 Financeiro" abre ProviderFinancialActivity
+
+### Logs de Auditoria (adminLogs)
+- Coleção Firestore: `adminLogs/{id}`
+- Campos: `action`, `targetId`, `targetType`, `adminId`, `payload`, `createdAt`
+- Gravado automaticamente em: `PATCH /api/providers/[id]/verify`, `PATCH /api/users/[id]` (bloqueio), `PATCH /api/orders/[id]` (cancelamento)
+- Leitura: `GET /api/admin-logs` com filtros `action`, `targetType`, `limit`
+
+### Métricas de Receita no Dashboard
+- `totalRevenue` — soma de `estimatedPrice` de todos os pedidos `completed`
+- `revenueLast30Days` — idem, filtrado pelos últimos 30 dias
+- Exibidos como dois novos KPI cards no Dashboard principal
 
 ### Backend de Pagamentos (Pagar.me)
 - URL: `https://aquiresolve.onrender.com/api/payments/`
@@ -184,6 +207,8 @@ Todas as rotas estão em `dashboard_admin/app/api/`:
 | `/api/notifications/send` | POST | Envia FCM push notification por uid, userIds[], token, tokens[] ou topic |
 | `/api/orders/[id]/redirect` | POST | Remove prestador do pedido e retorna para distribuição (motivo obrigatório) |
 | `/api/checklists/[orderId]` | GET | Retorna checklist + dados do pedido para visualização da OS |
+| `/api/admin-logs` | GET | Lista logs de auditoria (filtros: action, targetType, limit) |
+| `/api/admin-logs` | POST | Grava ação de auditoria (action, targetId, targetType, payload) |
 | `/api/financial/providers` | GET | Saldo/ganhos dos prestadores |
 | `/api/financial/transactions` | GET | Transações financeiras |
 | `/api/financial/accounts` | GET | Contas financeiras |
@@ -201,6 +226,7 @@ Todas as rotas estão em `dashboard_admin/app/api/`:
 | Notificações | `/dashboard/controle/notificacoes` | Envia FCM push para todos clientes, todos prestadores, todos usuários ou UID específico |
 | Rastreamento | `/dashboard/controle/autem-mobile/rastreamento` | Mapa ao vivo com pinos de prestadores + lista GPS com link Google Maps |
 | Cashback (AquiCash) | `/dashboard/configuracoes/aquicash` | Configura fases, tiers, combos e salva em `app_config/cashback` via Admin SDK |
+| Logs de Auditoria | `/dashboard/controle/logs` | Histórico de todas as ações críticas do admin (verificações, bloqueios, cancelamentos) |
 
 ### Hooks atualizados
 | Hook | Mudança |

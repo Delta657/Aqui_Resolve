@@ -125,6 +125,16 @@ class ProviderHomeActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // Botao financeiro
+        binding.btnFinancial.setOnClickListener {
+            startActivity(Intent(this, ProviderFinancialActivity::class.java))
+        }
+
+        // Banner de verificação — clique abre detalhes
+        binding.tvVerificationDetails.setOnClickListener {
+            startActivity(Intent(this, ProviderVerificationStatusActivity::class.java))
+        }
+
         // Navegacao inferior especifica para prestadores
         binding.bottomNavigation.menu.clear()
         binding.bottomNavigation.inflateMenu(R.menu.bottom_nav_menu_provider)
@@ -204,7 +214,10 @@ class ProviderHomeActivity : AppCompatActivity() {
 
                 if (providerDoc.exists()) {
                     val completedJobs = (providerDoc.getLong("completedJobs") ?: 0L).toInt()
-                    val totalEarnings = providerDoc.getDouble("totalEarnings") ?: 0.0
+                    // Preferir providerBalance (acumulado pelo painel admin) com fallback para totalEarnings
+                    val balance = providerDoc.getDouble("providerBalance")
+                        ?: providerDoc.getDouble("totalEarnings")
+                        ?: 0.0
 
                     // Contar pedidos ativos (assigned ou in_progress)
                     val activeOrdersSnap = db.collection("orders")
@@ -219,10 +232,14 @@ class ProviderHomeActivity : AppCompatActivity() {
                     val rating = providerDoc.getDouble("rating") ?: 0.0
                     val totalRatings = (providerDoc.getLong("totalRatings") ?: 0L).toInt()
 
+                    // Status de verificação → banner
+                    val verificationStatus = providerDoc.getString("verificationStatus") ?: "pending"
+                    updateVerificationBanner(verificationStatus, providerDoc.getString("rejectionReason"))
+
                     // Atualizar interface
                     binding.tvCompletedServices.text = completedJobs.toString()
                     binding.tvActiveOrders.text = activeOrders.toString()
-                    binding.tvEarnings.text = formatCurrency(totalEarnings)
+                    binding.tvEarnings.text = formatCurrency(balance)
                     binding.tvProviderRating.text = if (rating > 0) String.format("%.1f", rating) else "-"
                     binding.tvProviderRatingCount.text = if (totalRatings > 0) {
                         "Nota media ($totalRatings avaliacoes)"
@@ -236,6 +253,7 @@ class ProviderHomeActivity : AppCompatActivity() {
                     binding.tvCompletedServices.text = "0"
                     binding.tvActiveOrders.text = "0"
                     binding.tvEarnings.text = "R$ 0,00"
+                    updateVerificationBanner("pending", null)
                 }
             } catch (e: Exception) {
                 android.util.Log.e(TAG, "Erro ao carregar estatisticas: ${e.message}", e)
@@ -247,10 +265,42 @@ class ProviderHomeActivity : AppCompatActivity() {
     }
 
     /**
+     * Exibe ou oculta o banner de status de verificação do prestador.
+     */
+    private fun updateVerificationBanner(status: String, rejectionReason: String?) {
+        when (status.lowercase()) {
+            "approved" -> {
+                binding.cardVerificationBanner.visibility = android.view.View.GONE
+            }
+            "rejected" -> {
+                binding.cardVerificationBanner.visibility = android.view.View.VISIBLE
+                binding.cardVerificationBanner.setCardBackgroundColor(
+                    ContextCompat.getColor(this, android.R.color.holo_red_light).let {
+                        android.graphics.Color.argb(30, 211, 47, 47)
+                    }
+                )
+                binding.cardVerificationBanner.strokeColor =
+                    ContextCompat.getColor(this, R.color.error_color)
+                binding.tvVerificationIcon.text = "❌"
+                binding.tvVerificationTitle.text = "Verificação reprovada"
+                binding.tvVerificationSubtitle.text =
+                    if (!rejectionReason.isNullOrBlank()) rejectionReason
+                    else "Seus documentos foram reprovados. Toque em Ver para detalhes."
+            }
+            else -> { // pending ou qualquer outro
+                binding.cardVerificationBanner.visibility = android.view.View.VISIBLE
+                binding.tvVerificationIcon.text = "⏳"
+                binding.tvVerificationTitle.text = "Verificação em análise"
+                binding.tvVerificationSubtitle.text = "Seus documentos estão sendo avaliados"
+            }
+        }
+    }
+
+    /**
      * Formata valor monetario
      */
     private fun formatCurrency(value: Double): String {
-        return "R$ ${String.format("%.2f", value).replace(".", ",")}" 
+        return "R$ ${String.format("%.2f", value).replace(".", ",")}"
     }
 
     /**

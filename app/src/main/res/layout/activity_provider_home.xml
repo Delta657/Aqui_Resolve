@@ -130,6 +130,73 @@
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="24dp" />
 
+            <!-- Banner de status de verificação (oculto por padrão) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardVerificationBanner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="#FFF8E1"
+                app:strokeWidth="1dp"
+                app:strokeColor="#FFC107">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:id="@+id/tvVerificationIcon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="⏳"
+                        android:textSize="22sp"
+                        android:layout_marginEnd="12dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvVerificationTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Verificação pendente"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:id="@+id/tvVerificationSubtitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Seus documentos estão em análise"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvVerificationDetails"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ver"
+                        android:textSize="12sp"
+                        android:textColor="@color/primary_color"
+                        android:textStyle="bold"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="4dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Botão de disponibilidade -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnAvailability"
@@ -386,11 +453,22 @@
                     android:layout_width="0dp"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:text="📋 Meus Pedidos"
+                    android:text="📋 Pedidos"
                     android:textSize="14sp"
                     app:cornerRadius="12dp"
                     app:backgroundTint="@color/primary_color" />
 
+                <!-- Tela financeira -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnFinancial"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="💰 Financeiro"
+                    android:textSize="14sp"
+                    app:cornerRadius="12dp"
+                    app:backgroundTint="@color/success_color" />
 
             </LinearLayout>
 

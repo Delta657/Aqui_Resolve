@@ -121,6 +121,20 @@ export async function PATCH(
 
     await orderRef.update(updateData)
 
+    // Log de auditoria para cancelamentos
+    if (status === 'cancelled') {
+      await db.collection('adminLogs').add({
+        action: 'cancel_order',
+        targetId: orderId,
+        targetType: 'order',
+        payload: {
+          cancellationReason: cancellationReason ?? null,
+          cancelledBy: cancelledBy ?? 'admin',
+        },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+    }
+
     return NextResponse.json({
       success: true,
       orderId,

@@ -86,6 +86,17 @@ export async function PATCH(
 
     await userRef.update(updateData)
 
+    // Log de auditoria para bloqueio/desbloqueio
+    if (blocked !== undefined) {
+      await db.collection('adminLogs').add({
+        action: blocked ? 'block_user' : 'unblock_user',
+        targetId: userId,
+        targetType: 'user',
+        payload: { blocked, blockedReason: blocked ? (blockedReason ?? null) : null },
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      })
+    }
+
     return NextResponse.json({
       success: true,
       userId,

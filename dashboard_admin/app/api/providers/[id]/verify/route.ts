@@ -81,6 +81,15 @@ export async function PATCH(
       source: 'admin_panel',
     })
 
+    // Log de auditoria
+    await db.collection('adminLogs').add({
+      action: 'verify_provider',
+      targetId: providerId,
+      targetType: 'provider',
+      payload: { status, rejectionReason: rejectionReason ?? null },
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+
     return NextResponse.json({
       success: true,
       providerId,

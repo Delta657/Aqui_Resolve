@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
 import {
-  AlertCircle, ClipboardList, Clock, Star,
+  AlertCircle, ClipboardList, Clock, DollarSign,
   TrendingUp, UserPlus, Users, CheckCircle,
 } from "lucide-react"
 import { FirestoreAnalyticsService } from "@/lib/services/firestore-analytics-simple"
@@ -62,6 +62,20 @@ export function DashboardMetrics() {
       { title: "Pedidos Cancelados",    value: (o.cancelledOrders      ?? 0).toLocaleString("pt-BR"), icon: Clock,         description: "Cancelados no histórico atual",   variant: "slate"   },
       { title: "Prestadores Aprovados", value: (p.approvedVerifications ?? 0).toLocaleString("pt-BR"), icon: CheckCircle,   description: "Verificações aprovadas",         variant: "amber"   },
       { title: "Taxa de Aprovação",     value: `${Math.round(p.approvalRate ?? 0)}%`,                  icon: TrendingUp,    description: "Sobre o total de verificações",  variant: "teal"    },
+      {
+        title: "Receita Total",
+        value: (o.totalRevenue ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        icon: DollarSign,
+        description: "Soma dos pedidos concluídos",
+        variant: "emerald",
+      },
+      {
+        title: "Receita (30 dias)",
+        value: (o.revenueLast30Days ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+        icon: DollarSign,
+        description: "Pedidos concluídos nos últimos 30 dias",
+        variant: "teal",
+      },
     ]
   }, [data])
 

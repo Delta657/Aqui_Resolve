@@ -57,6 +57,15 @@ export class FirestoreAnalyticsService {
       const completedOrders = orders.filter((order) => order.status === 'completed').length
       const emergencyOrders = orders.filter((order) => Boolean(order.isEmergency)).length
 
+      const completedList = orders.filter((order) => order.status === 'completed')
+      const totalRevenue = completedList.reduce((sum, o) => sum + (Number(o.estimatedPrice) || 0), 0)
+      const revenueToday = completedList
+        .filter((o) => toDateFromUnknown(o.completedAt ?? o.createdAt, new Date(0)) >= today)
+        .reduce((sum, o) => sum + (Number(o.estimatedPrice) || 0), 0)
+      const revenueLast30Days = completedList
+        .filter((o) => toDateFromUnknown(o.completedAt ?? o.createdAt, new Date(0)) >= thirtyDaysAgo)
+        .reduce((sum, o) => sum + (Number(o.estimatedPrice) || 0), 0)
+
       return {
         totalOrders,
         activeOrders,
@@ -66,6 +75,9 @@ export class FirestoreAnalyticsService {
         cancelledOrders,
         completedOrders,
         emergencyOrders,
+        totalRevenue,
+        revenueToday,
+        revenueLast30Days,
       }
     } catch (error) {
       console.error('Erro ao buscar metricas de pedidos:', error)
@@ -78,6 +90,9 @@ export class FirestoreAnalyticsService {
         cancelledOrders: 0,
         completedOrders: 0,
         emergencyOrders: 0,
+        totalRevenue: 0,
+        revenueToday: 0,
+        revenueLast30Days: 0,
       }
     }
   }
