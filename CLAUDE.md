@@ -11,7 +11,7 @@ Este arquivo é lido automaticamente pelo Claude Code. Contém tudo que qualquer
 | Componente | Tecnologia | Localização | Deploy |
 |---|---|---|------|
 | App Mobile | Android / Kotlin | `app/` | Google Play Store |
-| Painel Admin | Next.js 15 + TypeScript | `dashboard_admin/` | Vercel |
+| Painel Admin | Next.js 15 + TypeScript | `dashboard_admin/` | Vercel (`alvaro209890s-projects`) |
 | Backend Pagamentos | Node.js / Express | `backend/` | Render.com |
 
 **Firebase Project:** `aplicativoservico-143c2`
@@ -431,7 +431,7 @@ Cashback é uma configuração financeira crítica. Só o Firebase Admin SDK (vi
 
 | Problema | Causa | Solução |
 |---|---|---|
-| Firebase Admin não inicializa | `FIREBASE_SERVICE_ACCOUNT` não configurado | Preencher `.env.local` no painel / variáveis no Vercel |
+| Firebase Admin não inicializa | `FIREBASE_SERVICE_ACCOUNT` não configurado ou com aspas extras | Preencher `.env.local` no painel; no Vercel usar o script da seção 11 (aspas extras corrompem o JSON) |
 | Backend Render não autentica | Valores quebrados com prefixos JSON no env | Ver seção "Render — Env Vars Corretas" abaixo |
 | Aprovação de prestador falha com 403 | Client SDK não pode escrever em `providers/` (Firestore rules) | O hook agora usa `PATCH /api/providers/[id]/verify` (Admin SDK) |
 | Cashback não atualiza no app | Admin não tinha UI para configurar `app_config/cashback` | Acesse `/dashboard/configuracoes/aquicash` |
@@ -492,8 +492,57 @@ Commitar diretamente no `master` (sem PR). Push no master dispara deploy automá
 - `app/keystore/` — keystore de assinatura do APK
 - `backend/.env` — chaves Pagar.me e Firebase
 
-### Deploy automático
-- **Vercel:** conectado ao branch `master`. Todo push no `master` gera novo deploy do painel.
+### Deploy do Painel Admin (Vercel)
+
+**Conta Vercel:** `alvaro209890` (`alvaro209890s-projects`)
+**Projeto:** `aquiresolve-dashboard`
+**URL de produção:** https://aquiresolve-dashboard.vercel.app
+**Painel Vercel:** https://vercel.com/alvaro209890s-projects/aquiresolve-dashboard
+
+O projeto está vinculado via CLI (`dashboard_admin/.vercel/project.json`). **Não há integração automática com GitHub** — o deploy precisa ser disparado manualmente via CLI:
+
+```bash
+cd dashboard_admin
+npx vercel deploy --prod --yes
+```
+
+Para vincular em uma nova máquina (se `.vercel/` não existir):
+```bash
+cd dashboard_admin
+npx vercel login          # autenticar como alvaro209890
+npx vercel link --yes --project aquiresolve-dashboard
+npx vercel deploy --prod --yes
+```
+
+**Variáveis de ambiente já configuradas no Vercel (production):**
+| Variável | Finalidade |
+|---|---|
+| `FIREBASE_SERVICE_ACCOUNT` | JSON da service account Firebase (Admin SDK) |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase client SDK |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase client SDK |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `aplicativoservico-143c2` |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | FCM |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase client SDK |
+| `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Analytics |
+| `NEXT_PUBLIC_FIREBASE_DATABASE_URL` | Realtime Database |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps (web) |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY_ANDROID` | Google Maps (Android) |
+| `API_KEY_PRIVATE_PAGARME` | Pagar.me secret key |
+| `API_KEY_PUBLIC_PAGARME` | Pagar.me public key |
+| `ID_PUBLIC_PAGARME` | Pagar.me public ID |
+
+**ATENÇÃO ao atualizar `FIREBASE_SERVICE_ACCOUNT` no Vercel:**
+O valor deve ser o JSON puro, **sem aspas envolvendo o objeto**. Use o script abaixo para substituir:
+```bash
+cd dashboard_admin
+VALUE=$(grep "^FIREBASE_SERVICE_ACCOUNT=" .env.local | cut -d'=' -f2-)
+npx vercel env rm FIREBASE_SERVICE_ACCOUNT production --yes
+printf '%s' "$VALUE" | npx vercel env add FIREBASE_SERVICE_ACCOUNT production --yes
+npx vercel deploy --prod --yes
+```
+
+### Deploy do Backend (Render)
 - **Render:** deploy manual ou via webhook — `cd backend && git push render master`
 
 ---
@@ -501,7 +550,8 @@ Commitar diretamente no `master` (sem PR). Push no master dispara deploy automá
 ## 12. Referências Rápidas
 
 - **Firebase Console:** https://console.firebase.google.com/project/aplicativoservico-143c2
-- **Vercel Dashboard:** https://vercel.com/willy-henriques-projects/dashboard-admin
+- **Painel Admin (produção):** https://aquiresolve-dashboard.vercel.app
+- **Vercel Dashboard:** https://vercel.com/alvaro209890s-projects/aquiresolve-dashboard
 - **Render Dashboard:** https://dashboard.render.com (backend de pagamentos)
 - **Pagar.me Dashboard:** https://dashboard.pagar.me
 - **Docs técnicas detalhadas:** `docs/` (cashback, pagamentos, checklist OS, etc.)
