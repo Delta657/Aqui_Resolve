@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 
 async function calculatePricing(req, res, next) {
   try {
-    const result = calculateServicePricing({
+    const result = await calculateServicePricing({
       category: req.body && req.body.category,
       serviceType: req.body && req.body.serviceType
     });

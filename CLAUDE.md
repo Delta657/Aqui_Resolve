@@ -74,14 +74,25 @@ Activity → Manager → Firebase/Retrofit
 | `notifications/{id}` | Notificações FCM |
 | `carts/{uid}/items` | Carrinho de compras |
 | `app_config/cashback` | Config do programa de cashback (só leitura) |
-| `service_categories` / `service_types` | Catálogo de serviços (só leitura no app; escrita só Admin SDK) |
+| `service_categories` / `service_types` | Catálogo de NICHOS (só leitura no app; escrita só Admin SDK) |
+| `catalog_services` | Catálogo de SERVIÇOS (nicho + valor + % do prestador); só leitura no app, escrita só Admin SDK |
 | `chatConversations/{orderId}` | Conversa consolidada p/ a Central Operacional do painel (upsert pelo app) |
 
-### Catálogo de serviços dinâmico (app ↔ painel)
-- O app **lê** o catálogo de `service_categories` via `CatalogRepository.kt` (pré-carregado no `AppApplication`, com **fallback estático** em `ServiceNicheCatalog` se o Firestore estiver vazio/offline — zero regressão).
+### Catálogo de NICHOS dinâmico (app ↔ painel)
+- O app **lê** os nichos de `service_categories` via `CatalogRepository.kt` (pré-carregado no `AppApplication`, com **fallback estático** em `ServiceNicheCatalog` se o Firestore estiver vazio/offline — zero regressão).
 - Cliente (`CreateOrderActivity`), prestador (`ProviderSignUpActivity`/`ProviderProfileFragment`) e o matching (`ServiceNicheCatalog.applyDynamicCatalog`/`selectableNiches`) usam esse catálogo.
-- O painel gerencia o catálogo em `/dashboard/servicos/catalogo-app`, **escrevendo via `POST/DELETE /api/catalog` (Admin SDK)** — o app só lê.
+- O painel gerencia os nichos na aba **Nichos** de `/dashboard/servicos/catalogo-app`, **escrevendo via `POST/DELETE /api/catalog` (Admin SDK)** — o app só lê.
 - Semear/ressincronizar: `node dashboard_admin/scripts/seed-catalog.mjs` (rodar de dentro de `dashboard_admin/` com Node 22).
+
+### Catálogo de SERVIÇOS dinâmico (nicho + valor + % do prestador) — `catalog_services`
+Fonte única de verdade = painel admin → Firestore `catalog_services`. Um doc por serviço:
+`{ niche, nicheSlug, name, slug, description, estimatedTime, estimatedPrice (R$ cliente), providerCommissionPercent (0–100), providerCommission (R$ absoluto = round(price*percent/100,2)), isConsult, active, displayOrder }` — id determinístico `${nicheSlug}__${slug}`.
+- **Painel** (aba **Serviços** de `/dashboard/servicos/catalogo-app`): `components/catalog/catalog-services-panel.tsx` com slider de **% do prestador** e prévia ao vivo (cliente paga / prestador recebe / plataforma fica). Escreve via **`GET/POST/DELETE /api/catalog/services` (Admin SDK)** — o servidor calcula `providerCommission` a partir do %.
+- **Backend** (`backend/src/services/service-pricing.service.js`): `calculateServicePricing` é **async** e lê `catalog_services` PRIMEIRO (cache 60s, nunca lança); fallback na `pricingTable` hardcoded. Como o app já chama `POST /api/payments/pricing/calculate` no checkout, **mudar o preço no painel muda a cobrança real sem novo APK**.
+- **App** (`CatalogServiceRepository.kt` + `models/CatalogService.kt`): `CreateOrderActivity.setupServiceTypesForNiche` usa a lista do Firestore (fallback `hardcodedServiceTypesForNiche` offline); `getClientPriceLabel` prefere o preço do Firestore. Pedido grava `estimatedPrice`/`providerCommission` absolutos inalterados. **Novos serviços só aparecem na lista do app após novo APK** (`./gradlew assembleDebug`); mudanças de preço de serviços existentes valem na hora (via backend).
+- **Comissão** continua persistida em **R$ absoluto** em pedidos/pagamento; o % é só a forma de configurar no painel (salva os dois).
+- **Match exato exigido:** `catalog_services.niche` == categoria enviada pelo app; `catalog_services.name` == serviceType.
+- Semear/migrar (~300 serviços da tabela hardcoded, deriva o % — drift R$0,00): `node dashboard_admin/scripts/seed-catalog-services.mjs` (de `dashboard_admin/`, Node ≥20). Remapeia "Desentupimento com maquinário" → "Desentupimento com maquinário até 2 m".
 
 ### Fluxo de Pedido
 ```
@@ -215,8 +226,11 @@ Todas as rotas estão em `dashboard_admin/app/api/`:
 | `/api/notifications/send` | POST | Envia FCM push notification por uid, userIds[], token, tokens[] ou topic |
 | `/api/orders/[id]/redirect` | POST | Remove prestador do pedido e retorna para distribuição (motivo obrigatório) |
 | `/api/checklists/[orderId]` | GET | Retorna checklist + dados do pedido para visualização da OS |
-| `/api/catalog` | POST | Cria/atualiza serviço do catálogo do app (Admin SDK — `service_categories` + `service_types`) |
-| `/api/catalog` | DELETE | Remove serviço do catálogo (`?id=`) das duas coleções (Admin SDK) |
+| `/api/catalog` | POST | Cria/atualiza NICHO do catálogo (Admin SDK — `service_categories` + `service_types`) |
+| `/api/catalog` | DELETE | Remove nicho do catálogo (`?id=`) das duas coleções (Admin SDK) |
+| `/api/catalog/services` | GET | Lista SERVIÇOS de `catalog_services` (opcional `?niche=`) (Admin SDK) |
+| `/api/catalog/services` | POST | Cria/atualiza serviço (nicho/valor/% do prestador); calcula `providerCommission` (Admin SDK) |
+| `/api/catalog/services` | DELETE | Remove serviço de `catalog_services` (`?id=`) (Admin SDK) |
 | `/api/orders/[id]/refund` | POST | Reembolsa o pagamento do pedido via Pagar.me (Admin SDK). Body `{ amount?, reason? }` |
 | `/api/admin-logs` | GET | Lista logs de auditoria (filtros: action, targetType, limit) |
 | `/api/admin-logs` | POST | Grava ação de auditoria (action, targetId, targetType, payload) |
@@ -292,7 +306,7 @@ CORS_ORIGIN=*
 | GET | `/api/health` | Health check |
 | POST | `/api/payments/card` | Pagamento cartão crédito |
 | POST | `/api/payments/pix` | Pagamento PIX |
-| POST | `/api/payments/pricing/calculate` | Cálculo de preço |
+| POST | `/api/payments/pricing/calculate` | Cálculo de preço — lê `catalog_services` (Firestore) PRIMEIRO, com fallback na tabela hardcoded. Requer `FIREBASE_*` no Render |
 | GET | `/api/payments/{orderId}/status` | Status do pagamento |
 
 ### Deploy (Render.com)
@@ -319,7 +333,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 
 **Regra crítica:** A coleção `adminmaster` só pode ser lida/escrita pelo Firebase Admin SDK (regras bloqueiam client SDK). O login do painel usa Admin SDK no servidor.
 
-**Catálogo de serviços (segurança):** `service_categories`, `service_types` e `service_providers` têm `allow read: if isSignedIn()` e **`allow write: if false`** — escrita exclusiva via Admin SDK (rota `/api/catalog`). Antes a escrita era liberada a qualquer usuário autenticado, o que permitia adulterar o catálogo global pelo app; isso foi corrigido.
+**Catálogo de serviços (segurança):** `service_categories`, `service_types`, `service_providers` e **`catalog_services`** têm `allow read: if isSignedIn()` e **`allow write: if false`** — escrita exclusiva via Admin SDK (rotas `/api/catalog` e `/api/catalog/services`). Antes a escrita era liberada a qualquer usuário autenticado, o que permitia adulterar o catálogo/preços pelo app; isso foi corrigido.
 
 **Atenção sobre `isAdmin()`:** hoje **nenhum** usuário tem custom claim (`role:'admin'`/`admin:true`), então as regras que dependem de `isAdmin()` via client SDK não passam. Isso é intencionalmente coberto porque **toda escrita privilegiada do painel passa por API Routes (Admin SDK)**, que ignoram as regras. Se um dia for preciso escrita privilegiada via client SDK no painel, setar o claim no usuário Firebase Auth correspondente (ver abaixo).
 
@@ -445,6 +459,8 @@ Cashback é uma configuração financeira crítica. Só o Firebase Admin SDK (vi
 | Storage Upload falha | `storageBucket` incorreto | Verificar `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` |
 | Catálogo não salva no painel | Regra bloqueia escrita client-SDK (esperado) | O painel usa `POST/DELETE /api/catalog` (Admin SDK); confira `FIREBASE_SERVICE_ACCOUNT` no Vercel |
 | Catálogo não aparece no app | `service_categories` vazio | Rodar `node dashboard_admin/scripts/seed-catalog.mjs`; o app cai no fallback estático se vazio |
+| Serviços/preços do painel não refletem na cobrança | `catalog_services` vazio OU backend sem `FIREBASE_*` no Render | Rodar `node dashboard_admin/scripts/seed-catalog-services.mjs`; conferir `FIREBASE_*` no Render (backend lê Firestore-first) |
+| Novos serviços não aparecem na lista do app | App ainda com APK antigo (lista de serviços era hardcoded) | Gerar novo APK (`./gradlew assembleDebug`); preço de serviços já existentes muda na hora via backend |
 | Reembolso falha no painel | `API_KEY_PRIVATE_PAGARME` ausente ou cobrança não-paga | Conferir chave no Vercel; só cobranças `paid`/`captured` são reembolsáveis |
 | Webhook Pagar.me rejeitado (401) | `PAGARME_WEBHOOK_SECRET` no Render ≠ segredo enviado pelo painel Pagar.me | Manter os dois iguais OU deixar ambos vazios (polling de 5s do app já confirma o pagamento) |
 
@@ -467,6 +483,12 @@ KEEP_ALIVE_INTERVAL_MS=840000
 ```
 
 **Atenção:** `FIREBASE_PRIVATE_KEY` deve conter a chave PEM completa com `\n` literal (não quebras de linha reais). O `env.js` do backend faz o `replace(/\\n/g, '\n')` automaticamente.
+
+### Status de configuração verificado (2026-06-13)
+Conferência completa de regras + variáveis (tudo OK, nada precisou de correção além de publicar a regra nova):
+- **Firebase rules:** `firestore.rules` (com `catalog_services`) **publicada** via `firebase deploy --only firestore:rules` (service account `firebase-adminsdk-fbsvc@…`). Compila com avisos pré-existentes (funções não usadas), sem erros.
+- **Render** (`srv-d6hmk2p4tr6s73bu5fm0` / serviço "AquiResolve", branch `main`, autoDeploy **off**): presentes e válidos `FIREBASE_PROJECT_ID`/`FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` (PEM ok), `PAGARME_SECRET_KEY` (sk_ LIVE), `PAGARME_BASE_URL`, `CORS_ORIGIN`, `NODE_ENV=production`, `KEEP_ALIVE_*`, `CRON_SECRET`. Como autoDeploy é off, o backend só pega o código novo (pricing Firestore-first) com deploy manual (`git push render main` ou Manual Deploy no painel/API Render).
+- **Vercel** (`alvaro209890s-projects/aquiresolve-dashboard`): 14 vars em Production, incluindo `FIREBASE_SERVICE_ACCOUNT` (validado pelo login master) + `NEXT_PUBLIC_FIREBASE_*` + `*_PAGARME` + Google Maps. Sem integração GitHub — deploy do painel é manual (`npx vercel deploy --prod --yes` de `dashboard_admin/`).
 
 ### Custom Claims — Admin
 

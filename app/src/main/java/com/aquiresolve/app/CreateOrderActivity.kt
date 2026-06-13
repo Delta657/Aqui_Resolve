@@ -342,7 +342,24 @@ class CreateOrderActivity : AppCompatActivity() {
      * Configura os tipos de serviço baseados no nicho selecionado
      */
     private fun setupServiceTypesForNiche(niche: String) {
-        val serviceTypes = when (niche) {
+        // 1) Fallback offline: lista hardcoded. 2) Se o painel tiver serviços (catalog_services), usa-os.
+        val cached = CatalogServiceRepository.cachedForNiche(niche)
+        val initialNames = if (cached.isNotEmpty()) cached.map { it.name }
+            else hardcodedServiceTypesForNiche(niche)
+        rebuildServiceTypeAdapter(niche, initialNames)
+
+        // Busca a versão mais recente do catálogo do painel e reconstrói se houver serviços.
+        lifecycleScope.launch {
+            val loaded = CatalogServiceRepository.loadForNiche(niche)
+            if (loaded.isNotEmpty()) {
+                runOnUiThread { rebuildServiceTypeAdapter(niche, loaded.map { it.name }) }
+            }
+        }
+    }
+
+    /** Lista estática de tipos de serviço por nicho (fallback offline / nicho sem catálogo). */
+    private fun hardcodedServiceTypesForNiche(niche: String): List<String> {
+        return when (niche) {
             "Elétrica" -> listOf(
                 "Instalação de lâmpada",
                 "Instalação de tomada",
@@ -464,6 +481,10 @@ class CreateOrderActivity : AppCompatActivity() {
             }
         }
 
+    }
+
+    /** (Re)constrói o adapter do spinner de tipos de serviço para os nomes informados. */
+    private fun rebuildServiceTypeAdapter(niche: String, serviceTypes: List<String>) {
         val options = serviceTypes.map { serviceType ->
             ServiceTypeOption(
                 name = serviceType,
@@ -473,7 +494,7 @@ class CreateOrderActivity : AppCompatActivity() {
 
         val adapter = ServiceTypeDropdownAdapter(options)
         binding.spinnerServiceType.setAdapter(adapter)
-        
+
         // Listener para guardar o nome puro do serviço selecionado
         binding.spinnerServiceType.setOnItemClickListener { _, _, position, _ ->
             val option = adapter.getItem(position)
@@ -481,7 +502,7 @@ class CreateOrderActivity : AppCompatActivity() {
                 selectedPureServiceType = option.name
             }
         }
-        
+
         // Limpar seleção atual
         selectedPureServiceType = ""
         binding.spinnerServiceType.setText("")
@@ -495,6 +516,13 @@ class CreateOrderActivity : AppCompatActivity() {
         // Serviço genérico de nicho cadastrado no painel (sem tabela de preços): a consultar.
         if (serviceType.startsWith("Outros serviços")) {
             return "A consultar"
+        }
+
+        // Preferência: serviço do catálogo dinâmico do painel (catalog_services).
+        val dynamic = CatalogServiceRepository.findService(niche, serviceType)
+        if (dynamic != null) {
+            return if (dynamic.isConsult || dynamic.estimatedPrice <= 0.0) "A consultar"
+                else formatCurrency(dynamic.estimatedPrice)
         }
 
         if (com.aquiresolve.app.models.ServicePricing.isConsultPrice(niche, serviceType)) {

@@ -13,16 +13,32 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { PageWithBack } from "@/components/layout/page-with-back"
+import { CatalogServicesPanel } from "@/components/catalog/catalog-services-panel"
+import { toast } from "sonner"
 import {
   AppWindow,
   ArrowUpDown,
   CheckCircle2,
+  LayoutList,
   Loader2,
   Pencil,
   Plus,
   Search,
   ShieldCheck,
+  Tags,
   Trash2,
   Wrench,
   XCircle,
@@ -192,9 +208,10 @@ export default function CatalogoAppPage() {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        alert(`Erro ao salvar serviço: ${data.error ?? res.statusText}`)
+        toast.error(`Erro ao salvar nicho: ${data.error ?? res.statusText}`)
         return
       }
+      toast.success(editingId ? "Nicho atualizado" : "Nicho cadastrado")
       resetForm()
     } finally {
       setSaving(false)
@@ -218,22 +235,22 @@ export default function CatalogoAppPage() {
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      alert(`Erro ao atualizar serviço: ${data.error ?? res.statusText}`)
+      toast.error(`Erro ao atualizar nicho: ${data.error ?? res.statusText}`)
+      return
     }
+    toast.success(service.active ? "Nicho desativado" : "Nicho ativado")
   }
 
   const handleDelete = async (service: ServiceCategoryDoc) => {
-    if (!confirm(`Remover "${service.name}" do catálogo do aplicativo?`)) {
-      return
-    }
     const res = await fetch(`/api/catalog?id=${encodeURIComponent(service.id)}`, {
       method: "DELETE",
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      alert(`Erro ao remover serviço: ${data.error ?? res.statusText}`)
+      toast.error(`Erro ao remover nicho: ${data.error ?? res.statusText}`)
       return
     }
+    toast.success("Nicho removido")
     if (editingId === service.id) {
       resetForm()
     }
@@ -290,12 +307,29 @@ export default function CatalogoAppPage() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 2xl:grid-cols-[420px_minmax(0,1fr)]">
+        <Tabs defaultValue="servicos" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="servicos" className="flex items-center gap-2">
+              <LayoutList className="h-4 w-4" />
+              Serviços
+            </TabsTrigger>
+            <TabsTrigger value="nichos" className="flex items-center gap-2">
+              <Tags className="h-4 w-4" />
+              Nichos
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="servicos">
+            <CatalogServicesPanel niches={services.map((s) => ({ name: s.name, slug: s.slug }))} />
+          </TabsContent>
+
+          <TabsContent value="nichos">
+            <div className="grid gap-6 2xl:grid-cols-[420px_minmax(0,1fr)]">
           <Card className="border-border/70 shadow-sm">
             <CardHeader className="border-b">
               <CardTitle className="flex items-center gap-2 text-lg">
                 {editingId ? <Pencil className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-                {editingId ? "Editar serviço do app" : "Novo serviço para o app"}
+                {editingId ? "Editar nicho do app" : "Novo nicho para o app"}
               </CardTitle>
               <CardDescription>
                 Salve aqui e o catálogo já fica pronto para leitura no aplicativo via Firebase.
@@ -496,15 +530,35 @@ export default function CatalogoAppPage() {
                           >
                             {service.active ? "Desativar" : "Ativar"}
                           </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => handleDelete(service)}
-                            className="gap-2 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Excluir
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="gap-2 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Excluir
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remover &quot;{service.name}&quot;?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  O nicho sairá do catálogo do aplicativo. Os serviços vinculados a ele continuam salvos.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={() => handleDelete(service)}
+                                >
+                                  Remover
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     </div>
@@ -513,7 +567,9 @@ export default function CatalogoAppPage() {
               )}
             </CardContent>
           </Card>
-        </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </PageWithBack>
   )

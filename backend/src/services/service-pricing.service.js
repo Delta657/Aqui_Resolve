@@ -1,4 +1,15 @@
 const HttpError = require('../utils/http-error');
+const { initializeFirebase } = require('../config/firebase');
+const logger = require('../utils/logger');
+
+// Cache em memória do lookup no Firestore (catalog_services) para não bater no banco
+// a cada cálculo. TTL curto: mudanças no painel refletem em segundos.
+const FIRESTORE_PRICING_TTL_MS = 60 * 1000;
+const firestorePricingCache = new Map();
+
+function clearPricingCache() {
+  firestorePricingCache.clear();
+}
 
 // Fonte: app/src/main/java/com/aquiresolve/app/models/ServicePricing.kt
 // Mantida no backend para que preço/repasse não sejam definidos pelo APK.
@@ -461,7 +472,73 @@ function roundMoney(value) {
   return Math.round(Number(value) * 100) / 100;
 }
 
-function calculateServicePricing({ category, serviceType }) {
+// Lê o preço/repasse do catálogo dinâmico (catalog_services) gerido pelo painel admin.
+// Fonte de verdade quando disponível; em qualquer falha (sem credencial, erro, miss,
+// serviço "A consultar"/inativo) retorna null para cair na tabela hardcoded — NUNCA lança.
+async function lookupFirestorePricing(category, serviceType) {
+  const cacheKey = `${normalizeText(category).toLowerCase()}||${normalizeText(serviceType).toLowerCase()}`;
+  const cached = firestorePricingCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) {
+    return cached.value;
+  }
+
+  let value = null;
+  try {
+    const admin = initializeFirebase();
+    if (!admin.apps || admin.apps.length === 0) {
+      // Sem credenciais Firebase → usa fallback hardcoded.
+      firestorePricingCache.set(cacheKey, { value: null, expires: Date.now() + FIRESTORE_PRICING_TTL_MS });
+      return null;
+    }
+
+    const db = admin.firestore();
+    const requested = normalizeText(serviceType).toLowerCase();
+
+    // Tenta o nicho exato e, em seguida, o nicho normalizado (ex.: "Hidráulica" → "Encanador").
+    const niches = [normalizeText(category)];
+    const normalized = normalizeCategory(category);
+    if (normalized && normalized !== niches[0]) niches.push(normalized);
+
+    let match = null;
+    for (const niche of niches) {
+      // eslint-disable-next-line no-await-in-loop
+      const snap = await db.collection('catalog_services').where('niche', '==', niche).get();
+      match = snap.docs.find((doc) => {
+        const d = doc.data() || {};
+        const name = String(d.name || d.title || d.label || '').toLowerCase();
+        return name === requested;
+      });
+      if (match) break;
+    }
+
+    if (match) {
+      const d = match.data() || {};
+      const active = d.active !== false && d.isActive !== false && d.enabled !== false;
+      const price = Number(d.estimatedPrice) || 0;
+      const commission = Number(d.providerCommission) || 0;
+      // "A consultar"/inativo/sem preço → null para cair no fallback/default existente.
+      if (active && d.isConsult !== true && price > 0) {
+        value = {
+          category: normalizeCategory(category),
+          serviceType: normalizeText(serviceType),
+          estimatedPrice: roundMoney(price),
+          providerCommission: roundMoney(commission),
+          source: 'firestore_catalog'
+        };
+      }
+    }
+  } catch (error) {
+    logger.warn('Falha ao consultar catalog_services no Firestore — usando fallback', {
+      message: error && error.message
+    });
+    value = null;
+  }
+
+  firestorePricingCache.set(cacheKey, { value, expires: Date.now() + FIRESTORE_PRICING_TTL_MS });
+  return value;
+}
+
+async function calculateServicePricing({ category, serviceType }) {
   const cleanCategory = normalizeText(category);
   const cleanServiceType = normalizeText(serviceType);
   if (!cleanCategory) {
@@ -471,6 +548,13 @@ function calculateServicePricing({ category, serviceType }) {
     throw new HttpError(422, 'Tipo de serviço é obrigatório', { code: 'INVALID_SERVICE_TYPE' });
   }
 
+  // 1) Catálogo dinâmico do painel (fonte de verdade quando disponível).
+  const fromFirestore = await lookupFirestorePricing(cleanCategory, cleanServiceType);
+  if (fromFirestore) {
+    return fromFirestore;
+  }
+
+  // 2) Fallback: tabela hardcoded (comportamento legado, idêntico ao anterior).
   const pair = getPair(cleanCategory, cleanServiceType);
   let estimatedPrice;
   let providerCommission;
@@ -501,5 +585,6 @@ function calculateServicePricing({ category, serviceType }) {
 module.exports = {
   calculateServicePricing,
   getDefaultPrice,
-  getDefaultProviderValue
+  getDefaultProviderValue,
+  clearPricingCache
 };

@@ -376,6 +376,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Serviços do catálogo (nicho + valor + % do prestador). Um doc por serviço.
+    // Leitura por app + painel; escrita EXCLUSIVA via Admin SDK (/api/catalog/services).
+    match /catalog_services/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     match /service_providers/{docId} {
       allow read: if isSignedIn();
       allow write: if false;
