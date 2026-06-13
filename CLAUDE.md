@@ -2,6 +2,11 @@
 
 Este arquivo é lido automaticamente pelo Claude Code. Contém tudo que qualquer agente precisa saber para trabalhar neste repositório com segurança.
 
+> **Skills de infraestrutura (use-as):** este repo traz skills em `.claude/skills/` para operar cada plataforma com os comandos certos e os gotchas já mapeados. **Prefira invocá-las** a improvisar:
+> - **`aquiresolve-firebase`** — publicar `firestore.rules`/índices, semear catálogos (`service_categories`, `catalog_services`), rodar scripts Admin SDK.
+> - **`aquiresolve-render`** — env vars e deploy do backend de pagamentos (autoDeploy OFF → deploy via API).
+> - **`aquiresolve-vercel`** — deploy do painel e env vars (sem auto-deploy do GitHub; Node 20 obrigatório; fix do `FIREBASE_SERVICE_ACCOUNT`).
+
 ---
 
 ## 1. Visão Geral do Projeto
