@@ -35,6 +35,8 @@ export async function PATCH(
       isActive,
       blocked,
       blockedReason,
+      blockType,
+      blockedUntil,
       role,
       verificationStatus,
       adminNote,
@@ -60,11 +62,19 @@ export async function PATCH(
       if (blocked) {
         updateData.blockedAt = admin.firestore.FieldValue.serverTimestamp()
         updateData.blockedReason = blockedReason || 'Bloqueado pelo administrador'
-        // Desabilitar no Firebase Auth também
+        // 'temporary' ou 'permanent' (padrão: permanent)
+        updateData.blockType = blockType === 'temporary' ? 'temporary' : 'permanent'
+        if (blockType === 'temporary' && blockedUntil) {
+          updateData.blockedUntil = new Date(blockedUntil as string)
+        } else {
+          updateData.blockedUntil = null
+        }
         await authAdmin.updateUser(userId, { disabled: true })
       } else {
         updateData.blockedAt = null
         updateData.blockedReason = null
+        updateData.blockType = null
+        updateData.blockedUntil = null
         await authAdmin.updateUser(userId, { disabled: false })
       }
     }
@@ -92,7 +102,12 @@ export async function PATCH(
         action: blocked ? 'block_user' : 'unblock_user',
         targetId: userId,
         targetType: 'user',
-        payload: { blocked, blockedReason: blocked ? (blockedReason ?? null) : null },
+        payload: {
+          blocked,
+          blockedReason: blocked ? (blockedReason ?? null) : null,
+          blockType: blocked ? (blockType === 'temporary' ? 'temporary' : 'permanent') : null,
+          blockedUntil: blocked && blockType === 'temporary' ? (blockedUntil ?? null) : null,
+        },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       })
     }

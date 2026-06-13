@@ -93,7 +93,8 @@ class ChecklistActivity : AppCompatActivity() {
             "additionalService" to binding.cbAdditionalService.isChecked,
             "partsReplaced" to binding.cbPartsReplaced.isChecked,
             "valueChanged" to binding.cbValueChanged.isChecked,
-            "serviceCompleted" to binding.cbServiceCompleted.isChecked
+            "serviceCompleted" to binding.cbServiceCompleted.isChecked,
+            "cleanAfterService" to binding.cbCleanAfterService.isChecked
         )
     }
 
@@ -139,6 +140,7 @@ class ChecklistActivity : AppCompatActivity() {
                         partsReplaced = answers["partsReplaced"],
                         valueChanged = answers["valueChanged"],
                         serviceCompleted = answers["serviceCompleted"],
+                        cleanAfterService = answers["cleanAfterService"],
                         executionDescription = description,
                         updatedAt = Timestamp.now()
                     )
@@ -156,6 +158,7 @@ class ChecklistActivity : AppCompatActivity() {
                         partsReplaced = answers["partsReplaced"],
                         valueChanged = answers["valueChanged"],
                         serviceCompleted = answers["serviceCompleted"],
+                        cleanAfterService = answers["cleanAfterService"],
                         executionDescription = description,
                         createdAt = Timestamp.now(),
                         updatedAt = Timestamp.now()

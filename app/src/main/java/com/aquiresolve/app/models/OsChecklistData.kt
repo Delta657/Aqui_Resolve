@@ -38,6 +38,8 @@ data class OsChecklistData(
     val valueChanged: Boolean? = null,
     @PropertyName("serviceCompleted")
     val serviceCompleted: Boolean? = null,
+    @PropertyName("cleanAfterService")
+    val cleanAfterService: Boolean? = null,
 
     // Descrição detalhada
     @PropertyName("executionDescription")
@@ -106,6 +108,7 @@ data class OsChecklistData(
                 partsReplaced = data["partsReplaced"] as? Boolean,
                 valueChanged = data["valueChanged"] as? Boolean,
                 serviceCompleted = data["serviceCompleted"] as? Boolean,
+                cleanAfterService = data["cleanAfterService"] as? Boolean,
                 executionDescription = data["executionDescription"] as? String ?: "",
                 photosBefore = (data["photosBefore"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 photosDuring = (data["photosDuring"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
@@ -144,6 +147,7 @@ data class OsChecklistData(
             "partsReplaced" to partsReplaced,
             "valueChanged" to valueChanged,
             "serviceCompleted" to serviceCompleted,
+            "cleanAfterService" to cleanAfterService,
             "executionDescription" to executionDescription,
             "photosBefore" to photosBefore,
             "photosDuring" to photosDuring,
@@ -170,7 +174,8 @@ data class OsChecklistData(
 
     val checklistStep2Complete: Boolean
         get() = executedAsRequested != null && additionalService != null &&
-                partsReplaced != null && valueChanged != null && serviceCompleted != null
+                partsReplaced != null && valueChanged != null && serviceCompleted != null &&
+                cleanAfterService != null
 
     val checklistComplete: Boolean
         get() = checklistStep1Complete && checklistStep2Complete && executionDescription.isNotBlank()

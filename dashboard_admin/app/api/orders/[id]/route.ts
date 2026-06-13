@@ -77,15 +77,18 @@ export async function PATCH(
       if (status === 'completed') {
         updateData.completedAt = admin.firestore.FieldValue.serverTimestamp()
 
-        // Acumula saldo do prestador ao concluir pedido
         const orderSnap2 = await orderRef.get()
         const orderData = orderSnap2.data()
         const providerId = orderData?.assignedProvider
         const commission = orderData?.providerCommission ?? 0
+        const clientId = orderData?.clientId
+        const estimatedPrice = Number(orderData?.estimatedPrice ?? 0)
+
+        // Acumula saldo do prestador
         if (providerId && commission > 0) {
           const provRef = db.collection('providers').doc(providerId)
           const userRef2 = db.collection('users').doc(providerId)
-          const provSnap = await provRef.get()
+          const [provSnap, userSnap2] = await Promise.all([provRef.get(), userRef2.get()])
           if (provSnap.exists) {
             await provRef.update({
               providerBalance: admin.firestore.FieldValue.increment(commission),
@@ -93,13 +96,38 @@ export async function PATCH(
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             })
           }
-          const userSnap2 = await userRef2.get()
           if (userSnap2.exists) {
             await userRef2.update({
               providerBalance: admin.firestore.FieldValue.increment(commission),
               providerTotalEarned: admin.firestore.FieldValue.increment(commission),
               updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             })
+          }
+        }
+
+        // Credita cashback ao cliente
+        if (clientId && estimatedPrice > 0) {
+          const cashbackConfigSnap = await db.collection('app_config').doc('cashback').get()
+          const cashbackCfg = cashbackConfigSnap.data()
+          if (cashbackCfg?.enabled === true) {
+            const earnPct = Number(cashbackCfg.earnPercentage ?? 5)
+            const cashbackAmount = Math.round((estimatedPrice * earnPct) / 100 * 100) / 100
+            if (cashbackAmount > 0) {
+              const clientRef = db.collection('users').doc(clientId)
+              await clientRef.update({
+                cashbackBalance: admin.firestore.FieldValue.increment(cashbackAmount),
+                cashbackTotalEarned: admin.firestore.FieldValue.increment(cashbackAmount),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+              })
+              await clientRef.collection('cashback_transactions').add({
+                orderId,
+                amount: cashbackAmount,
+                earnPercentage: earnPct,
+                orderValue: estimatedPrice,
+                type: 'earned',
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+              })
+            }
           }
         }
       }

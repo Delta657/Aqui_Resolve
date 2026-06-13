@@ -243,6 +243,15 @@
                             android:layout_height="wrap_content"
                             android:text="Serviço concluído com sucesso?"
                             android:textSize="14sp"
+                            android:textColor="@color/text_primary"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cbCleanAfterService"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Local limpo após execução?"
+                            android:textSize="14sp"
                             android:textColor="@color/text_primary" />
 
                     </LinearLayout>
