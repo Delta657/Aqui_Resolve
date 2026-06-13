@@ -92,7 +92,7 @@ checklists/{orderId}
 
 | Status | Descrição |
 |---|---|
-| `checklist_pending` | Respondendo as 10 perguntas |
+| `checklist_pending` | Respondendo os dados textuais, categorias e perguntas do checklist |
 | `photos_pending` | Capturando e enviando fotos |
 | `signatures_pending` | Coletando assinaturas |
 | `completed` | Checklist finalizado |
@@ -116,7 +116,13 @@ checklists/{orderId}
 | `partsReplaced` | Boolean? | Peças substituídas? |
 | `valueChanged` | Boolean? | Valor alterado? |
 | `serviceCompleted` | Boolean? | Serviço concluído? |
+| `cleanAfterService` | Boolean? | Local limpo após execução? |
+| `serviceDescription` | List\<String\> | Categorias/tipos do serviço executado |
+| `preExistingDamages` | String | Avarias pré-existentes informadas ao beneficiário |
+| `problemResolution` | String | Resultado do problema: `resolved`, `return_needed` ou `not_resolved` |
+| `declarationAccepted` | Boolean? | Declaração de veracidade aceita pelo prestador |
 | `executionDescription` | String | Descrição detalhada da execução |
+| `observations` | String | Observações adicionais do atendimento |
 | `photosBefore` | List\<String\> | URLs das fotos "antes" |
 | `photosDuring` | List\<String\> | URLs das fotos "durante" |
 | `photosAfter` | List\<String\> | URLs das fotos "depois" |
@@ -139,14 +145,31 @@ checklists/{orderId}
 | Propriedade | Descrição |
 |---|---|
 | `checklistStep1Complete` | Bloco 1 (chegada) totalmente preenchido |
-| `checklistStep2Complete` | Bloco 2 (execução) totalmente preenchido |
-| `checklistComplete` | Ambos blocos + descrição preenchidos |
+| `checklistStep2Complete` | Bloco 2 (execução), categorias, solução do problema e declaração preenchidos |
+| `checklistComplete` | Ambos blocos + descrição detalhada preenchidos |
 | `photosComplete` | Pelo menos 1 foto em cada categoria |
 | `providerSignatureComplete` | Assinatura do prestador realizada |
 | `clientSignatureComplete` | Assinatura do cliente realizada |
 | `isComplete` | Checklist + fotos + ambas assinaturas concluídos |
 
 ## Telas
+
+### Checklist textual
+
+A tela `ChecklistActivity` coleta:
+
+- categorias em `serviceDescription`: Elétrico, Encanador, Desentupimento, Check-Up, Limpeza de Caixa d'água, Limpeza de Calhas e Rufos, Limpeza de Caixa de Gordura, Chaveiro e Instalação de ventilador;
+- avarias pré-existentes em `preExistingDamages`;
+- descrição detalhada em `executionDescription`;
+- solução do problema em `problemResolution`;
+- observações gerais em `observations`;
+- declaração de veracidade em `declarationAccepted`.
+
+Para avançar para fotos, o app exige pelo menos uma categoria em `serviceDescription`, descrição detalhada, resolução do problema e aceite da declaração.
+
+### Próximas etapas visuais
+
+O fluxo ainda permanece dividido em três telas: checklist textual, fotos e assinaturas. Para ficar idêntico ao modelo visual de referência, a próxima etapa é consolidar fotos e assinaturas na mesma tela do checklist, adicionar o card de status da sincronização no topo e reproduzir o cabeçalho/menu inferior operacional.
 
 ### ChecklistActivity
 

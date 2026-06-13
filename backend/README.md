@@ -50,9 +50,18 @@ npm start
 1. Crie um novo Web Service.
 2. Use o diretório raiz `backend`.
 3. Configure:
+   - Instance Type/Plan: `Starter` ou superior em produção
    - Build Command: `npm install`
    - Start Command: `npm start`
    - Health Check Path: `/api/health`
 4. Cadastre as variáveis de ambiente do `.env.example`.
 
 Também há um blueprint em `backend/render.yaml`.
+
+### Aviso de instância grátis
+
+Se o Render mostrar a mensagem `Your free instance will spin down with inactivity, which can delay requests by 50 seconds or more`, o serviço foi criado ou alterado para o plano grátis. Para o backend de pagamentos isso deve ser corrigido no painel do Render, mudando o Web Service para `Starter` ou superior.
+
+O `backend/render.yaml` já declara `plan: starter`, mas essa configuração só é aplicada quando o serviço é criado/atualizado via blueprint. Em deploy manual, confirme o plano diretamente em **Settings > Instance Type** no Render.
+
+O keep-alive interno ajuda apenas enquanto o processo está em execução. Em instância grátis, a plataforma ainda pode suspender o serviço por inatividade.

@@ -329,7 +329,7 @@ export function ChecklistTemplateModal({ open, onClose, onSuccess, template }: P
 
               {itens.length === 0 && (
                 <p className="text-sm text-muted-foreground py-4 text-center border rounded-lg">
-                  Nenhum item adicionado. Clique em "Adicionar item" para começar.
+                  Nenhum item adicionado. Clique em &quot;Adicionar item&quot; para começar.
                 </p>
               )}
 

@@ -1,5 +1,30 @@
 import * as admin from 'firebase-admin'
 
+function escapeNewlinesInsideJsonStrings(value: string) {
+  let fixed = ''
+  let inString = false
+  let escaped = false
+
+  for (const char of value) {
+    if (escaped) {
+      fixed += char
+      escaped = false
+    } else if (char === '\\' && inString) {
+      fixed += char
+      escaped = true
+    } else if (char === '"') {
+      inString = !inString
+      fixed += char
+    } else if (char === '\n' && inString) {
+      fixed += '\\n'
+    } else {
+      fixed += char
+    }
+  }
+
+  return fixed
+}
+
 const getServiceAccount = () => {
   const json = process.env.FIREBASE_SERVICE_ACCOUNT
   if (!json) {
@@ -10,45 +35,39 @@ const getServiceAccount = () => {
     }
     return null
   }
-  try {
-    console.log('🔍 FIREBASE_SERVICE_ACCOUNT length:', json.length, '| starts with:', JSON.stringify(json.slice(0, 20)))
-    // dotenv com aspas duplas converte \n em newlines reais em todo o valor.
-    // Newlines reais são whitespace JSON válido entre tokens, mas inválidos
-    // dentro de string literals. Percorremos char a char para escapar apenas
-    // os newlines que estão dentro de strings.
-    let fixed = ''
-    let inString = false
-    let escaped = false
-    for (const char of json) {
-      if (escaped) {
-        fixed += char
-        escaped = false
-      } else if (char === '\\' && inString) {
-        fixed += char
-        escaped = true
-      } else if (char === '"') {
-        inString = !inString
-        fixed += char
-      } else if (char === '\n' && inString) {
-        fixed += '\\n'
-      } else {
-        fixed += char
-      }
-    }
-    const parsed = JSON.parse(fixed)
-    // Firebase Admin exige newlines reais na private_key (formato PEM)
-    if (parsed.private_key) {
-      parsed.private_key = parsed.private_key.replace(/\\n/g, '\n')
-    }
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('✅ Firebase Service Account carregado')
-    }
-    return parsed
-  } catch (error) {
-    console.error('❌ Erro ao parsear FIREBASE_SERVICE_ACCOUNT:', error)
-    console.error('❌ Verifique se o JSON está válido e bem formatado')
-    return null
+
+  const trimmed = json.trim()
+  const candidates = [trimmed]
+
+  if (trimmed.includes('\\"')) {
+    candidates.push(trimmed.replace(/\\"/g, '"'))
   }
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(escapeNewlinesInsideJsonStrings(candidate))
+
+      if (!parsed || typeof parsed !== 'object') {
+        continue
+      }
+
+      if (parsed.private_key) {
+        parsed.private_key = parsed.private_key.replace(/\\n/g, '\n')
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('✅ Firebase Service Account carregado')
+      }
+
+      return parsed
+    } catch {
+      // Tenta o proximo formato suportado.
+    }
+  }
+
+  console.error('❌ Erro ao parsear FIREBASE_SERVICE_ACCOUNT')
+  console.error('❌ Verifique se o JSON está válido e bem formatado')
+  return null
 }
 
 // Inicializar Firebase Admin apenas uma vez
@@ -100,5 +119,4 @@ if (process.env.NODE_ENV !== 'production') {
     serviceAccount: !!getServiceAccount()
   })
 }
-
 

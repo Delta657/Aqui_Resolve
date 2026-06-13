@@ -25,7 +25,6 @@ import {
   Star,
   Clock
 } from "lucide-react"
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { User as UserType } from "@/types"
 // dados vindos do Firestore podem ter campos adicionais ao tipo base
 type UserRecord = Record<string, any>

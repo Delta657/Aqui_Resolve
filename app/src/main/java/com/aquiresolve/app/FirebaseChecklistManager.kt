@@ -87,7 +87,9 @@ class FirebaseChecklistManager {
         orderId: String,
         answers: Map<String, Boolean?>,
         executionDescription: String,
+        serviceDescription: List<String> = emptyList(),
         preExistingDamages: String = "",
+        observations: String = "",
         problemResolution: String = ""
     ): Result<Unit> {
         return try {
@@ -99,8 +101,10 @@ class FirebaseChecklistManager {
                     data[key] = value
                 }
             }
+            data["serviceDescription"] = serviceDescription
             data["executionDescription"] = executionDescription
             data["preExistingDamages"] = preExistingDamages
+            data["observations"] = observations
             if (problemResolution.isNotEmpty()) data["problemResolution"] = problemResolution
             data["status"] = OsChecklistData.STATUS_PHOTOS_PENDING
 

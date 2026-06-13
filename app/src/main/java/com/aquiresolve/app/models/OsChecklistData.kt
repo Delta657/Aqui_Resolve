@@ -41,6 +41,10 @@ data class OsChecklistData(
     @PropertyName("cleanAfterService")
     val cleanAfterService: Boolean? = null,
 
+    // Tipos/categorias do serviço executado
+    @PropertyName("serviceDescription")
+    val serviceDescription: List<String> = emptyList(),
+
     // Avarias pré-existentes (campo texto do modelo)
     @PropertyName("preExistingDamages")
     val preExistingDamages: String = "",
@@ -56,6 +60,10 @@ data class OsChecklistData(
     // Descrição detalhada
     @PropertyName("executionDescription")
     val executionDescription: String = "",
+
+    // Observações gerais do atendimento
+    @PropertyName("observations")
+    val observations: String = "",
 
     // Fotos
     @PropertyName("photosBefore")
@@ -121,10 +129,12 @@ data class OsChecklistData(
                 valueChanged = data["valueChanged"] as? Boolean,
                 serviceCompleted = data["serviceCompleted"] as? Boolean,
                 cleanAfterService = data["cleanAfterService"] as? Boolean,
+                serviceDescription = (data["serviceDescription"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 preExistingDamages = data["preExistingDamages"] as? String ?: "",
                 problemResolution = data["problemResolution"] as? String ?: "",
                 declarationAccepted = data["declarationAccepted"] as? Boolean,
                 executionDescription = data["executionDescription"] as? String ?: "",
+                observations = data["observations"] as? String ?: "",
                 photosBefore = (data["photosBefore"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 photosDuring = (data["photosDuring"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                 photosAfter = (data["photosAfter"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
@@ -163,10 +173,12 @@ data class OsChecklistData(
             "valueChanged" to valueChanged,
             "serviceCompleted" to serviceCompleted,
             "cleanAfterService" to cleanAfterService,
+            "serviceDescription" to serviceDescription,
             "preExistingDamages" to preExistingDamages,
             "problemResolution" to problemResolution,
             "declarationAccepted" to declarationAccepted,
             "executionDescription" to executionDescription,
+            "observations" to observations,
             "photosBefore" to photosBefore,
             "photosDuring" to photosDuring,
             "photosAfter" to photosAfter,
@@ -193,7 +205,8 @@ data class OsChecklistData(
     val checklistStep2Complete: Boolean
         get() = executedAsRequested != null && additionalService != null &&
                 partsReplaced != null && valueChanged != null && serviceCompleted != null &&
-                cleanAfterService != null && problemResolution.isNotEmpty() &&
+                cleanAfterService != null && serviceDescription.isNotEmpty() &&
+                problemResolution.isNotEmpty() &&
                 declarationAccepted == true
 
     val checklistComplete: Boolean

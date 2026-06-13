@@ -46,6 +46,7 @@ class ChecklistActivity : AppCompatActivity() {
             val result = checklistManager.getChecklist(orderId!!)
             if (result.isSuccess) {
                 existingChecklist = result.getOrNull()
+                existingChecklist?.let { populateChecklist(it) }
             }
         }
     }
@@ -67,6 +68,11 @@ class ChecklistActivity : AppCompatActivity() {
     }
 
     private fun validateStep1(): Boolean {
+        if (collectServiceDescriptions().isEmpty()) {
+            Toast.makeText(this, "Selecione pelo menos uma descrição do serviço", Toast.LENGTH_LONG).show()
+            return false
+        }
+
         if (binding.etExecutionDescription.text?.toString()?.trim().isNullOrEmpty()) {
             Toast.makeText(this, "Preencha a descrição detalhada do serviço realizado", Toast.LENGTH_LONG).show()
             binding.etExecutionDescription.error = "Campo obrigatório"
@@ -103,6 +109,20 @@ class ChecklistActivity : AppCompatActivity() {
         )
     }
 
+    private fun collectServiceDescriptions(): List<String> {
+        val descriptions = mutableListOf<String>()
+        if (binding.cbServiceElectric.isChecked) descriptions.add("Elétrico")
+        if (binding.cbServicePlumber.isChecked) descriptions.add("Encanador")
+        if (binding.cbServiceClog.isChecked) descriptions.add("Desentupimento")
+        if (binding.cbServiceCheckup.isChecked) descriptions.add("Check-Up")
+        if (binding.cbServiceWaterTankCleaning.isChecked) descriptions.add("Limpeza de Caixa d'água")
+        if (binding.cbServiceGutterCleaning.isChecked) descriptions.add("Limpeza de Calhas e Rufos")
+        if (binding.cbServiceGreaseTrapCleaning.isChecked) descriptions.add("Limpeza de Caixa de Gordura")
+        if (binding.cbServiceLocksmith.isChecked) descriptions.add("Chaveiro")
+        if (binding.cbServiceFanInstallation.isChecked) descriptions.add("Instalação de ventilador")
+        return descriptions
+    }
+
     private fun getProblemResolution(): String {
         return when (binding.rgProblemResolution.checkedRadioButtonId) {
             R.id.rbResolved -> "resolved"
@@ -117,11 +137,19 @@ class ChecklistActivity : AppCompatActivity() {
             try {
                 val answers = collectAnswers()
                 val description = binding.etExecutionDescription.text?.toString()?.trim() ?: ""
+                val serviceDescriptions = collectServiceDescriptions()
                 val preExistingDamages = binding.etPreExistingDamages.text?.toString()?.trim() ?: ""
+                val observations = binding.etObservations.text?.toString()?.trim() ?: ""
                 val problemResolution = getProblemResolution()
 
                 val result = checklistManager.saveChecklistAnswers(
-                    orderId!!, answers, description, preExistingDamages, problemResolution
+                    orderId!!,
+                    answers,
+                    description,
+                    serviceDescriptions,
+                    preExistingDamages,
+                    observations,
+                    problemResolution
                 )
 
                 if (result.isSuccess) {
@@ -144,7 +172,9 @@ class ChecklistActivity : AppCompatActivity() {
             try {
                 val answers = collectAnswers()
                 val description = binding.etExecutionDescription.text?.toString()?.trim() ?: ""
+                val serviceDescriptions = collectServiceDescriptions()
                 val preExistingDamages = binding.etPreExistingDamages.text?.toString()?.trim() ?: ""
+                val observations = binding.etObservations.text?.toString()?.trim() ?: ""
                 val problemResolution = getProblemResolution()
 
                 val currentChecklist = existingChecklist
@@ -161,10 +191,12 @@ class ChecklistActivity : AppCompatActivity() {
                         valueChanged = answers["valueChanged"],
                         serviceCompleted = answers["serviceCompleted"],
                         cleanAfterService = answers["cleanAfterService"],
+                        serviceDescription = serviceDescriptions,
                         preExistingDamages = preExistingDamages,
                         problemResolution = problemResolution,
                         declarationAccepted = answers["declarationAccepted"],
                         executionDescription = description,
+                        observations = observations,
                         updatedAt = Timestamp.now()
                     )
                 } else {
@@ -182,10 +214,12 @@ class ChecklistActivity : AppCompatActivity() {
                         valueChanged = answers["valueChanged"],
                         serviceCompleted = answers["serviceCompleted"],
                         cleanAfterService = answers["cleanAfterService"],
+                        serviceDescription = serviceDescriptions,
                         preExistingDamages = preExistingDamages,
                         problemResolution = problemResolution,
                         declarationAccepted = answers["declarationAccepted"],
                         executionDescription = description,
+                        observations = observations,
                         createdAt = Timestamp.now(),
                         updatedAt = Timestamp.now()
                     )
@@ -196,6 +230,42 @@ class ChecklistActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 Toast.makeText(this@ChecklistActivity, "Erro ao salvar rascunho", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    private fun populateChecklist(checklist: OsChecklistData) {
+        binding.cbClientPresent.isChecked = checklist.clientPresent == true
+        binding.cbServiceMatches.isChecked = checklist.serviceMatches == true
+        binding.cbVisibleDamage.isChecked = checklist.visibleDamage == true
+        binding.cbMaterialAvailable.isChecked = checklist.materialAvailable == true
+        binding.cbClientObservations.isChecked = checklist.clientObservations == true
+        binding.cbExecutedAsRequested.isChecked = checklist.executedAsRequested == true
+        binding.cbAdditionalService.isChecked = checklist.additionalService == true
+        binding.cbPartsReplaced.isChecked = checklist.partsReplaced == true
+        binding.cbValueChanged.isChecked = checklist.valueChanged == true
+        binding.cbServiceCompleted.isChecked = checklist.serviceCompleted == true
+        binding.cbCleanAfterService.isChecked = checklist.cleanAfterService == true
+        binding.cbDeclarationAccepted.isChecked = checklist.declarationAccepted == true
+
+        val descriptions = checklist.serviceDescription.toSet()
+        binding.cbServiceElectric.isChecked = "Elétrico" in descriptions
+        binding.cbServicePlumber.isChecked = "Encanador" in descriptions
+        binding.cbServiceClog.isChecked = "Desentupimento" in descriptions
+        binding.cbServiceCheckup.isChecked = "Check-Up" in descriptions
+        binding.cbServiceWaterTankCleaning.isChecked = "Limpeza de Caixa d'água" in descriptions
+        binding.cbServiceGutterCleaning.isChecked = "Limpeza de Calhas e Rufos" in descriptions
+        binding.cbServiceGreaseTrapCleaning.isChecked = "Limpeza de Caixa de Gordura" in descriptions
+        binding.cbServiceLocksmith.isChecked = "Chaveiro" in descriptions
+        binding.cbServiceFanInstallation.isChecked = "Instalação de ventilador" in descriptions
+
+        binding.etPreExistingDamages.setText(checklist.preExistingDamages)
+        binding.etExecutionDescription.setText(checklist.executionDescription)
+        binding.etObservations.setText(checklist.observations)
+
+        when (checklist.problemResolution) {
+            "resolved" -> binding.rgProblemResolution.check(R.id.rbResolved)
+            "return_needed" -> binding.rgProblemResolution.check(R.id.rbReturnNeeded)
+            "not_resolved" -> binding.rgProblemResolution.check(R.id.rbNotResolved)
         }
     }
 }
