@@ -28,7 +28,8 @@ object CatalogRepository {
     data class CatalogNiche(
         val name: String,
         val aliases: List<String>,
-        val displayOrder: Int
+        val displayOrder: Int,
+        val icon: String = "wrench"
     )
 
     @Volatile
@@ -95,14 +96,15 @@ object CatalogRepository {
                 CatalogNiche(
                     name = name,
                     aliases = readAliases(data),
-                    displayOrder = readInt(data["displayOrder"], data["order"], data["sortOrder"])
+                    displayOrder = readInt(data["displayOrder"], data["order"], data["sortOrder"]),
+                    icon = readString(data["icon"]).ifEmpty { "wrench" }
                 )
             }.sortedBy { it.displayOrder }
 
             if (niches.isNotEmpty()) {
                 cache = niches
                 ServiceNicheCatalog.applyDynamicCatalog(
-                    niches.map { ServiceNicheCatalog.DynamicNiche(it.name, it.aliases) }
+                    niches.map { ServiceNicheCatalog.DynamicNiche(it.name, it.aliases, it.icon) }
                 )
                 Log.d(TAG, "Catálogo carregado do Firestore: ${niches.size} nichos ativos")
             } else {

@@ -31,18 +31,95 @@ import { toast } from "sonner"
 import {
   AppWindow,
   ArrowUpDown,
+  Briefcase,
+  Car,
   CheckCircle2,
+  Droplet,
+  Droplets,
+  Flower2,
+  Hammer,
+  Home,
+  KeyRound,
   LayoutList,
   Loader2,
+  Lock,
+  MoveRight,
+  Package,
+  Paintbrush,
   Pencil,
   Plus,
   Search,
+  Settings,
   ShieldCheck,
+  Sparkles,
   Tags,
   Trash2,
+  Truck,
+  Tv,
+  Waves,
+  Wind,
   Wrench,
   XCircle,
+  Zap,
+  type LucideIcon,
 } from "lucide-react"
+
+const ICON_OPTIONS: { slug: string; label: string; Icon: LucideIcon }[] = [
+  { slug: "electrician", label: "Elétrica", Icon: Zap },
+  { slug: "plumber", label: "Hidráulica", Icon: Droplets },
+  { slug: "hammer", label: "Instalação", Icon: Hammer },
+  { slug: "water", label: "Água / Caixa d'água", Icon: Droplet },
+  { slug: "waves", label: "Desentupimento", Icon: Waves },
+  { slug: "search", label: "Caça-vazamentos", Icon: Search },
+  { slug: "sparkles", label: "Limpeza / Faxina", Icon: Sparkles },
+  { slug: "wind", label: "Ar condicionado", Icon: Wind },
+  { slug: "tv", label: "Eletrodomésticos", Icon: Tv },
+  { slug: "lock", label: "Chaveiro", Icon: Lock },
+  { slug: "key", label: "Chave / Segurança", Icon: KeyRound },
+  { slug: "car", label: "Serviços automotivos", Icon: Car },
+  { slug: "truck", label: "Guincho / Reboque", Icon: Truck },
+  { slug: "package", label: "Montagem de móveis", Icon: Package },
+  { slug: "paintbrush", label: "Pintura", Icon: Paintbrush },
+  { slug: "flower", label: "Jardinagem", Icon: Flower2 },
+  { slug: "move", label: "Mudanças", Icon: MoveRight },
+  { slug: "home", label: "Casa / Residencial", Icon: Home },
+  { slug: "settings", label: "Manutenção geral", Icon: Settings },
+  { slug: "briefcase", label: "Trabalho / Outros", Icon: Briefcase },
+  { slug: "wrench", label: "Ferramentas", Icon: Wrench },
+]
+
+function IconPicker({ value, onChange }: { value: string; onChange: (slug: string) => void }) {
+  return (
+    <div className="space-y-2">
+      <Label>Ícone do nicho</Label>
+      <div className="grid grid-cols-4 gap-2 rounded-xl border bg-muted/20 p-3 sm:grid-cols-5 lg:grid-cols-4 xl:grid-cols-5">
+        {ICON_OPTIONS.map(({ slug, label, Icon }) => {
+          const selected = value === slug
+          return (
+            <button
+              key={slug}
+              type="button"
+              title={label}
+              onClick={() => onChange(slug)}
+              className={[
+                "flex flex-col items-center gap-1 rounded-lg border p-2 text-center transition-all",
+                selected
+                  ? "border-orange-500 bg-orange-50 text-orange-700 shadow-sm"
+                  : "border-transparent bg-white text-muted-foreground hover:border-orange-200 hover:bg-orange-50/60",
+              ].join(" ")}
+            >
+              <Icon className="h-5 w-5 shrink-0" />
+              <span className="line-clamp-2 text-[10px] leading-tight">{label}</span>
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Ícone selecionado: <code className="rounded bg-muted px-1">{value || "wrench"}</code>
+      </p>
+    </div>
+  )
+}
 
 interface ServiceCategoryDoc {
   id: string
@@ -376,25 +453,19 @@ export default function CatalogoAppPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="icon">Ícone</Label>
-                    <Input
-                      id="icon"
-                      value={form.icon}
-                      onChange={(event) => setForm((current) => ({ ...current, icon: event.target.value }))}
-                      placeholder="wrench"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="aliases">Palavras-chave</Label>
-                    <Input
-                      id="aliases"
-                      value={form.aliases}
-                      onChange={(event) => setForm((current) => ({ ...current, aliases: event.target.value }))}
-                      placeholder="bateria, carga, partida"
-                    />
-                  </div>
+                <IconPicker
+                  value={form.icon}
+                  onChange={(slug) => setForm((current) => ({ ...current, icon: slug }))}
+                />
+
+                <div className="space-y-2">
+                  <Label htmlFor="aliases">Palavras-chave</Label>
+                  <Input
+                    id="aliases"
+                    value={form.aliases}
+                    onChange={(event) => setForm((current) => ({ ...current, aliases: event.target.value }))}
+                    placeholder="bateria, carga, partida"
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -495,9 +566,16 @@ export default function CatalogoAppPage() {
                               <ArrowUpDown className="h-3 w-3" />
                               Ordem {service.displayOrder}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-1">
-                              Ícone: {service.icon}
-                            </span>
+                            {(() => {
+                              const opt = ICON_OPTIONS.find((o) => o.slug === service.icon)
+                              const Icon = opt?.Icon ?? Wrench
+                              return (
+                                <span className="inline-flex items-center gap-1 rounded-full border px-2 py-1">
+                                  <Icon className="h-3 w-3" />
+                                  {opt?.label ?? service.icon}
+                                </span>
+                              )
+                            })()}
                           </div>
 
                           <p className="text-sm leading-6 text-muted-foreground">

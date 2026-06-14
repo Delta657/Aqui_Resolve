@@ -1,64 +1,68 @@
-﻿package com.aquiresolve.app.adapters
+package com.aquiresolve.app.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.aquiresolve.app.R
 import com.aquiresolve.app.databinding.ItemServiceCategoryBinding
-import com.aquiresolve.app.models.ServiceCategory
 
-/**
- * Adapter para categorias de serviços
- */
 class ServiceCategoriesAdapter(
-    private var categories: List<ServiceCategory>,
-    private val onCategoryClick: (ServiceCategory) -> Unit
-) : RecyclerView.Adapter<ServiceCategoriesAdapter.CategoryViewHolder>() {
+    private var niches: List<NicheItem>,
+    private val onNicheClick: (NicheItem) -> Unit
+) : RecyclerView.Adapter<ServiceCategoriesAdapter.NicheViewHolder>() {
 
-    inner class CategoryViewHolder(private val binding: ItemServiceCategoryBinding) : RecyclerView.ViewHolder(binding.root) {
-        
-        fun bind(category: ServiceCategory) {
-            binding.tvCategoryName.text = category.name
-            
-            // Definir ícone baseado no nome da categoria
-            val iconRes = when (category.name.lowercase()) {
-                "limpeza" -> R.drawable.ic_cleaning
-                "manutenção" -> R.drawable.ic_carpentry
-                "elétrica" -> R.drawable.ic_electrician
-                "encanamento" -> R.drawable.ic_plumber
-                "pintura" -> R.drawable.ic_painter
-                "jardinagem" -> R.drawable.ic_gardening
-                "mudanças" -> R.drawable.ic_moving
-                "tecnologia" -> R.drawable.ic_it
-                "carpintaria" -> R.drawable.ic_carpentry
-                else -> R.drawable.ic_services
-            }
-            
-            binding.ivCategoryIcon.setImageResource(iconRes)
-            
-            // Click listener
-            itemView.setOnClickListener { onCategoryClick(category) }
+    data class NicheItem(val name: String, val icon: String)
+
+    inner class NicheViewHolder(private val binding: ItemServiceCategoryBinding) :
+        RecyclerView.ViewHolder(binding.root) {
+
+        fun bind(item: NicheItem) {
+            binding.tvCategoryName.text = item.name
+            binding.ivCategoryIcon.setImageResource(resolveIcon(item.icon))
+            itemView.setOnClickListener { onNicheClick(item) }
         }
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CategoryViewHolder {
-        val binding = ItemServiceCategoryBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return CategoryViewHolder(binding)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NicheViewHolder {
+        val binding = ItemServiceCategoryBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return NicheViewHolder(binding)
     }
 
-    override fun onBindViewHolder(holder: CategoryViewHolder, position: Int) {
-        holder.bind(categories[position])
-    }
+    override fun onBindViewHolder(holder: NicheViewHolder, position: Int) =
+        holder.bind(niches[position])
 
-    override fun getItemCount(): Int = categories.size
-    
-    /**
-     * Atualiza a lista de categorias
-     */
-    fun updateCategories(newCategories: List<ServiceCategory>) {
-        categories = newCategories
+    override fun getItemCount(): Int = niches.size
+
+    fun updateNiches(newNiches: List<NicheItem>) {
+        niches = newNiches
         notifyDataSetChanged()
     }
+
+    companion object {
+        fun resolveIcon(slug: String): Int = when (slug.trim().lowercase()) {
+            "electrician", "zap", "eletrica", "eletrico" -> R.drawable.ic_electrician
+            "plumber", "droplets", "encanador", "hidraulica" -> R.drawable.ic_plumber
+            "hammer", "instalacao", "installation" -> R.drawable.ic_carpentry
+            "waves", "unclog", "desentupimento" -> R.drawable.ic_plumber
+            "search", "leak", "caca-vazamentos", "cacavazamentos" -> R.drawable.ic_search
+            "sparkles", "cleaning", "limpeza", "sofa", "estofados" -> R.drawable.ic_cleaning
+            "wind", "ac", "ar-condicionado", "arcondicionado" -> R.drawable.ic_wind
+            "tv", "appliances", "eletrodomesticos" -> R.drawable.ic_appliances
+            "lock", "key", "chaveiro" -> R.drawable.ic_lock
+            "car", "automotive", "automotivo", "servicos-automotivos" -> R.drawable.ic_car
+            "package", "furniture", "moveis", "montagem" -> R.drawable.ic_carpentry
+            "truck", "towing", "guincho" -> R.drawable.ic_truck
+            "paintbrush", "paint", "pintura" -> R.drawable.ic_painter
+            "flower", "garden", "jardinagem" -> R.drawable.ic_gardening
+            "move", "moving", "mudanca", "mudancas" -> R.drawable.ic_moving
+            "home", "casa" -> R.drawable.ic_home
+            "settings", "manutencao" -> R.drawable.ic_settings
+            "briefcase", "work", "trabalho" -> R.drawable.ic_work
+            "water", "droplet", "agua", "caixa-dagua" -> R.drawable.ic_plumber
+            "faxina" -> R.drawable.ic_cleaning
+            else -> R.drawable.ic_services
+        }
+    }
 }
-
-

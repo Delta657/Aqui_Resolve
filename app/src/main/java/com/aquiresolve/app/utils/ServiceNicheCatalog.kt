@@ -14,8 +14,8 @@ import java.util.Locale
  */
 object ServiceNicheCatalog {
 
-    /** Nicho carregado dinamicamente do Firestore (nome canônico + apelidos para matching). */
-    data class DynamicNiche(val name: String, val aliases: List<String> = emptyList())
+    /** Nicho carregado dinamicamente do Firestore (nome canônico + apelidos + ícone). */
+    data class DynamicNiche(val name: String, val aliases: List<String> = emptyList(), val icon: String = "wrench")
 
     /** Lista estática (fallback) usada quando o catálogo dinâmico ainda não foi carregado. */
     val providerSelectableNiches = listOf(
@@ -94,6 +94,12 @@ object ServiceNicheCatalog {
     /** Lista de nichos selecionáveis: dinâmica se carregada, senão o fallback estático. */
     fun selectableNiches(): List<String> {
         return dynamicNiches?.map { it.name }?.takeIf { it.isNotEmpty() } ?: providerSelectableNiches
+    }
+
+    /** Lista de nichos com ícones: dinâmica se carregada, senão fallback com ícone genérico. */
+    fun selectableNichesWithIcons(): List<DynamicNiche> {
+        return dynamicNiches?.takeIf { it.isNotEmpty() }
+            ?: providerSelectableNiches.map { DynamicNiche(it) }
     }
 
     fun canonicalizeNiche(raw: String): String {
