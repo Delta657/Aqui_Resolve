@@ -455,7 +455,9 @@ async function renderAssinaturas(
     doc.setDrawColor(210, 210, 210)
     doc.rect(x, y, boxW, boxH)
     if (p.sig?.dataUrl) {
-      const img = await loadDataUrl(p.sig.dataUrl)
+      const img = p.sig.dataUrl.startsWith("data:")
+        ? await loadDataUrl(p.sig.dataUrl)
+        : await loadImage(p.sig.dataUrl)
       if (img) {
         const ratio = img.width / img.height || 2
         let dw = boxW - 8

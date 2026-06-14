@@ -6,6 +6,8 @@ import com.google.firebase.firestore.PropertyName
 data class OsChecklistData(
     @PropertyName("orderId")
     val orderId: String = "",
+    @PropertyName("providerId")
+    val providerId: String? = null,
     @PropertyName("status")
     val status: String = STATUS_CHECKLIST_PENDING,
 
@@ -114,6 +116,7 @@ data class OsChecklistData(
         fun fromMap(data: Map<String, Any?>, orderId: String): OsChecklistData {
             return OsChecklistData(
                 orderId = orderId,
+                providerId = data["providerId"] as? String,
                 status = data["status"] as? String ?: STATUS_CHECKLIST_PENDING,
                 startLatitude = data["startLatitude"] as? Double,
                 startLongitude = data["startLongitude"] as? Double,
@@ -158,6 +161,7 @@ data class OsChecklistData(
     fun toMap(): Map<String, Any?> {
         return mapOf(
             "orderId" to orderId,
+            "providerId" to providerId,
             "status" to status,
             "startLatitude" to startLatitude,
             "startLongitude" to startLongitude,

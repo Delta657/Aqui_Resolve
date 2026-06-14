@@ -19,7 +19,7 @@ Ao clicar em "Iniciar OS" no OrderDetailsActivity, o sistema:
 
 1. Captura a **localização GPS** atual do prestador
 2. Registra o **timestamp** de início
-3. **Cria um documento** na coleção `checklists/{orderId}` com status `in_progress`
+3. **Cria/mescla um documento** na coleção `checklists/{orderId}` com status `checklist_pending`
 4. Navega para a ChecklistActivity
 
 ### 2. Checklist (ChecklistActivity)
@@ -79,6 +79,14 @@ Duas etapas de assinatura obrigatórias:
 ### 5. Finalização
 
 Após a assinatura do cliente, o checklist é marcado como `completed`, registrando o timestamp de conclusão. O prestador é redirecionado para a ProviderHomeActivity.
+
+## Integração com o Painel Admin
+
+O app Android grava a OS na coleção raiz `checklists/{orderId}`. O painel admin consome esse contrato e também mantém compatibilidade com o formato legado/configurável `orders/{orderId}/checklists/{checklistId}`.
+
+O adaptador do painel normaliza os campos mobile para o tipo visual `ServiceChecklist`, permitindo que o modal do pedido, a aba de checklist e o PDF exibam respostas, fotos, desfecho e assinaturas salvas no app.
+
+O Render não participa diretamente desse fluxo. O checklist usa Firebase Firestore/Storage; Render hospeda o backend de pagamentos e deve ser validado pelo healthcheck `/api/health` apenas como verificação de infraestrutura relacionada ao app.
 
 ## Estrutura de Dados
 

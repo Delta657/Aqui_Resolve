@@ -151,6 +151,10 @@ class FirebaseOrderManager {
                 return Result.failure(Exception("Pedido não encontrado"))
             }
             val currentStatus = orderDoc.getString("status") ?: ""
+            if (currentStatus == OrderData.STATUS_IN_PROGRESS) {
+                Log.d(TAG, "Serviço já estava iniciado: $orderId")
+                return Result.success(Unit)
+            }
             val allowedStatuses = setOf(OrderData.STATUS_ASSIGNED)
             if (currentStatus !in allowedStatuses) {
                 Log.w(TAG, "startService bloqueado: pedido $orderId está em status '$currentStatus'")

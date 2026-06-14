@@ -151,25 +151,44 @@ class DigitalSignatureActivity : AppCompatActivity() {
                 val providerUrl = if (providerBitmap != null) {
                     saveAndUploadSignature(providerBitmap, "provider")
                 } else null
+                if (providerUrl == null) {
+                    throw Exception("Falha ao enviar assinatura do prestador")
+                }
 
                 // Save client signature
                 val clientBitmap = binding.signaturePadClient.getSignatureBitmap()
                 val clientUrl = if (clientBitmap != null) {
                     saveAndUploadSignature(clientBitmap, "client")
                 } else null
+                if (clientUrl == null) {
+                    throw Exception("Falha ao enviar assinatura do cliente")
+                }
 
                 // Save to Firebase
-                if (providerUrl != null) {
-                    checklistManager.saveProviderSignature(orderId!!, providerUrl, providerName)
+                val providerSignatureResult = checklistManager.saveProviderSignature(orderId!!, providerUrl, providerName)
+                if (providerSignatureResult.isFailure) {
+                    throw providerSignatureResult.exceptionOrNull()
+                        ?: Exception("Falha ao salvar assinatura do prestador")
                 }
-                if (clientUrl != null) {
-                    checklistManager.saveClientSignature(orderId!!, clientUrl, clientName, clientDocument)
+
+                val clientSignatureResult = checklistManager.saveClientSignature(orderId!!, clientUrl, clientName, clientDocument)
+                if (clientSignatureResult.isFailure) {
+                    throw clientSignatureResult.exceptionOrNull()
+                        ?: Exception("Falha ao salvar assinatura do cliente")
                 }
 
                 // Complete the order (ambas as partes assinaram)
                 val orderManager = FirebaseOrderManager()
-                orderManager.confirmCompletion(orderId!!, "provider")
-                orderManager.confirmCompletion(orderId!!, "client")
+                val providerCompletionResult = orderManager.confirmCompletion(orderId!!, "provider")
+                if (providerCompletionResult.isFailure) {
+                    throw providerCompletionResult.exceptionOrNull()
+                        ?: Exception("Falha ao confirmar conclusão do prestador")
+                }
+                val clientCompletionResult = orderManager.confirmCompletion(orderId!!, "client")
+                if (clientCompletionResult.isFailure) {
+                    throw clientCompletionResult.exceptionOrNull()
+                        ?: Exception("Falha ao confirmar conclusão do cliente")
+                }
 
                 showSuccessAndFinish()
             } catch (e: Exception) {

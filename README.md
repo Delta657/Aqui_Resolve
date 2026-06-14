@@ -97,6 +97,7 @@ Consulte a pasta `docs/` para documentação detalhada de cada subsistema:
 - `SISTEMA_CASHBACK_AQUICASH.md` — Programa de fidelidade AquiCash
 - `SISTEMA_PAGAMENTO_PAGARME.md` — Fluxo de pagamentos
 - `SISTEMA_CHECKLIST_OS.md` — Ordem de Serviço digital
+- `CHECKLIST_PRESTADOR_FIREBASE_RENDER.md` — Contrato do checklist mobile, exibição no admin, Firebase e relação com Render
 - `FIREBASE_SETUP_GUIDE.md` — Configuração do Firebase
 - `SISTEMA_LOCALIZACAO_PRESTADORES.md` — Rastreamento em tempo real
 - `TABELA_PRECOS_SERVICOS.md` — Tabela de preços

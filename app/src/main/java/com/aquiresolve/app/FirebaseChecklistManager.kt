@@ -5,6 +5,7 @@ import com.aquiresolve.app.models.OsChecklistData
 import com.aquiresolve.app.models.OrderData
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
 class FirebaseChecklistManager {
@@ -14,6 +15,12 @@ class FirebaseChecklistManager {
     companion object {
         private const val TAG = "FirebaseChecklistManager"
         private const val CHECKLISTS_COLLECTION = "checklists"
+    }
+
+    private fun currentProviderId(): String? = auth.currentUser?.uid
+
+    private fun addProviderMetadata(data: MutableMap<String, Any?>) {
+        currentProviderId()?.let { data["providerId"] = it }
     }
 
     suspend fun getChecklist(orderId: String): Result<OsChecklistData?> {
@@ -39,10 +46,11 @@ class FirebaseChecklistManager {
         return try {
             val updates = data.toMap().toMutableMap()
             updates["updatedAt"] = Timestamp.now()
+            addProviderMetadata(updates)
 
             db.collection(CHECKLISTS_COLLECTION)
                 .document(data.orderId)
-                .set(updates)
+                .set(updates, SetOptions.merge())
                 .await()
 
             Log.d(TAG, "Checklist salvo para pedido: ${data.orderId}")
@@ -62,6 +70,7 @@ class FirebaseChecklistManager {
             val now = Timestamp.now()
             val checklist = OsChecklistData(
                 orderId = orderId,
+                providerId = currentProviderId(),
                 status = OsChecklistData.STATUS_CHECKLIST_PENDING,
                 startLatitude = latitude,
                 startLongitude = longitude,
@@ -72,7 +81,7 @@ class FirebaseChecklistManager {
 
             db.collection(CHECKLISTS_COLLECTION)
                 .document(orderId)
-                .set(checklist.toMap())
+                .set(checklist.toMap(), SetOptions.merge())
                 .await()
 
             Log.d(TAG, "Serviço iniciado com checklist para pedido: $orderId")
@@ -93,9 +102,11 @@ class FirebaseChecklistManager {
         problemResolution: String = ""
     ): Result<Unit> {
         return try {
-            val data = mutableMapOf<String, Any>(
+            val data = mutableMapOf<String, Any?>(
+                "orderId" to orderId,
                 "updatedAt" to Timestamp.now()
             )
+            addProviderMetadata(data)
             answers.forEach { (key, value) ->
                 if (value != null) {
                     data[key] = value
@@ -110,7 +121,7 @@ class FirebaseChecklistManager {
 
             db.collection(CHECKLISTS_COLLECTION)
                 .document(orderId)
-                .update(data)
+                .set(data, SetOptions.merge())
                 .await()
 
             Log.d(TAG, "Respostas do checklist salvas: $orderId")
@@ -136,15 +147,22 @@ class FirebaseChecklistManager {
             }
             val timeField = "photoTimestamps${category.replaceFirstChar { it.uppercase() }}"
 
-            val data = mapOf<String, Any>(
+            val data = mapOf<String, Any?>(
+                "orderId" to orderId,
                 field to photoUrls,
                 timeField to timestamps,
+                "status" to if (category == "after") {
+                    OsChecklistData.STATUS_SIGNATURES_PENDING
+                } else {
+                    OsChecklistData.STATUS_PHOTOS_PENDING
+                },
                 "updatedAt" to Timestamp.now()
-            )
+            ).toMutableMap()
+            addProviderMetadata(data)
 
             db.collection(CHECKLISTS_COLLECTION)
                 .document(orderId)
-                .update(data)
+                .set(data, SetOptions.merge())
                 .await()
 
             Log.d(TAG, "Fotos salvas ($category) para pedido: $orderId")
@@ -161,17 +179,19 @@ class FirebaseChecklistManager {
         providerName: String
     ): Result<Unit> {
         return try {
-            val data = mapOf<String, Any>(
+            val data = mapOf<String, Any?>(
+                "orderId" to orderId,
                 "providerSignatureUrl" to signatureUrl,
                 "providerSignatureName" to providerName,
                 "providerSignedAt" to Timestamp.now(),
                 "status" to OsChecklistData.STATUS_SIGNATURES_PENDING,
                 "updatedAt" to Timestamp.now()
-            )
+            ).toMutableMap()
+            addProviderMetadata(data)
 
             db.collection(CHECKLISTS_COLLECTION)
                 .document(orderId)
-                .update(data)
+                .set(data, SetOptions.merge())
                 .await()
 
             Log.d(TAG, "Assinatura do prestador salva: $orderId")
@@ -189,7 +209,8 @@ class FirebaseChecklistManager {
         clientDocument: String
     ): Result<Unit> {
         return try {
-            val data = mapOf<String, Any>(
+            val data = mapOf<String, Any?>(
+                "orderId" to orderId,
                 "clientSignatureUrl" to signatureUrl,
                 "clientSignatureName" to clientName,
                 "clientSignatureDocument" to clientDocument,
@@ -197,11 +218,12 @@ class FirebaseChecklistManager {
                 "status" to OsChecklistData.STATUS_COMPLETED,
                 "completedAt" to Timestamp.now(),
                 "updatedAt" to Timestamp.now()
-            )
+            ).toMutableMap()
+            addProviderMetadata(data)
 
             db.collection(CHECKLISTS_COLLECTION)
                 .document(orderId)
-                .update(data)
+                .set(data, SetOptions.merge())
                 .await()
 
             Log.d(TAG, "Assinatura do cliente salva: $orderId")

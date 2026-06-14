@@ -263,15 +263,25 @@ class PhotoEvidenceActivity : AppCompatActivity() {
                 folder = FirebaseImageManager.FOLDER_ORDER_IMAGES,
                 orderId = orderId
             )
-            val result = imageManager.uploadImage(this, uploadData)
-            if (result is FirebaseImageManager.UploadResult.Success) {
-                urls.add(result.downloadUrl)
-                timestamps.add(Timestamp.now())
+            when (val result = imageManager.uploadImage(this, uploadData)) {
+                is FirebaseImageManager.UploadResult.Success -> {
+                    urls.add(result.downloadUrl)
+                    timestamps.add(Timestamp.now())
+                }
+                is FirebaseImageManager.UploadResult.Error -> {
+                    throw Exception(result.message)
+                }
+                is FirebaseImageManager.UploadResult.Progress -> Unit
             }
         }
 
-        if (urls.isNotEmpty()) {
-            checklistManager.savePhotos(orderId!!, category, urls, timestamps)
+        if (urls.isEmpty()) {
+            throw Exception("Nenhuma foto enviada para a categoria $category")
+        }
+
+        val saveResult = checklistManager.savePhotos(orderId!!, category, urls, timestamps)
+        if (saveResult.isFailure) {
+            throw saveResult.exceptionOrNull() ?: Exception("Erro ao salvar fotos da categoria $category")
         }
     }
 }
