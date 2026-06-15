@@ -667,21 +667,18 @@ class CreateOrderActivity : AppCompatActivity() {
      * Gera ou recupera um ID de rascunho de pedido para salvar imagens em "Pedidos/{orderId}".
      * Quando o pedido for efetivamente criado, essas imagens já estarão vinculadas ao ID.
      */
-    private suspend fun ensureDraftOrderId(): String {
+    private fun ensureDraftOrderId(): String {
         val prefs = getSharedPreferences("draft_order_prefs", MODE_PRIVATE)
         val existing = prefs.getString("draft_order_id", null)
         if (!existing.isNullOrEmpty()) return existing
 
-        val currentUser = FirebaseAuth.getInstance().awaitCurrentUser()
-        val db = FirebaseFirestore.getInstance()
-        val draftData = hashMapOf(
-            "clientId" to (currentUser?.uid ?: ""),
-            "status" to "draft",
-            "createdAt" to com.google.firebase.Timestamp.now(),
-            "updatedAt" to com.google.firebase.Timestamp.now()
-        )
-        val docRef = db.collection("orders").add(draftData).await()
-        val draftId = docRef.id
+        // Gera o ID de rascunho LOCALMENTE, sem escrever nada em /orders. Criar um
+        // doc com status='draft' aqui era NEGADO pela regra `validOrderCreate`
+        // (que exige status=awaiting_payment + todos os campos). O pedido real é
+        // criado em `startSingleOrderCheckout`; aqui só precisamos de um ID estável
+        // para agrupar imagens em Pedidos/{id}/. `.document().id` é gerado no
+        // cliente, sem ida à rede.
+        val draftId = FirebaseFirestore.getInstance().collection("orders").document().id
         prefs.edit().putString("draft_order_id", draftId).apply()
         return draftId
     }

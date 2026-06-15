@@ -44,15 +44,41 @@ class FirebaseOrderManager {
             // Gerar protocolo único
             val protocol = ProtocolGenerator.generateProtocol()
             
-            // Preparar dados do pedido
-            val order = orderData.copy(
-                id = orderId,
-                protocol = protocol,
-                clientId = user.uid,
-                createdAt = Timestamp.now(),
-                updatedAt = Timestamp.now()
+            // Monta um payload ENXUTO e compatível com a regra `validOrderCreate`
+            // (pay-before-distribution): grava SOMENTE os campos permitidos, com
+            // status/paymentStatus = awaiting_payment. Usar `orderData.copy(...).set()`
+            // serializava o OrderData inteiro (id, priority, status=distributing,
+            // distributionStartedAt, adminNotes, flags de conclusão...), que a regra
+            // NEGA com PERMISSION_DENIED.
+            val now = Timestamp.now()
+            val order = mutableMapOf<String, Any>(
+                "clientId" to user.uid,
+                "clientName" to orderData.clientName,
+                "clientEmail" to orderData.clientEmail,
+                "protocol" to protocol,
+                "serviceType" to orderData.serviceType,
+                "serviceName" to orderData.serviceName,
+                "description" to orderData.description,
+                "address" to orderData.address,
+                "zipCode" to orderData.zipCode,
+                "city" to orderData.city,
+                "state" to orderData.state,
+                "status" to OrderData.STATUS_AWAITING_PAYMENT,
+                "paymentStatus" to OrderData.STATUS_AWAITING_PAYMENT,
+                "estimatedPrice" to orderData.estimatedPrice,
+                "providerCommission" to orderData.providerCommission,
+                "createdAt" to now,
+                "updatedAt" to now
             )
-            
+            // Opcionais — todos na allowlist (`hasOnly`) da regra; só grava se houver valor.
+            orderData.clientPhone.takeIf { it.isNotBlank() }?.let { order["clientPhone"] = it }
+            orderData.complement?.takeIf { it.isNotBlank() }?.let { order["complement"] = it }
+            orderData.coordinates?.let { order["coordinates"] = it }
+            orderData.scheduledDate?.let { order["scheduledDate"] = it }
+            orderData.preferredTimeSlot.takeIf { it.isNotBlank() }?.let { order["preferredTimeSlot"] = it }
+            orderData.finalPrice?.let { order["finalPrice"] = it }
+            if (orderData.images.isNotEmpty()) order["images"] = orderData.images
+
             // Salvar no Firestore
             db.collection(ORDERS_COLLECTION)
                 .document(orderId)
