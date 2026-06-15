@@ -71,10 +71,15 @@ service cloud.firestore {
     }
 
     function orderSensitiveAssignmentFieldsUnchanged() {
-      return request.resource.data.assignedProvider == resource.data.assignedProvider
-        && request.resource.data.assignedProviderName == resource.data.assignedProviderName
-        && request.resource.data.clientVerificationCode == resource.data.clientVerificationCode
-        && request.resource.data.providerVerificationCode == resource.data.providerVerificationCode;
+      // Usa get(...,null): em pedido recém-criado esses campos NÃO existem (a regra
+      // validOrderCreate os proíbe), então acessá-los direto fazia o update legítimo
+      // (ex.: gravar 'images' após criar, ou cancelar pedido ainda não atribuído)
+      // ser NEGADO. Com get(...,null) ausente==ausente vira null==null (passa), mas
+      // qualquer tentativa de ALTERAR o valor continua bloqueada.
+      return request.resource.data.get('assignedProvider', null) == resource.data.get('assignedProvider', null)
+        && request.resource.data.get('assignedProviderName', null) == resource.data.get('assignedProviderName', null)
+        && request.resource.data.get('clientVerificationCode', null) == resource.data.get('clientVerificationCode', null)
+        && request.resource.data.get('providerVerificationCode', null) == resource.data.get('providerVerificationCode', null);
     }
 
     function validOrderCreate() {
