@@ -2,6 +2,26 @@ import { getCollection } from '../firestore'
 import { toDateFromUnknown } from '@/lib/date-utils'
 import { getCanonicalUserRole, isUserActive } from '@/lib/user-schema'
 
+interface SettlementsSummary {
+  totalProviderCommission: number
+  totalCashbackDistributed: number
+}
+
+/** Agrega order_settlements via API route (Admin SDK). Nunca lança — devolve zeros em falha. */
+async function fetchSettlementsSummary(): Promise<SettlementsSummary> {
+  try {
+    const res = await fetch('/api/financial/settlements-summary', { cache: 'no-store' })
+    if (!res.ok) return { totalProviderCommission: 0, totalCashbackDistributed: 0 }
+    const data = await res.json()
+    return {
+      totalProviderCommission: Number(data?.totalProviderCommission) || 0,
+      totalCashbackDistributed: Number(data?.totalCashbackDistributed) || 0,
+    }
+  } catch {
+    return { totalProviderCommission: 0, totalCashbackDistributed: 0 }
+  }
+}
+
 export interface OrderData {
   id: string
   clientId: string
@@ -42,9 +62,11 @@ export class FirestoreAnalyticsService {
   // Metricas de Pedidos (simplificadas)
   static async getOrdersMetrics() {
     try {
-      const [orders, settlements] = await Promise.all([
+      const [orders, settlementSummary] = await Promise.all([
         getCollection('orders'),
-        getCollection('order_settlements'),
+        // order_settlements tem read: if isAdmin() — agregamos via API route (Admin SDK)
+        // para não depender de custom claim no usuário do painel.
+        fetchSettlementsSummary(),
       ])
       const now = new Date()
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -62,11 +84,11 @@ export class FirestoreAnalyticsService {
 
       const completedList = orders.filter((order) => order.status === 'completed')
       const totalRevenue = completedList.reduce((sum, o) => sum + (Number(o.estimatedPrice) || 0), 0)
-      const totalCommissionFromSettlements = settlements.reduce((sum, s) => sum + (Number(s.providerCommission) || 0), 0)
+      const totalCommissionFromSettlements = settlementSummary.totalProviderCommission
       const totalProviderCommission = totalCommissionFromSettlements > 0
         ? totalCommissionFromSettlements
         : completedList.reduce((sum, o) => sum + (Number(o.providerCommission) || 0), 0)
-      const totalCashbackDistributed = settlements.reduce((sum, s) => sum + (Number(s.cashbackAmount) || 0), 0)
+      const totalCashbackDistributed = settlementSummary.totalCashbackDistributed
       const revenueToday = completedList
         .filter((o) => toDateFromUnknown(o.completedAt ?? o.createdAt, new Date(0)) >= today)
         .reduce((sum, o) => sum + (Number(o.estimatedPrice) || 0), 0)
