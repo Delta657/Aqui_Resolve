@@ -91,11 +91,35 @@ class OrderDetailsActivity : AppCompatActivity() {
     private var providerLocationListener: com.google.firebase.firestore.ListenerRegistration? = null
     private var mapTapOverlay: org.osmdroid.views.overlay.Overlay? = null
     private val osrmClient: okhttp3.OkHttpClient by lazy {
+        // Os servidores públicos OSRM (project-osrm / FOSSGIS) só aceitam TLS 1.3.
+        // O ConnectionSpec padrão do OkHttp restringe os cipher suites e provoca
+        // "SSLV3_ALERT_HANDSHAKE_FAILURE" no handshake. Liberar todos os ciphers
+        // habilitados pela plataforma faz o socket oferecer o conjunto TLS 1.3
+        // completo e a conexão fecha corretamente.
+        val tlsSpec = okhttp3.ConnectionSpec.Builder(okhttp3.ConnectionSpec.MODERN_TLS)
+            .tlsVersions(okhttp3.TlsVersion.TLS_1_3, okhttp3.TlsVersion.TLS_1_2)
+            .allEnabledCipherSuites()
+            .build()
         okhttp3.OkHttpClient.Builder()
+            .connectionSpecs(listOf(tlsSpec, okhttp3.ConnectionSpec.CLEARTEXT))
             .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
             .build()
     }
+
+    // Servidores OSRM públicos (sem API key). Tentados em ordem antes do fallback
+    // de linha reta — se um estiver fora do ar/limitado, o próximo cobre.
+    private val osrmHosts = listOf(
+        "https://router.project-osrm.org",
+        "https://routing.openstreetmap.de/routed-car"
+    )
+
+    // Proxy de roteamento no nosso backend (deriva da base de pagamentos).
+    // É a fonte PRIMÁRIA da rota: o backend alcança o OSRM sem o problema de
+    // handshake TLS 1.3 que afeta vários aparelhos Android (minSdk 24) e emuladores.
+    // Ex.: https://aquiresolve.onrender.com/api/route
+    private val routeProxyBase: String =
+        BuildConfig.PAYMENTS_API_BASE_URL.removeSuffix("/").removeSuffix("/payments") + "/route"
     private val ratingResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -1185,6 +1209,20 @@ class OrderDetailsActivity : AppCompatActivity() {
     }
 
     /**
+     * Ajusta o zoom para enquadrar prestador + cliente, garantindo que o MapView já
+     * tenha sido medido (largura/altura > 0). Sem isso, o zoomToBoundingBox no primeiro
+     * render (view ainda não laid-out) falha silenciosamente e o mapa abre desenquadrado.
+     */
+    private fun fitMapToPoints(map: org.osmdroid.views.MapView, points: List<GeoPoint>) {
+        if (points.size < 2) return
+        val box = org.osmdroid.util.BoundingBox.fromGeoPoints(points).increaseByScale(1.4f)
+        val apply = Runnable {
+            runCatching { map.zoomToBoundingBox(box, false) }
+        }
+        if (map.width > 0 && map.height > 0) apply.run() else map.post(apply)
+    }
+
+    /**
      * Configura mapa e distância (ponto do cliente + rota real até localização atual do prestador).
      * Se não houver coordenadas do cliente, oculta o cartão.
      */
@@ -1215,6 +1253,7 @@ class OrderDetailsActivity : AppCompatActivity() {
         map.overlays.remove(providerMarker)
         map.overlays.remove(routeLine)
         providerMarker = null
+        routeLine = null
 
         // Cliente
         clientMarker = Marker(map).apply {
@@ -1233,8 +1272,7 @@ class OrderDetailsActivity : AppCompatActivity() {
                 icon = ContextCompat.getDrawable(this@OrderDetailsActivity, R.drawable.ic_location)
             }
             map.overlays.add(providerMarker)
-            val boundingBox = org.osmdroid.util.BoundingBox.fromGeoPoints(listOf(previousProviderPos, clientPoint))
-            map.zoomToBoundingBox(boundingBox.increaseByScale(1.4f), true)
+            fitMapToPoints(map, listOf(previousProviderPos, clientPoint))
         }
 
         // Adicionar overlay único para detectar clique no mapa e expandir fullscreen
@@ -1293,6 +1331,20 @@ class OrderDetailsActivity : AppCompatActivity() {
             fullMap.overlays.add(pm)
         }
 
+        // Desenhar a mesma rota (trajeto) do mini-mapa, se já calculada
+        routeLine?.actualPoints?.let { routePoints ->
+            if (routePoints.isNotEmpty()) {
+                val rl = org.osmdroid.views.overlay.Polyline().apply {
+                    outlinePaint.color = ContextCompat.getColor(this@OrderDetailsActivity, R.color.primary_color)
+                    outlinePaint.strokeWidth = 10f
+                    outlinePaint.strokeCap = android.graphics.Paint.Cap.ROUND
+                    outlinePaint.strokeJoin = android.graphics.Paint.Join.ROUND
+                    setPoints(routePoints)
+                }
+                fullMap.overlays.add(rl)
+            }
+        }
+
         // Ajustar zoom
         val points = listOfNotNull(currentClientPoint, providerPos)
         if (points.size == 2) {
@@ -1347,8 +1399,7 @@ class OrderDetailsActivity : AppCompatActivity() {
                     lastProviderPoint = providerPoint
                 }
 
-                val boundingBox = org.osmdroid.util.BoundingBox.fromGeoPoints(listOf(providerPoint, clientPoint))
-                map.zoomToBoundingBox(boundingBox.increaseByScale(1.4f), true)
+                fitMapToPoints(map, listOf(providerPoint, clientPoint))
                 map.invalidate()
             }
     }
@@ -1449,8 +1500,7 @@ class OrderDetailsActivity : AppCompatActivity() {
         }
 
         // Ajustar zoom para mostrar ambos os pontos
-        val boundingBox = org.osmdroid.util.BoundingBox.fromGeoPoints(listOf(providerPoint, clientPoint))
-        map.zoomToBoundingBox(boundingBox.increaseByScale(1.4f), true)
+        fitMapToPoints(map, listOf(providerPoint, clientPoint))
         map.invalidate()
     }
 
@@ -1481,38 +1531,82 @@ class OrderDetailsActivity : AppCompatActivity() {
     private fun fetchRouteFromOSRM(from: GeoPoint, to: GeoPoint, map: org.osmdroid.views.MapView) {
         lifecycleScope.launch {
             try {
-                val url = "https://router.project-osrm.org/route/v1/driving/" +
+                val path = "/route/v1/driving/" +
                     "${from.longitude},${from.latitude};${to.longitude},${to.latitude}" +
                     "?overview=full&geometries=geojson"
 
                 val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    val request = okhttp3.Request.Builder()
-                        .url(url)
-                        .header("User-Agent", "AquiResolve/1.0")
-                        .build()
-                    val response = osrmClient.newCall(request).execute()
-                    val body = response.body?.string()
-                    if (response.isSuccessful && body != null) {
-                        val json = org.json.JSONObject(body)
-                        val routes = json.getJSONArray("routes")
-                        if (routes.length() > 0) {
-                            val route = routes.getJSONObject(0)
-                            val distanceMeters = route.getDouble("distance")
-                            val durationSeconds = route.getDouble("duration")
-                            val geometry = route.getJSONObject("geometry")
-                            val coordinates = geometry.getJSONArray("coordinates")
+                    var parsed: Triple<MutableList<GeoPoint>, Double, Double>? = null
 
-                            val points = mutableListOf<GeoPoint>()
-                            for (i in 0 until coordinates.length()) {
-                                val coord = coordinates.getJSONArray(i)
-                                points.add(GeoPoint(coord.getDouble(1), coord.getDouble(0)))
+                    // 1) Fonte primária: proxy de rota no nosso backend (TLS confiável).
+                    try {
+                        val url = "$routeProxyBase?from=${from.longitude},${from.latitude}" +
+                            "&to=${to.longitude},${to.latitude}"
+                        val request = okhttp3.Request.Builder()
+                            .url(url)
+                            .header("User-Agent", "AquiResolve/1.0")
+                            .build()
+                        osrmClient.newCall(request).execute().use { response ->
+                            val body = response.body?.string()
+                            if (response.isSuccessful && body != null) {
+                                val json = org.json.JSONObject(body)
+                                if (json.optBoolean("ok", false) && json.has("coordinates")) {
+                                    val coordinates = json.getJSONArray("coordinates")
+                                    val points = mutableListOf<GeoPoint>()
+                                    for (i in 0 until coordinates.length()) {
+                                        val coord = coordinates.getJSONArray(i)
+                                        points.add(GeoPoint(coord.getDouble(1), coord.getDouble(0)))
+                                    }
+                                    if (points.isNotEmpty()) {
+                                        parsed = Triple(points, json.getDouble("distance"), json.getDouble("duration"))
+                                    }
+                                }
+                            } else {
+                                android.util.Log.w("OrderDetails", "Backend route HTTP ${response.code}")
                             }
-                            Triple(points, distanceMeters, durationSeconds)
-                        } else null
-                    } else {
-                        android.util.Log.e("OrderDetails", "OSRM HTTP ${response.code}: $body")
-                        null
+                            Unit
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("OrderDetails", "Backend route falhou: ${e.message}")
                     }
+
+                    // 2) Fallback: OSRM público direto (funciona em dispositivos com TLS 1.3 OK).
+                    if (parsed != null) return@withContext parsed
+                    for (host in osrmHosts) {
+                        try {
+                            val request = okhttp3.Request.Builder()
+                                .url(host + path)
+                                .header("User-Agent", "AquiResolve/1.0")
+                                .build()
+                            osrmClient.newCall(request).execute().use { response ->
+                                val body = response.body?.string()
+                                if (response.isSuccessful && body != null) {
+                                    val json = org.json.JSONObject(body)
+                                    val routes = json.getJSONArray("routes")
+                                    if (routes.length() > 0) {
+                                        val route = routes.getJSONObject(0)
+                                        val distanceMeters = route.getDouble("distance")
+                                        val durationSeconds = route.getDouble("duration")
+                                        val geometry = route.getJSONObject("geometry")
+                                        val coordinates = geometry.getJSONArray("coordinates")
+                                        val points = mutableListOf<GeoPoint>()
+                                        for (i in 0 until coordinates.length()) {
+                                            val coord = coordinates.getJSONArray(i)
+                                            points.add(GeoPoint(coord.getDouble(1), coord.getDouble(0)))
+                                        }
+                                        parsed = Triple(points, distanceMeters, durationSeconds)
+                                    }
+                                } else {
+                                    android.util.Log.e("OrderDetails", "OSRM HTTP ${response.code} em $host")
+                                }
+                                Unit
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.w("OrderDetails", "OSRM host $host falhou: ${e.message}")
+                        }
+                        if (parsed != null) break
+                    }
+                    parsed
                 }
 
                 if (result != null) {

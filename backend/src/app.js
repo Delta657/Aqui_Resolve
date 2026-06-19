@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const healthRoutes = require('./routes/health.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const cronRoutes = require('./routes/cron.routes');
+const routeRoutes = require('./routes/route.routes');
 const { notFoundHandler, errorHandler } = require('./middlewares/error-handler');
 
 const paymentLimiter = rateLimit({
@@ -68,6 +69,7 @@ function createApp({ config }) {
 
   app.use('/api/health', healthRoutes);
   app.use('/api/payments', paymentLimiter, paymentsRoutes);
+  app.use('/api/route', routeRoutes);
   app.use('/api/cron', cronRoutes);
 
   app.use(notFoundHandler);
