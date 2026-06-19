@@ -11,9 +11,11 @@ import androidx.core.app.NotificationManagerCompat
 import com.aquiresolve.app.models.OrderData
 import com.aquiresolve.app.utils.NewOrderSoundHelper
 import com.aquiresolve.app.utils.ServiceNicheCatalog
+import com.aquiresolve.app.utils.TowingDispatch
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +35,8 @@ object ProviderNewOrderAlertManager {
 
     private const val TAG = "ProviderNewOrderAlert"
     private const val ALERT_NOTIFICATION_ID = 40021
+    // Reavalia o raio do guincho (degraus de 4 min) mesmo sem mudança nos pedidos.
+    private const val DISPATCH_REFRESH_MS = 60_000L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val firestore by lazy { FirebaseFirestore.getInstance() }
@@ -49,6 +53,20 @@ object ProviderNewOrderAlertManager {
     private var hasInitialSnapshot = false
     private val knownAvailableOrderIds = mutableSetOf<String>()
     private var providerServicesNormalized: Set<String> = emptySet()
+
+    // Pedidos que casam o nicho (independente do raio); o gate de raio do guincho é
+    // reavaliado por tempo via ticker, alertando quando um guincho passa a alcançar
+    // este prestador conforme o raio cresce.
+    private val lastMatchingOrders = mutableMapOf<String, OrderData>()
+    private var providerLocation: GeoPoint? = null
+    private val dispatchHandler = Handler(Looper.getMainLooper())
+    private val dispatchTicker = object : Runnable {
+        override fun run() {
+            monitoredProviderId?.let { uid -> scope.launch { refreshProviderLocation(uid) } }
+            evaluateAndAlert()
+            dispatchHandler.postDelayed(this, DISPATCH_REFRESH_MS)
+        }
+    }
 
     fun initialize(context: Context) {
         if (initialized) return
@@ -126,13 +144,17 @@ object ProviderNewOrderAlertManager {
 
             Log.d(TAG, "Nichos monitorados para $userId: ${ServiceNicheCatalog.canonicalizeProviderServices(rawServices)}")
 
+            val initialLocation = userDoc.getGeoPoint("coordinates")
+
             withContext(Dispatchers.Main) {
                 stopMonitoring("reiniciar listener")
 
                 monitoredProviderId = userId
                 providerServicesNormalized = services
+                providerLocation = initialLocation
                 hasInitialSnapshot = false
                 knownAvailableOrderIds.clear()
+                lastMatchingOrders.clear()
 
                 ordersListener = firestore.collection("orders")
                     .whereIn(
@@ -152,36 +174,23 @@ object ProviderNewOrderAlertManager {
                             return@addSnapshotListener
                         }
 
-                        val availableIds = snapshot?.documents
-                            ?.mapNotNull { document ->
-                                val order = try {
-                                    document.toObject(OrderData::class.java)
-                                } catch (e: Exception) {
-                                    Log.w(TAG, "Erro ao converter pedido ${document.id}: ${e.message}")
-                                    null
-                                } ?: return@mapNotNull null
-
-                                if (matchesProviderService(order)) document.id else null
-                            }
-                            ?.toSet()
-                            ?: emptySet()
-
-                        if (!hasInitialSnapshot) {
-                            hasInitialSnapshot = true
-                            knownAvailableOrderIds.clear()
-                            knownAvailableOrderIds.addAll(availableIds)
-                            Log.d(TAG, "Snapshot inicial carregado com ${availableIds.size} pedidos")
-                            return@addSnapshotListener
+                        lastMatchingOrders.clear()
+                        snapshot?.documents?.forEach { document ->
+                            val order = try {
+                                document.toObject(OrderData::class.java)?.copy(id = document.id)
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Erro ao converter pedido ${document.id}: ${e.message}")
+                                null
+                            } ?: return@forEach
+                            if (matchesProviderService(order)) lastMatchingOrders[document.id] = order
                         }
 
-                        val newIds = availableIds - knownAvailableOrderIds
-                        knownAvailableOrderIds.clear()
-                        knownAvailableOrderIds.addAll(availableIds)
-
-                        if (newIds.isNotEmpty()) {
-                            notifyNewOrders(context, newIds.size)
-                        }
+                        evaluateAndAlert()
                     }
+
+                // Ticker para expandir o raio do guincho ao longo do tempo.
+                dispatchHandler.removeCallbacks(dispatchTicker)
+                dispatchHandler.postDelayed(dispatchTicker, DISPATCH_REFRESH_MS)
 
                 Log.d(TAG, "Listener global de novos pedidos ativo para prestador: $userId")
             }
@@ -192,6 +201,45 @@ object ProviderNewOrderAlertManager {
 
     private fun matchesProviderService(order: OrderData): Boolean {
         return ServiceNicheCatalog.matchesProviderServices(providerServicesNormalized, order)
+    }
+
+    /**
+     * Recalcula quais pedidos podem ser ofertados a este prestador AGORA (guincho
+     * respeita o raio expansivo) e alerta sobre os que passaram a ficar disponíveis.
+     */
+    private fun evaluateAndAlert() {
+        val context = appContext ?: return
+        val now = System.currentTimeMillis()
+        val availableIds = lastMatchingOrders.values
+            .filter { TowingDispatch.canOfferToProvider(it, providerLocation, now) }
+            .map { it.id }
+            .toSet()
+
+        if (!hasInitialSnapshot) {
+            hasInitialSnapshot = true
+            knownAvailableOrderIds.clear()
+            knownAvailableOrderIds.addAll(availableIds)
+            Log.d(TAG, "Snapshot inicial carregado com ${availableIds.size} pedidos no raio")
+            return
+        }
+
+        val newIds = availableIds - knownAvailableOrderIds
+        knownAvailableOrderIds.clear()
+        knownAvailableOrderIds.addAll(availableIds)
+
+        if (newIds.isNotEmpty()) {
+            notifyNewOrders(context, newIds.size)
+        }
+    }
+
+    private suspend fun refreshProviderLocation(userId: String) {
+        try {
+            val geo = firestore.collection("users").document(userId).get().await()
+                .getGeoPoint("coordinates")
+            withContext(Dispatchers.Main) { providerLocation = geo }
+        } catch (e: Exception) {
+            Log.w(TAG, "Erro ao atualizar localização do prestador: ${e.message}")
+        }
     }
 
     private fun extractProviderServices(providerDoc: DocumentSnapshot, userDoc: DocumentSnapshot): List<String> {
@@ -276,11 +324,14 @@ object ProviderNewOrderAlertManager {
         if (ordersListener != null || monitoredProviderId != null) {
             Log.d(TAG, "Parando listener global de pedidos: $reason")
         }
+        dispatchHandler.removeCallbacks(dispatchTicker)
         ordersListener?.remove()
         ordersListener = null
         monitoredProviderId = null
         hasInitialSnapshot = false
         providerServicesNormalized = emptySet()
         knownAvailableOrderIds.clear()
+        lastMatchingOrders.clear()
+        providerLocation = null
     }
 }

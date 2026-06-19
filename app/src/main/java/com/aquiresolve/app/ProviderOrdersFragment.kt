@@ -2,6 +2,8 @@
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,8 +16,10 @@ import com.aquiresolve.app.databinding.FragmentProviderOrdersBinding
 import com.aquiresolve.app.models.OrderData
 import com.aquiresolve.app.utils.NewOrderSoundHelper
 import com.aquiresolve.app.utils.ServiceNicheCatalog
+import com.aquiresolve.app.utils.TowingDispatch
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.GeoPoint
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -42,6 +46,17 @@ class ProviderOrdersFragment : Fragment() {
     private var providerServices = emptyList<String>()
     private var providerServicesNormalized = emptySet<String>()
 
+    // Localização do prestador (para o dispatch por raio do guincho) e ticker que
+    // reavalia o raio expansivo ao longo do tempo enquanto a tela está visível.
+    private var providerLocation: GeoPoint? = null
+    private val dispatchHandler = Handler(Looper.getMainLooper())
+    private val dispatchTicker = object : Runnable {
+        override fun run() {
+            if (currentTab == 0) applyTabFilter(notify = false)
+            dispatchHandler.postDelayed(this, DISPATCH_REFRESH_MS)
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -63,6 +78,14 @@ class ProviderOrdersFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         ProviderNewOrderAlertManager.refreshMonitoring()
+        // Reavalia o raio do guincho periodicamente (expansão a cada 4 min).
+        dispatchHandler.removeCallbacks(dispatchTicker)
+        dispatchHandler.postDelayed(dispatchTicker, DISPATCH_REFRESH_MS)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        dispatchHandler.removeCallbacks(dispatchTicker)
     }
 
     /**
@@ -137,13 +160,16 @@ class ProviderOrdersFragment : Fragment() {
     /**
      * Aplica o filtro da tab atual (chamado apenas se prestador estiver aprovado)
      */
-    private fun applyTabFilter() {
+    private fun applyTabFilter(notify: Boolean = true) {
         ordersList.clear()
-        
+
         when (currentTab) {
             0 -> { // Disponíveis
-                ordersList.addAll(allOrdersList.filter { 
-                    it.status == "pending" || it.status == "available" || it.status == "distributing" 
+                // Guincho só aparece para guincheiros dentro do raio de dispatch atual
+                // (10 km + 5 km a cada 4 min). Demais serviços não são afetados.
+                ordersList.addAll(allOrdersList.filter {
+                    (it.status == "pending" || it.status == "available" || it.status == "distributing") &&
+                        TowingDispatch.canOfferToProvider(it, providerLocation)
                 })
             }
             1 -> { // Aceitos
@@ -164,9 +190,11 @@ class ProviderOrdersFragment : Fragment() {
         ordersAdapter.notifyDataSetChanged()
         updateEmptyState()
         updateStatistics()
-        
-        val tabNames = listOf("Disponíveis", "Aceitos", "Concluídos", "Histórico")
-        showToast("📋 Mostrando: ${tabNames[currentTab]} (${ordersList.size} pedidos)")
+
+        if (notify) {
+            val tabNames = listOf("Disponíveis", "Aceitos", "Concluídos", "Histórico")
+            showToast("📋 Mostrando: ${tabNames[currentTab]} (${ordersList.size} pedidos)")
+        }
     }
 
     /**
@@ -380,6 +408,7 @@ class ProviderOrdersFragment : Fragment() {
                 
                 providerServices = loadProviderServices(currentUser.uid)
                 providerServicesNormalized = ServiceNicheCatalog.normalizeProviderServices(providerServices)
+                providerLocation = loadProviderLocation(currentUser.uid)
 
                 android.util.Log.d("ProviderOrders", "🔍 Carregando pedidos para prestador: ${currentUser.uid}")
                 android.util.Log.d("ProviderOrders", "🧰 Nichos oferecidos: $providerServices")
@@ -459,6 +488,13 @@ class ProviderOrdersFragment : Fragment() {
     private fun acceptOrder(order: OrderData) {
         if (order.coordinates == null) {
             showToast("❌ Pedido sem localização no mapa. O cliente precisa corrigir o endereço.")
+            return
+        }
+
+        // Guincho: só pode aceitar quem está dentro do raio de dispatch atual.
+        if (TowingDispatch.isTowingOrder(order) && !TowingDispatch.canOfferToProvider(order, providerLocation)) {
+            val raio = TowingDispatch.currentRadiusKm(order).toInt()
+            showToast("📍 Este guincho ainda está sendo oferecido a guincheiros mais próximos (raio atual ${raio} km). Aguarde a ampliação.")
             return
         }
 
@@ -660,7 +696,8 @@ class ProviderOrdersFragment : Fragment() {
                                 setOf(selectedServiceNormalized),
                                 order
                             )
-                            if (matchesProvider && matchesSelectedService) {
+                            val withinDispatch = TowingDispatch.canOfferToProvider(order, providerLocation)
+                            if (matchesProvider && matchesSelectedService && withinDispatch) {
                                 ordersList.add(order)
                             }
                         }
@@ -987,6 +1024,17 @@ class ProviderOrdersFragment : Fragment() {
         }
     }
 
+    /** Localização atual do prestador (mantida em `users/{uid}.coordinates` enquanto online). */
+    private suspend fun loadProviderLocation(providerId: String): GeoPoint? {
+        return try {
+            firestore.collection("users").document(providerId).get().await()
+                .getGeoPoint("coordinates")
+        } catch (e: Exception) {
+            android.util.Log.e("ProviderOrders", "Erro ao carregar localização do prestador: ${e.message}")
+            null
+        }
+    }
+
     private fun shouldIncludeOrderForProvider(order: OrderData, providerId: String?): Boolean {
         val isAssignedToCurrentProvider = !providerId.isNullOrBlank() && order.assignedProvider == providerId
         if (isAssignedToCurrentProvider) {
@@ -1068,7 +1116,13 @@ class ProviderOrdersFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        dispatchHandler.removeCallbacks(dispatchTicker)
         removeRealtimeListener()
         _binding = null
+    }
+
+    companion object {
+        // Cadência de reavaliação do raio do guincho (degraus de 4 min).
+        private const val DISPATCH_REFRESH_MS = 60_000L
     }
 }
