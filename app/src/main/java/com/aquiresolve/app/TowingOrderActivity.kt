@@ -110,7 +110,18 @@ class TowingOrderActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             config = TowingConfigRepository.load()
+            applyAvailability()
         }
+    }
+
+    /** Respeita o toggle "Serviço de guincho ativo" do painel (`app_config/guincho`). */
+    private fun applyAvailability() {
+        if (config.enabled) return
+        binding.btnPickOrigin.isEnabled = false
+        binding.btnPickDestination.isEnabled = false
+        binding.btnRequest.isEnabled = false
+        binding.tvHint.visibility = View.VISIBLE
+        binding.tvHint.text = "O serviço de guincho está temporariamente indisponível."
     }
 
     private fun resolveAddressAndRefresh(point: GeoPoint, isOrigin: Boolean) {
@@ -201,10 +212,12 @@ class TowingOrderActivity : AppCompatActivity() {
     }
 
     private fun bindPriceBreakdown(km: Double, total: Double) {
+        // Km efetivamente cobrado respeita o mínimo configurado no painel (minKm).
+        val billableKm = maxOf(if (km > 0) km else 0.0, config.minKm)
         val distanceCost = (total - config.baseFee).coerceAtLeast(0.0)
         binding.priceCard.visibility = View.VISIBLE
         binding.tvBaseFee.text = currency.format(config.baseFee)
-        binding.tvDistanceLine.text = "Trajeto (%.1f km × %s)".format(km, currency.format(config.pricePerKm))
+        binding.tvDistanceLine.text = "Trajeto (%.1f km × %s)".format(billableKm, currency.format(config.pricePerKm))
         binding.tvDistanceCost.text = currency.format(distanceCost)
         binding.tvTotal.text = currency.format(total)
     }
@@ -242,6 +255,10 @@ class TowingOrderActivity : AppCompatActivity() {
     }
 
     private fun startCheckout() {
+        if (!config.enabled) {
+            toast("O serviço de guincho está temporariamente indisponível.")
+            return
+        }
         val from = originPoint
         val to = destinationPoint
         val route = lastRoute

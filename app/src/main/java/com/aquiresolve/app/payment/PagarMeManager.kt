@@ -96,15 +96,32 @@ class PagarMeManager(private val context: Context) {
                     PricingResult.Error("Resposta de precificação inválida")
                 }
             } else {
-                fallbackLocalPricing(category, serviceType)
+                fallbackLocalPricing(category, serviceType, distanceKm)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Erro ao calcular preço no backend", e)
-            fallbackLocalPricing(category, serviceType)
+            fallbackLocalPricing(category, serviceType, distanceKm)
         }
     }
 
-    private fun fallbackLocalPricing(category: String, serviceType: String): PricingResult {
+    private suspend fun fallbackLocalPricing(
+        category: String,
+        serviceType: String,
+        distanceKm: Double? = null
+    ): PricingResult {
+        // Guincho: o fallback NÃO está na tabela fixa — precisa usar a config por km
+        // (`app_config/guincho`) + a distância da rota, senão o cold start do backend
+        // devolveria um preço fixo errado (~R$100) em vez de saída + R$/km.
+        if (com.aquiresolve.app.TowingOrderActivity.isTowingCategory(category)) {
+            val cfg = com.aquiresolve.app.TowingConfigRepository.load()
+            val total = cfg.estimatePrice(distanceKm ?: 0.0)
+            return PricingResult.Success(
+                estimatedPrice = total,
+                providerCommission = total * cfg.providerPercent / 100.0,
+                source = "tabela_local_guincho"
+            )
+        }
+
         val clientPrice = com.aquiresolve.app.models.ServicePricing.getPrice(category, serviceType)
             ?: com.aquiresolve.app.models.ServicePricing.getDefaultPrice(category)
         val providerValue = com.aquiresolve.app.models.ServicePricing.getProviderValue(category, serviceType)
