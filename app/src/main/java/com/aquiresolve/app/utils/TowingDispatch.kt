@@ -13,7 +13,7 @@ import kotlin.math.sqrt
 /**
  * Dispatch do GUINCHO por RAIO EXPANSIVO. O pedido começa sendo oferecido apenas
  * aos guincheiros num raio de 10 km da ORIGEM; a cada 4 minutos sem ninguém
- * aceitar, o raio cresce +5 km (15, 20, 25…) até um teto. Assim o guincheiro mais
+ * aceitar, o raio cresce +10 km (20, 30, 40…) até um teto. Assim o guincheiro mais
  * próximo tem a primeira chance e o pedido nunca fica órfão.
  *
  * O raio atual é função PURA do tempo decorrido desde o início da distribuição
@@ -24,7 +24,7 @@ import kotlin.math.sqrt
 object TowingDispatch {
 
     const val START_RADIUS_KM = 10.0
-    const val STEP_KM = 5.0
+    const val STEP_KM = 10.0
     const val INTERVAL_MS = 4L * 60L * 1000L // 4 minutos por degrau
     const val MAX_RADIUS_KM = 100.0
     private const val EARTH_RADIUS_KM = 6371.0
