@@ -99,6 +99,9 @@ Activity → Manager → Firebase/Retrofit
 | `catalog_services` | Catálogo de SERVIÇOS (nicho + valor + % do prestador); só leitura no app, escrita só Admin SDK |
 | `chatConversations/{orderId}` | Conversa consolidada p/ a Central Operacional do painel (upsert pelo app) |
 | `provider_specialty_requests/{id}` | Solicitações de alteração de especialidades (prestador cria; admin aprova/rejeita via painel) |
+| `client_chats/{clientId}` | Chat Base ↔ Cliente — metadata (lastMessage, unreadByClient, unreadByAdmin). Cliente lê; escrita só Admin SDK |
+| `client_chats/{clientId}/messages/{id}` | Mensagens do chat. Cliente cria as próprias (senderType='client'); admin envia via Admin SDK |
+| `client_chat_broadcasts/{id}` | Histórico de cada disparo em massa do admin (auditoria). Só Admin SDK |
 
 ### Catálogo de NICHOS dinâmico (app ↔ painel)
 - O app **lê** os nichos de `service_categories` via `CatalogRepository.kt` (pré-carregado no `AppApplication`, com **fallback estático** em `ServiceNicheCatalog` se o Firestore estiver vazio/offline — zero regressão).
@@ -204,6 +207,27 @@ Onde é aplicado: **no carrinho**, NÃO no `PaymentActivity` (este só recebe o 
 
 **Pedidos single-service** (via `CreateOrderActivity.navigateToPayment`) não passam pelo carrinho e portanto não recebem desconto — o que está correto: tanto desconto direto (≥2 serviços) quanto combos (≥2 categorias) exigem mais de 1 item.
 
+### Chat Base ↔ Cliente (Central AquiResolve)
+Canal bidirecional admin → cliente para promoções, avisos e atualizações.
+Coleção: `client_chats/{clientId}` (metadata) + subcoleção `messages/*`.
+
+**Fluxo:**
+1. **Admin** envia via painel (`/dashboard/controle/chat-clientes`) — chama `POST /api/client-chats/[clientId]/messages` ou `POST /api/client-chats/broadcast`. Tudo Admin SDK; metadata (lastMessage, unreadByClient, etc.) é atualizada na mesma chamada. FCM disparado em paralelo com `type=central_message`.
+2. **Cliente** abre `ClientCentralChatActivity` (botão na home, ícone de envelope com badge). `CentralChatRepository.observeMessages()` lê via snapshot listener (regra: `isOwner(clientId)`).
+3. **Cliente** responde criando mensagem em `client_chats/{uid}/messages` — regras forçam `senderType='client'` e `senderId == auth.uid`.
+4. **Marcar como lido** — `markReadByClient()` faz `PATCH /api/client-chats/[clientId]/read?role=client` (zera contador via Admin SDK).
+5. **Badge unread no app** — `CentralChatRepository.observeUnreadByClient()` observa `client_chats/{uid}.unreadByClient` em tempo real.
+6. **Broadcast** — `POST /api/client-chats/broadcast` resolve audiência (`all`/`active`/`specific`), fan-out em chunks de 200 (2 writes por destinatário, batch limit 400), grava snapshot em `client_chat_broadcasts/{id}`.
+
+**Tipos de mensagem (campo `type`):** `text`, `promotion`, `notice`, `order_update`. Painel e app exibem badge visual diferente para cada tipo.
+
+**URL do painel** vem de `BuildConfig.PANEL_BASE_URL` (`app/build.gradle`) — usada apenas para chamar `read` do app.
+
+**Gotchas:**
+- Cliente NÃO consegue zerar `unreadByClient` direto (regra bloqueia escrita em `client_chats/{uid}` no client SDK) — usa o endpoint do painel.
+- A página do painel usa polling (8s lista, 5s mensagens) em vez de snapshot listener — admin não tem custom claim por padrão, então client SDK não passa pelas rules; API routes (Admin SDK) cobrem leitura.
+- FCM é best-effort — se o token estiver expirado, a mensagem ainda fica no Firestore e aparece quando o app abrir.
+
 ### Backend de Pagamentos (Pagar.me)
 - URL: `https://aquiresolve.onrender.com/api/payments/`
 - Configurada em `app/build.gradle` como `PAYMENTS_API_BASE_URL`
@@ -306,6 +330,12 @@ Todas as rotas estão em `dashboard_admin/app/api/`:
 | `/api/catalog/services` | POST | Cria/atualiza serviço (nicho/valor/% do prestador); calcula `providerCommission` (Admin SDK) |
 | `/api/catalog/services` | DELETE | Remove serviço de `catalog_services` (`?id=`) (Admin SDK) |
 | `/api/orders/[id]/refund` | POST | Reembolsa o pagamento do pedido via Pagar.me (Admin SDK). Body `{ amount?, reason? }` |
+| `/api/client-chats` | GET | Lista chats Base↔Cliente (`?status=active\|archived&unreadOnly=true`) |
+| `/api/client-chats/[clientId]` | PATCH | Pin/archive do chat (`{ pinned?, archived? }`) |
+| `/api/client-chats/[clientId]/messages` | GET | Mensagens do chat ordenadas por createdAt |
+| `/api/client-chats/[clientId]/messages` | POST | Admin envia mensagem (Admin SDK + atualiza metadata + FCM) |
+| `/api/client-chats/[clientId]/read` | PATCH | Zera contador unread (`?role=admin\|client`) |
+| `/api/client-chats/broadcast` | POST | Envia em massa (audience: all\|active\|specific) |
 | `/api/specialty-requests` | GET | Lista solicitações de especialidades (`?status=pending\|approved\|rejected\|all`) |
 | `/api/specialty-requests` | POST | Aprova ou rejeita uma solicitação. Body `{ requestId, action: 'approve'\|'reject', rejectionReason? }`. Aprovação atualiza `providers/{id}.services` e envia notificação FCM ao prestador |
 | `/api/admin-logs` | GET | Lista logs de auditoria (filtros: action, targetType, limit) |
@@ -327,6 +357,7 @@ Todas as rotas estão em `dashboard_admin/app/api/`:
 | Notificações | `/dashboard/controle/notificacoes` | Envia FCM push para todos clientes, todos prestadores, todos usuários ou UID específico |
 | Rastreamento | `/dashboard/controle/autem-mobile/rastreamento` | Mapa ao vivo com pinos de prestadores + lista GPS com link Google Maps |
 | Aprovação de Especialidades | `/dashboard/controle/especialidades` | Fila de solicitações de alteração de especialidades dos prestadores — aprovar/rejeitar com motivo opcional; aprovação atualiza `providers/{id}.services` via Admin SDK e notifica o prestador |
+| Chat com Clientes | `/dashboard/controle/chat-clientes` | Chat Base↔Cliente — lista de clientes (busca/filtros/unread badge), painel da conversa (polling 5s), modal de broadcast (audience all/active) |
 | Cashback (AquiCash) | `/dashboard/configuracoes/aquicash` | Configura fases, tiers, combos e salva em `app_config/cashback` via Admin SDK |
 | Logs de Auditoria | `/dashboard/controle/logs` | Histórico de todas as ações críticas do admin (verificações, bloqueios, cancelamentos) |
 

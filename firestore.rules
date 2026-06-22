@@ -341,6 +341,36 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Chat Base ↔ Cliente — comunicação bidirecional admin↔cliente (promoções,
+    // avisos, atualizações). Doc por cliente (id == uid). Metadata só Admin SDK
+    // (preserva contadores e estado de leitura). Cliente cria mensagens próprias
+    // com senderType='client'; admin envia via Admin SDK.
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    match /client_chats/{clientId} {
+      allow read: if isOwner(clientId);
+      allow write: if false; // metadata só Admin SDK
+
+      match /messages/{messageId} {
+        allow read: if isOwner(clientId);
+        // Cliente pode criar a própria mensagem (senderType='client').
+        // Admin SDK cria as do admin (bypassa rules).
+        allow create: if isOwner(clientId)
+          && request.resource.data.senderType == 'client'
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000;
+        allow update, delete: if false; // só Admin SDK
+      }
+    }
+
+    // Histórico de broadcasts (snapshot de cada disparo em massa). Só Admin SDK.
+    match /client_chat_broadcasts/{broadcastId} {
+      allow read, write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Notificações
     // ═══════════════════════════════════════════════════════════════════════════
 

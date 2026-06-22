@@ -22,6 +22,7 @@ import com.aquiresolve.app.utils.NotificationBadgeHelper
 import com.aquiresolve.app.utils.PriceFormatter
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -31,6 +32,8 @@ class ClientHomeActivity : AppCompatActivity() {
     private lateinit var authManager: FirebaseAuthManager
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val centralChatRepo = CentralChatRepository()
+    private var centralUnreadListener: ListenerRegistration? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,18 +59,35 @@ class ClientHomeActivity : AppCompatActivity() {
         loadProfileImage()
         loadRecentOrders()
         loadCashbackBalance()
-        
+
         // Iniciar monitoramento de notificações para mostrar badge
         NotificationBadgeHelper.startListening(
             bottomNav = binding.bottomNavigation,
             menuItemId = R.id.navigation_orders
         )
+
+        startCentralBadgeListener()
     }
-    
+
     override fun onPause() {
         super.onPause()
         // Parar listener quando sair da tela pra evitar vazamento
         NotificationBadgeHelper.stopListening()
+        centralUnreadListener?.remove()
+        centralUnreadListener = null
+    }
+
+    private fun startCentralBadgeListener() {
+        val uid = auth.currentUser?.uid ?: return
+        centralUnreadListener?.remove()
+        centralUnreadListener = centralChatRepo.observeUnreadByClient(uid) { count ->
+            if (count > 0) {
+                binding.tvCentralBadge.visibility = View.VISIBLE
+                binding.tvCentralBadge.text = if (count > 99) "99+" else count.toString()
+            } else {
+                binding.tvCentralBadge.visibility = View.GONE
+            }
+        }
     }
 
     private fun setupUI() {
@@ -124,6 +144,10 @@ class ClientHomeActivity : AppCompatActivity() {
 
         binding.btnNotifications.setOnClickListener {
             startActivity(Intent(this, NotificationHistoryActivity::class.java))
+        }
+
+        binding.btnCentralChat.setOnClickListener {
+            startActivity(Intent(this, ClientCentralChatActivity::class.java))
         }
 
         binding.cardCashback.setOnClickListener {

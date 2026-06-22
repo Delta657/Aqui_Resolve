@@ -120,6 +120,8 @@ android {
         
         // Configuração do servidor para cada build type
         buildConfigField "String", "PAYMENTS_API_BASE_URL", "\"https://aquiresolve.onrender.com/api/payments/\""
+        // URL base do painel admin (Next.js) — chamado para marcar chat central como lido
+        buildConfigField "String", "PANEL_BASE_URL", "\"https://aquiresolve-dashboard.vercel.app\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -127,6 +129,7 @@ android {
     buildTypes {
         debug {
             buildConfigField "String", "PAYMENTS_API_BASE_URL", "\"https://aquiresolve.onrender.com/api/payments/\""
+            buildConfigField "String", "PANEL_BASE_URL", "\"https://aquiresolve-dashboard.vercel.app\""
         }
         release {
             minifyEnabled true
@@ -134,6 +137,7 @@ android {
             signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "String", "PAYMENTS_API_BASE_URL", "\"https://aquiresolve.onrender.com/api/payments/\""
+            buildConfigField "String", "PANEL_BASE_URL", "\"https://aquiresolve-dashboard.vercel.app\""
         }
     }
     
