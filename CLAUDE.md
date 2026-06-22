@@ -103,6 +103,7 @@ Activity → Manager → Firebase/Retrofit
 | `client_chats/{clientId}/messages/{id}` | Mensagens do chat. Cliente cria as próprias (senderType='client'); admin envia via Admin SDK |
 | `client_chat_broadcasts/{id}` | Histórico de cada disparo em massa do admin (auditoria). Só Admin SDK |
 | `home_banners/{id}` | Banners do carrossel da Home do cliente. App lê (`BannerRepository`); escrita só Admin SDK (painel) |
+| `home_combos/{id}` | Combos promocionais (vitrine) da Home. App lê (`ComboRepository`); escrita só Admin SDK (painel). Preço é exibição — desconto real vem do `PromotionManager` no carrinho |
 
 ### Catálogo de NICHOS dinâmico (app ↔ painel)
 - O app **lê** os nichos de `service_categories` via `CatalogRepository.kt` (pré-carregado no `AppApplication`, com **fallback estático** em `ServiceNicheCatalog` se o Firestore estiver vazio/offline — zero regressão).
@@ -146,6 +147,14 @@ Busca instantânea no campo `etSearch` da `ClientHomeActivity`: ao digitar (debo
 - **App:** `models/SearchSuggestion.kt`; `ServiceSearchHelper.suggest(query, niches, services)` (normaliza acento/caixa, ranking exato>começa>contém>palavras, limite 8, complemento estático por sinônimos quando o catálogo dinâmico rende pouco); `adapters/SearchSuggestionAdapter.kt` + `item_search_suggestion.xml`. Catálogo de serviços inteiro em cache via **`CatalogServiceRepository.loadAll()`/`allCachedServices()`** (pré-aquecido no `AppApplication`).
 - **Roteamento:** SERVICE → `CreateOrderActivity` com `service_category_name` + **`preselect_service`** (chave nova) + `search_query`; NICHE → só o nicho. A pré-seleção do serviço é aplicada dentro de `CreateOrderActivity.rebuildServiceTypeAdapter` (sobrevive ao rebuild assíncrono do catálogo e seta `selectedPureServiceType`, garantindo o valor no submit). Sem resultado → CTA `tvSearchEmptyCta` abre `ServicesActivity`.
 - **Analytics:** `busca_sugestao_click` (label/niche/type), `busca_sem_resultado` (query). Sem coleção/painel/regra nova (100% app).
+
+### Combos Promocionais (vitrine na Home) — `home_combos`
+Seção "🔥 Combos Promocionais" na `ClientHomeActivity` (abaixo de Categorias): combos curados (foto, "de R$X por R$Y", badge de economia) gerenciados pelo painel → **sem novo APK** para criar/editar/desativar. É **vitrine + atalho**; o desconto cobrado continua sendo recalculado no carrinho pelo `PromotionManager` (não há engine nova).
+- **App:** `models/HomeCombo.kt` (+ `HomeComboItem`) + `ComboRepository.kt` (espelha `BannerRepository`: lê `home_combos`, filtra `active`, ordena `displayOrder`, cacheia, **nunca lança**; pré-aquecido no `AppApplication`). UI: `adapters/HomeComboAdapter.kt` + `item_home_combo.xml` (RecyclerView horizontal em `sectionCombos`, nasce `GONE`). Detalhe: `ComboDetailActivity` + `activity_combo_detail.xml` (serviços incluídos com preço resolvido do catálogo, resumo cheio/economia/promo). "Adicionar combo ao carrinho" pede o **endereço salvo** (`FirebaseAddressManager`) e adiciona cada item via **`FirebaseCartManager.addItem`** (mesmo fluxo do `CreateOrderActivity`) → o carrinho aplica o desconto sozinho pelas categorias. Combo lido por id do cache (`ComboRepository.cachedComboById`) via extra `combo_id`, sem passar objeto por Intent.
+- **Coerência de preço:** `fullPrice/promoPrice/savings/discountPercent` são **exibição/curadoria**; a cobrança vem de `catalog_services` + backend. O painel calcula `fullPrice` da soma dos preços do catálogo e **avisa** (verde/âmbar) prevendo o % que o carrinho aplicará (replicando os grupos do `PromotionManager` + percentuais de `app_config/cashback`). Validado ao vivo: Combo Casa Nova (Elétrica+Caça-vazamentos+Ar condicionado) → carrinho "Combo Elétrica+Hidráulica+Instalações **-R$ 217,50 (15%)**", total **R$ 1232,50 == anunciado**.
+- **Painel:** `app/api/combos/route.ts` (GET/POST/DELETE, Admin SDK; recalcula promo/savings no servidor) + `app/dashboard/servicos/combos/page.tsx` (multi-select de itens de `catalog_services` + cálculo automático + aviso de coerência) + item na sidebar (Serviços). Seed de teste: `scripts/seed-combos.mjs`.
+- **Firestore/Storage:** `home_combos` = `read: isSignedIn()` / `write: false`; `storage.rules` libera `combo_images/{fileName}` (upload autenticado ≤10MB). Sem índice composto.
+- **Analytics:** `home_combo_click` (id/nome), `combo_add_cart` (id/nome/itensAdicionados).
 
 ### Recuperação de senha (esqueci minha senha)
 - **Tela:** `ForgotPasswordActivity` (`activity_forgot_password.xml`). Acessível de **3 lugares**:

@@ -18,7 +18,7 @@ Foco: o cliente bate o olho e em segundos sabe o que fazer.
 > Ao final da Fase 1 a Home já parece "premium" e a conversão tende a subir, **sem IA**.
 
 ### Fase 2 — Monetização e parcerias (conteúdo gerenciável)
-4. **Combos promocionais** (`03`) — reaproveita a lógica de desconto já existente.
+4. ✅ **Combos promocionais** (`03`) — reaproveita a lógica de desconto já existente. **CONCLUÍDO (2026-06-22)**.
 5. **Parceiros AquiResolve** (`04`) — espaço para patrocinadores (descontos/cashback/cupons).
 
 ### Fase 3 — Inteligência (conveniência)
@@ -86,7 +86,7 @@ Assistente IA ───────────┘        (IA depende de proxy n
 |---|---------|--------|------------------|-----|----|--------|
 | 1 | Banner rotativo | [x] | [x] | [x] | [x] | ✅ Concluído (2026-06-22) |
 | 2 | Categorias horizontais | n/a | reusa `service_categories` | [x] | [x] | ✅ Concluído (2026-06-22) |
-| 3 | Combos promocionais | [ ] | [ ] | [ ] | [ ] | ⬜ Não iniciado |
+| 3 | Combos promocionais | [x] | [x] | [x] | [x] | ✅ Concluído (2026-06-22) |
 | 4 | Parceiros | [ ] | [ ] | [ ] | [ ] | ⬜ Não iniciado |
 | 5 | Busca inteligente | n/a | reusa `catalog_services` | [x] | [x] | ✅ Concluído (2026-06-22) |
 | 6 | Assistente IA | [ ] (proxy) | [ ] | [ ] | [ ] | ⬜ Não iniciado |

@@ -196,6 +196,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Combos promocionais (vitrine) da Home — leitura por usuário autenticado;
+    // escrita exclusiva via Admin SDK (painel /dashboard/servicos/combos).
+    // O desconto cobrado continua sendo recalculado no carrinho pelo PromotionManager;
+    // os campos de preço do combo são apenas exibição/curadoria.
+    match /home_combos/{comboId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Usuários
     // ═══════════════════════════════════════════════════════════════════════════

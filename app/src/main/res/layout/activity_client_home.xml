@@ -340,6 +340,37 @@
 
             </LinearLayout>
 
+            <!-- Combos Promocionais (vitrine — plano 03). GONE até haver combos ativos. -->
+            <LinearLayout
+                android:id="@+id/sectionCombos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:id="@+id/tvCombosTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🔥 Combos Promocionais"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvCombos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false"
+                    android:overScrollMode="never"
+                    tools:listitem="@layout/item_home_combo"
+                    tools:orientation="horizontal" />
+
+            </LinearLayout>
+
             <!-- Card de cashback -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardCashback"

@@ -100,6 +100,12 @@ service firebase.storage {
       allow write: if signedInCanModifyImage(10 * 1024 * 1024);
     }
 
+    // ===== COMBOS PROMOCIONAIS (vitrine; upload pelo painel admin) =====
+    match /combo_images/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
+    }
+
     // ===== IMAGENS DE CHAT =====
     match /chat_images/{orderId}/{fileName} {
       allow read: if isSignedIn();

@@ -25,9 +25,11 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
 import com.aquiresolve.app.adapters.BannerAdapter
 import com.aquiresolve.app.adapters.HomeCategoryAdapter
+import com.aquiresolve.app.adapters.HomeComboAdapter
 import com.aquiresolve.app.adapters.SearchSuggestionAdapter
 import com.aquiresolve.app.databinding.ActivityClientHomeBinding
 import com.aquiresolve.app.models.HomeBanner
+import com.aquiresolve.app.models.HomeCombo
 import com.aquiresolve.app.models.OrderData
 import com.aquiresolve.app.models.SearchSuggestion
 import com.aquiresolve.app.utils.ServiceSearchHelper
@@ -54,6 +56,9 @@ class ClientHomeActivity : AppCompatActivity() {
     private val bannerHandler = Handler(Looper.getMainLooper())
     private var bannerAutoScroll: Runnable? = null
     private var bannerCount = 0
+
+    // Vitrine de Combos Promocionais
+    private var comboAdapter: HomeComboAdapter? = null
 
     // Busca Inteligente
     private var suggestionAdapter: SearchSuggestionAdapter? = null
@@ -82,6 +87,7 @@ class ClientHomeActivity : AppCompatActivity() {
         setupClickListeners()
         setupCategories()
         setupBannerCarousel()
+        setupCombos()
         setupSearchSuggestions()
         loadProfileImage()
         loadRecentOrders()
@@ -442,6 +448,61 @@ class ClientHomeActivity : AppCompatActivity() {
                     putString("actionType", banner.actionType)
                     putString("actionValue", banner.actionValue)
                     putString("bannerId", banner.id)
+                }
+            )
+        } catch (_: Exception) {
+        }
+    }
+
+    // ───────────────────────────── Combos Promocionais ─────────────────────────────
+
+    /**
+     * Monta a vitrine horizontal de Combos Promocionais (plano 03). Fonte: [ComboRepository]
+     * (coleção `home_combos`, gerida pelo painel). Sem combos ativos, a seção fica `GONE`.
+     * Tocar num combo abre [ComboDetailActivity] (detalhe + adicionar ao carrinho).
+     */
+    private fun setupCombos() {
+        comboAdapter = HomeComboAdapter(emptyList()) { combo -> onComboClicked(combo) }
+        binding.rvCombos.layoutManager =
+            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.rvCombos.adapter = comboAdapter
+
+        // Primeiro o cache (instantâneo), depois recarrega do Firestore.
+        applyCombos(ComboRepository.cachedCombos())
+        lifecycleScope.launch {
+            val combos = try {
+                ComboRepository.load()
+            } catch (_: Exception) {
+                ComboRepository.cachedCombos()
+            }
+            applyCombos(combos)
+        }
+    }
+
+    private fun applyCombos(combos: List<HomeCombo>) {
+        if (combos.isEmpty()) {
+            binding.sectionCombos.visibility = View.GONE
+            return
+        }
+        binding.sectionCombos.visibility = View.VISIBLE
+        comboAdapter?.updateItems(combos)
+    }
+
+    private fun onComboClicked(combo: HomeCombo) {
+        logComboClick(combo)
+        startActivity(
+            Intent(this, ComboDetailActivity::class.java)
+                .putExtra(ComboDetailActivity.EXTRA_COMBO_ID, combo.id)
+        )
+    }
+
+    private fun logComboClick(combo: HomeCombo) {
+        try {
+            FirebaseConfig.getAnalytics()?.logEvent(
+                "home_combo_click",
+                android.os.Bundle().apply {
+                    putString("comboId", combo.id)
+                    putString("comboName", combo.name)
                 }
             )
         } catch (_: Exception) {

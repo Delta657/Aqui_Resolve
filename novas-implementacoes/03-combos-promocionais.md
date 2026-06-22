@@ -1,6 +1,14 @@
 # 03 — Combos Promocionais
 
-**Prioridade:** 🟡 Média · **Fase:** 2 · **Complexidade:** Média
+**Prioridade:** 🟡 Média · **Fase:** 2 · **Complexidade:** Média · **Status:** ✅ Concluído (2026-06-22)
+
+> Implementado e **validado ao vivo no emulador** (Waydroid): a seção "🔥 Combos Promocionais"
+> aparece na Home com os cards (foto, "de R$X por R$Y", badge "Economize R$Z"); tocar abre o detalhe
+> com os serviços incluídos + preços + economia; "Adicionar combo ao carrinho" pede o endereço e
+> joga todos os itens no carrinho. O desconto é **recalculado pelo `PromotionManager`** pelas
+> categorias dos itens — provado: Combo Casa Nova (Elétrica + Caça-vazamentos + Ar condicionado)
+> caiu no carrinho como "Combo Elétrica + Hidráulica + Instalações **-R$ 217,50 (15%)**", total
+> **R$ 1232,50 == valor anunciado no combo**. Abre a Fase 2.
 
 ---
 
@@ -157,31 +165,33 @@ Seção "🔥 Combos Promocionais" (título + `RecyclerView` horizontal) abaixo 
 ## ✔️ Checklist
 
 ### Firestore / Regras
-- [ ] Bloco `home_combos` em `firestore.rules` + publicar.
+- [x] Bloco `home_combos` em `firestore.rules` (read se logado, write só Admin SDK) + publicado.
+- [x] Bloco `combo_images` em `storage.rules` (upload ≤10MB pelo painel) + publicado.
 
 ### Painel admin
-- [ ] API `app/api/combos/route.ts` (GET/POST/DELETE, Admin SDK).
-- [ ] Página `dashboard/servicos/combos/page.tsx` (form + seleção de itens de `catalog_services` + cálculo automático).
-- [ ] Aviso de coerência de % com a regra do carrinho.
-- [ ] Item na sidebar + deploy.
-- [ ] Cadastrar 2–3 combos de teste.
+- [x] API `app/api/combos/route.ts` (GET/POST/DELETE, Admin SDK; recalcula promoPrice/savings no servidor).
+- [x] Página `dashboard/servicos/combos/page.tsx` (form + multi-select de itens de `catalog_services` com busca + cálculo automático de fullPrice/promo/savings).
+- [x] Aviso de coerência: prevê o % que o carrinho aplicará (replicando os grupos do `PromotionManager` + percentuais de `app_config/cashback`) e alerta verde/âmbar conforme casar com o % anunciado.
+- [x] Item "Combos Promocionais" na sidebar (Serviços) + deploy.
+- [x] Cadastrar combos de teste (script `scripts/seed-combos.mjs` — usa serviços reais e % reais).
 
 ### App
-- [ ] Models `HomeCombo`/`HomeComboItem`.
-- [ ] `ComboRepository.kt`.
-- [ ] `HomeComboAdapter.kt` + `item_home_combo.xml`.
-- [ ] Seção na Home (título + RecyclerView).
-- [ ] Tela/sheet de detalhe do combo.
-- [ ] "Adicionar combo ao carrinho" usando o fluxo de carrinho existente.
-- [ ] Confirmar que `PromotionManager` aplica o desconto no carrinho.
-- [ ] Evento Analytics `combo_add_cart`.
+- [x] Models `HomeCombo`/`HomeComboItem`.
+- [x] `ComboRepository.kt` (load/cache/fallback vazio, defensivo; pré-aquecido no `AppApplication`).
+- [x] `HomeComboAdapter.kt` + `item_home_combo.xml` (card ~260dp: foto, preço riscado + promo, badge economia).
+- [x] Seção `sectionCombos` na Home (título + RecyclerView horizontal, abaixo de Categorias; GONE se vazio).
+- [x] `ComboDetailActivity` + `activity_combo_detail.xml` (itens incluídos + preços + resumo + CTA).
+- [x] "Adicionar combo ao carrinho" usando o fluxo existente: pede endereço salvo → `FirebaseCartManager.addItem` por item.
+- [x] `PromotionManager` aplica o desconto no carrinho automaticamente (pelas categorias dos itens).
+- [x] Eventos Analytics `home_combo_click` e `combo_add_cart`.
 
-### QA
-- [ ] Combo aparece na Home; vazio → seção some.
-- [ ] Detalhe mostra itens, preços e economia corretos.
-- [ ] Adicionar combo coloca todos os itens no carrinho.
-- [ ] Desconto aplicado no carrinho bate com o anunciado no combo.
-- [ ] Preço cobrado = preço do backend (sem divergência).
+### QA (validado no emulador Waydroid)
+- [x] Combo aparece na Home; sem combos → seção some.
+- [x] Detalhe mostra itens, preços e economia corretos (1450 = 150+550+750; -217,50; 1232,50).
+- [x] Adicionar combo coloca todos os itens no carrinho (3/3, com o endereço escolhido).
+- [x] Desconto do carrinho bate com o anunciado no combo (15% triplo, R$ 1232,50).
+- [x] Preço cobrado = preço do catálogo/backend (combo é só vitrine; cobrança vem de `catalog_services`).
+- [x] Sem endereço salvo → CTA leva a "Meus Endereços" (não trava).
 
 ---
 

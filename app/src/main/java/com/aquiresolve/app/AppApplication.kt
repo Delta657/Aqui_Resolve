@@ -39,6 +39,14 @@ class AppApplication : Application() {
                     Log.w("AppApplication", "Falha ao pré-carregar serviços p/ busca: ${e.message}")
                 }
             }
+            // Pré-aquece a vitrine de combos promocionais da Home (fallback silencioso se vazio/offline).
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+                try {
+                    ComboRepository.load()
+                } catch (e: Exception) {
+                    Log.w("AppApplication", "Falha ao pré-carregar combos: ${e.message}")
+                }
+            }
             Log.d("AppApplication", "Firebase initialized in Application.onCreate")
         } catch (e: Exception) {
             Log.e("AppApplication", "Error initializing Firebase: ${e.message}", e)

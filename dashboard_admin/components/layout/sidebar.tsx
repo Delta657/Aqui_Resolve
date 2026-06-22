@@ -31,6 +31,7 @@ import {
   Radio,
   Megaphone,
   ImageIcon,
+  Flame,
 } from "lucide-react"
 
 const navigation = [
@@ -48,6 +49,7 @@ const navigation = [
     children: [
       { name: "Visão Geral", href: "/dashboard/servicos", icon: ClipboardList },
       { name: "Catálogo do App", href: "/dashboard/servicos/catalogo-app", icon: Layers },
+      { name: "Combos Promocionais", href: "/dashboard/servicos/combos", icon: Flame },
     ],
   },
   {
