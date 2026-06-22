@@ -426,9 +426,10 @@ class ClientHomeActivity : AppCompatActivity() {
 
             HomeBanner.ACTION_URL -> openExternalUrl(banner.actionValue)
 
-            // Seções futuras (combos = plano 03, parceiros = plano 04): fallback p/ navegação de serviços.
-            HomeBanner.ACTION_COMBOS, HomeBanner.ACTION_PARTNERS ->
-                startActivity(Intent(this, ServicesActivity::class.java))
+            // Combos (plano 03) e Parceiros (plano 04): rola até a seção na própria Home se ela
+            // estiver visível; se não houver itens (seção GONE), cai na lista de serviços.
+            HomeBanner.ACTION_COMBOS -> scrollToSectionOrFallback(binding.sectionCombos)
+            HomeBanner.ACTION_PARTNERS -> scrollToSectionOrFallback(binding.sectionPartners)
 
             else -> {
                 // none / tipo desconhecido → banner apenas informativo, sem ação.
@@ -443,6 +444,20 @@ class ClientHomeActivity : AppCompatActivity() {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(u)))
         } catch (_: Exception) {
             showToast("Não foi possível abrir o link")
+        }
+    }
+
+    /**
+     * Rola a Home até [section] (filha direta do conteúdo do [contentScroll]) quando ela está
+     * visível; se a seção estiver `GONE` (sem itens), abre a lista de serviços como fallback.
+     */
+    private fun scrollToSectionOrFallback(section: View) {
+        if (section.visibility == View.VISIBLE) {
+            binding.contentScroll.post {
+                binding.contentScroll.smoothScrollTo(0, section.top)
+            }
+        } else {
+            startActivity(Intent(this, ServicesActivity::class.java))
         }
     }
 

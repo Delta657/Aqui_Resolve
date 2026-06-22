@@ -58,8 +58,8 @@ const ACTION_TYPES: { value: string; label: string; hint: string }[] = [
   { value: "service", label: "Buscar serviço", hint: "Texto da busca, ex.: Limpeza de sofá" },
   { value: "cashback", label: "Tela de Cashback", hint: "" },
   { value: "url", label: "Abrir link externo", hint: "https://..." },
-  { value: "combos", label: "Combos (em breve)", hint: "" },
-  { value: "partners", label: "Parceiros (em breve)", hint: "" },
+  { value: "combos", label: "Ir para Combos na Home", hint: "" },
+  { value: "partners", label: "Ir para Parceiros na Home", hint: "" },
 ]
 
 function needsActionValue(actionType: string): boolean {

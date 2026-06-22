@@ -75,7 +75,7 @@ Status global da leva: ver tabela em [`00-roadmap-e-prioridades.md`](./00-roadma
 - **Novos serviços/itens na lista do app só aparecem após novo APK** — mudanças de *dados*
   (preço, banner, combo) refletem na hora; mudanças de *código* exigem `./gradlew assembleDebug`.
 - **Deploy do painel é manual** (`npx vercel deploy --prod --yes` em `dashboard_admin/`).
-- **Regras Firestore** publicam com `firebase deploy --only firestore:rules --project aqui-resolve`
+- **Regras Firestore** publicam com `firebase deploy --only firestore:rules --project aplicativoservico-143c2`
   (ver skill `aquiresolve-firebase`).
 - **Commit direto no `main`** (sem PR), conforme convenção do repo.
 </content>
