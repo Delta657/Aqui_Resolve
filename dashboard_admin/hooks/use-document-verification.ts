@@ -10,7 +10,7 @@ import {
   type ProviderDocuments,
 } from '@/types/verification'
 import { db } from '@/lib/firebase'
-import { doc, getDoc, getDocs, collection, query, where, updateDoc, addDoc, serverTimestamp, documentId, limit, orderBy } from 'firebase/firestore'
+import { doc, getDoc, getDocs, collection, query, where, documentId, limit } from 'firebase/firestore'
 import { extractServiceCategories } from '@/lib/services/firebase-providers'
 import { resolveQueueVerificationStatus } from '@/lib/verification-status'
 
@@ -284,38 +284,9 @@ export const useDocumentVerification = () => {
         throw new Error('Verificação não encontrada')
       }
 
-      // Persistir no Firestore
-      if (!db) throw new Error('Firestore não inicializado')
-
-      // 1) Atualizar/registrar em provider_verifications (status em UPPERCASE)
-      const verificationsRef = collection(db, 'provider_verifications')
-      const q = query(verificationsRef, where('providerId', '==', verification.providerId))
-      const snap = await getDocs(q)
-
-      if (!snap.empty) {
-        // Atualiza o(s) documento(s) existente(s)
-        await Promise.all(
-          snap.docs.map(d => updateDoc(d.ref, {
-            status: 'APPROVED',
-            reviewedAt: serverTimestamp(),
-            reviewedBy,
-          }))
-        )
-      } else {
-        // Cria um novo registro se não existir
-        await addDoc(verificationsRef, {
-          providerId: verification.providerId,
-          status: 'APPROVED',
-          createdAt: serverTimestamp(),
-          submittedAt: verification.submittedAt || serverTimestamp(),
-          reviewedAt: serverTimestamp(),
-          reviewedBy,
-          id: verificationId,
-          notes: '',
-        })
-      }
-
-      // 2) Atualizar verificationStatus via Admin SDK (regras do Firestore bloqueiam client SDK em providers/)
+      // provider_verifications tem allow write: if false nas Firestore rules — escrita exclusiva
+      // via Admin SDK. A rota /api/providers/[id]/verify já grava o histórico via Admin SDK,
+      // portanto não tentamos escrever aqui pelo client SDK (causaria PERMISSION_DENIED).
       const verifyRes = await fetch(`/api/providers/${verification.providerId}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -359,38 +330,9 @@ export const useDocumentVerification = () => {
         throw new Error('Verificação não encontrada')
       }
 
-      // Persistir no Firestore
-      if (!db) throw new Error('Firestore não inicializado')
-
-      // 1) Atualizar/registrar em provider_verifications (status em UPPERCASE)
-      const verificationsRef = collection(db, 'provider_verifications')
-      const q = query(verificationsRef, where('providerId', '==', verification.providerId))
-      const snap = await getDocs(q)
-
-      if (!snap.empty) {
-        await Promise.all(
-          snap.docs.map(d => updateDoc(d.ref, {
-            status: 'REJECTED',
-            reviewedAt: serverTimestamp(),
-            reviewedBy,
-            rejectionReason,
-          }))
-        )
-      } else {
-        await addDoc(verificationsRef, {
-          providerId: verification.providerId,
-          status: 'REJECTED',
-          createdAt: serverTimestamp(),
-          submittedAt: verification.submittedAt || serverTimestamp(),
-          reviewedAt: serverTimestamp(),
-          reviewedBy,
-          id: verificationId,
-          notes: '',
-          rejectionReason,
-        })
-      }
-
-      // 2) Atualizar provider via Admin SDK (regras do Firestore bloqueiam client SDK em providers/)
+      // provider_verifications tem allow write: if false nas Firestore rules — escrita exclusiva
+      // via Admin SDK. A rota /api/providers/[id]/verify já grava o histórico via Admin SDK,
+      // portanto não tentamos escrever aqui pelo client SDK (causaria PERMISSION_DENIED).
       const verifyRes = await fetch(`/api/providers/${verification.providerId}/verify`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
