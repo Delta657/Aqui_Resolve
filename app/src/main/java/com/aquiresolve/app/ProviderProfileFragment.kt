@@ -105,6 +105,7 @@ class ProviderProfileFragment : Fragment() {
         loadProviderData()
         loadPricingTable()
         loadProviderRating()
+        loadPendingSpecialtyRequest()
     }
 
     /**
@@ -524,12 +525,33 @@ class ProviderProfileFragment : Fragment() {
     }
 
     /**
-     * Salva os serviços oferecidos
+     * Verifica se há solicitação de especialidades pendente e bloqueia o botão se houver.
+     */
+    private fun loadPendingSpecialtyRequest() {
+        val userId = getCurrentUserId() ?: return
+        lifecycleScope.launch {
+            try {
+                val pending = firestore.collection("provider_specialty_requests")
+                    .whereEqualTo("providerId", userId)
+                    .whereEqualTo("status", "pending")
+                    .get()
+                    .await()
+                if (!pending.isEmpty) {
+                    binding.btnSaveServices.isEnabled = false
+                    showToast("⏳ Há uma solicitação de especialidades aguardando aprovação do admin")
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    /**
+     * Envia solicitação de alteração de especialidades para aprovação do admin.
+     * Não grava diretamente em providers/{uid}.services — a aprovação é feita pelo painel.
      */
     private fun saveServices() {
         val selectedServices = mutableListOf<String>()
         val chipGroup = binding.chipGroupServices
-        
+
         for (i in 0 until chipGroup.childCount) {
             val chip = chipGroup.getChildAt(i)
             if (chip is com.google.android.material.chip.Chip && chip.isChecked) {
@@ -553,20 +575,52 @@ class ProviderProfileFragment : Fragment() {
 
         lifecycleScope.launch {
             try {
-                firestore.collection("providers")
-                    .document(userId)
-                    .update(
+                // Bloqueia se já há solicitação pendente
+                val existingPending = firestore.collection("provider_specialty_requests")
+                    .whereEqualTo("providerId", userId)
+                    .whereEqualTo("status", "pending")
+                    .get()
+                    .await()
+
+                if (!existingPending.isEmpty) {
+                    showToast("⏳ Você já tem uma solicitação aguardando aprovação")
+                    binding.btnSaveServices.isEnabled = false
+                    return@launch
+                }
+
+                // Busca especialidades aprovadas atualmente
+                val providerDoc = firestore.collection("providers").document(userId).get().await()
+                val currentServices = (providerDoc.get("services") as? List<*>)
+                    ?.mapNotNull { it as? String }
+                    ?: emptyList()
+
+                if (canonicalServices.toSet() == currentServices.toSet()) {
+                    showToast("ℹ️ Nenhuma alteração detectada")
+                    return@launch
+                }
+
+                val providerName = providerDoc.getString("fullName")
+                    ?: authManager.getLocalUserData()?.fullName
+                    ?: "Prestador"
+
+                // Cria solicitação pendente — admin aprova/rejeita no painel
+                firestore.collection("provider_specialty_requests")
+                    .add(
                         mapOf(
-                            "services" to canonicalServices,
-                            "updatedAt" to Timestamp.now()
+                            "providerId" to userId,
+                            "providerName" to providerName,
+                            "requestedServices" to canonicalServices,
+                            "currentServices" to currentServices,
+                            "status" to "pending",
+                            "createdAt" to Timestamp.now()
                         )
                     )
                     .await()
 
-                ProviderNewOrderAlertManager.refreshMonitoring()
-                showToast("✅ Serviços salvos com sucesso!")
+                binding.btnSaveServices.isEnabled = false
+                showToast("✅ Solicitação enviada! Aguardando aprovação do administrador.")
             } catch (e: Exception) {
-                showToast("❌ Erro ao salvar serviços: ${e.message}")
+                showToast("❌ Erro ao enviar solicitação: ${e.message}")
             }
         }
     }

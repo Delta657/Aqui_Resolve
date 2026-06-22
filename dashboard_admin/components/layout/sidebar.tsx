@@ -56,6 +56,7 @@ const navigation = [
       { name: "Monitoramento de Chat", href: "/dashboard/controle/chat", icon: MessageSquare },
       { name: "Central Operacional", href: "/dashboard/controle/chat-operacional", icon: Radio },
       { name: "Aceitação de Prestadores", href: "/dashboard/controle/aceitacao-prestadores", icon: BadgeCheck },
+      { name: "Especialidades", href: "/dashboard/controle/especialidades", icon: Layers },
     ],
   },
   {

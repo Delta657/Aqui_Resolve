@@ -256,6 +256,19 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
 
+    // Solicitações de alteração de especialidades — prestador cria, admin aprova/rejeita via Admin SDK
+    match /provider_specialty_requests/{requestId} {
+      // Prestador lê suas próprias solicitações (para exibir o status no app)
+      allow read: if isSignedIn() && resource.data.providerId == request.auth.uid;
+      // Prestador cria a própria solicitação com status inicial pending
+      allow create: if isSignedIn()
+        && request.resource.data.providerId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasAll(['providerId','providerName','requestedServices','currentServices','status','createdAt']);
+      // Updates e deletes exclusivos via Admin SDK (dashboard)
+      allow update, delete: if false;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Pedidos (orders)
     // ═══════════════════════════════════════════════════════════════════════════

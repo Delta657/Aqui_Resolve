@@ -98,6 +98,7 @@ Activity → Manager → Firebase/Retrofit
 | `service_categories` / `service_types` | Catálogo de NICHOS (só leitura no app; escrita só Admin SDK) |
 | `catalog_services` | Catálogo de SERVIÇOS (nicho + valor + % do prestador); só leitura no app, escrita só Admin SDK |
 | `chatConversations/{orderId}` | Conversa consolidada p/ a Central Operacional do painel (upsert pelo app) |
+| `provider_specialty_requests/{id}` | Solicitações de alteração de especialidades (prestador cria; admin aprova/rejeita via painel) |
 
 ### Catálogo de NICHOS dinâmico (app ↔ painel)
 - O app **lê** os nichos de `service_categories` via `CatalogRepository.kt` (pré-carregado no `AppApplication`, com **fallback estático** em `ServiceNicheCatalog` se o Firestore estiver vazio/offline — zero regressão).
@@ -114,6 +115,20 @@ Fonte única de verdade = painel admin → Firestore `catalog_services`. Um doc 
 - **Comissão** continua persistida em **R$ absoluto** em pedidos/pagamento; o % é só a forma de configurar no painel (salva os dois).
 - **Match exato exigido:** `catalog_services.niche` == categoria enviada pelo app; `catalog_services.name` == serviceType.
 - Semear/migrar (~300 serviços da tabela hardcoded, deriva o % — drift R$0,00): `node dashboard_admin/scripts/seed-catalog-services.mjs` (de `dashboard_admin/`, Node ≥20). Remapeia "Desentupimento com maquinário" → "Desentupimento com maquinário até 2 m".
+
+### Aprovação de especialidades do prestador
+
+Fluxo completo de aprovação opcional (escopo do item 5 — Edição de Perfil):
+
+1. **App** (`ProviderProfileFragment.saveServices()`): ao salvar especialidades, verifica se já há solicitação `pending`. Se não houver e as especialidades mudaram, cria um doc em `provider_specialty_requests` com `status=pending` e desabilita o botão. Não grava diretamente em `providers/{uid}.services`.
+2. **Regra Firestore** (`provider_specialty_requests`): prestador pode criar a própria solicitação (providerId == auth.uid, status == 'pending'); update/delete exclusivos via Admin SDK.
+3. **Painel** (`/dashboard/controle/especialidades`): fila de solicitações pendentes com diff visual (verde = novo, tachado-vermelho = removido). Aprovar → `providers/{id}.services` é atualizado + notificação FCM ao prestador. Rejeitar → motivo opcional + notificação FCM.
+4. **API** (`POST /api/specialty-requests`): Admin SDK — bypassa Firestore rules.
+
+**Gotchas:**
+- O botão "Salvar Serviços" fica desabilitado enquanto houver solicitação `pending`. Reabilita somente após reload da tela (quando a solicitação foi aprovada/rejeitada pelo admin).
+- `loadPendingSpecialtyRequest()` é chamado em `onViewCreated` além de `saveServices()`.
+- Aprovação do admin NÃO requer novo APK — apenas atualiza `services` no Firestore; o app lê o campo a cada abertura do perfil.
 
 ### Recuperação de senha (esqueci minha senha)
 - **Tela:** `ForgotPasswordActivity` (`activity_forgot_password.xml`). Acessível de **3 lugares**:
@@ -271,6 +286,8 @@ Todas as rotas estão em `dashboard_admin/app/api/`:
 | `/api/catalog/services` | POST | Cria/atualiza serviço (nicho/valor/% do prestador); calcula `providerCommission` (Admin SDK) |
 | `/api/catalog/services` | DELETE | Remove serviço de `catalog_services` (`?id=`) (Admin SDK) |
 | `/api/orders/[id]/refund` | POST | Reembolsa o pagamento do pedido via Pagar.me (Admin SDK). Body `{ amount?, reason? }` |
+| `/api/specialty-requests` | GET | Lista solicitações de especialidades (`?status=pending\|approved\|rejected\|all`) |
+| `/api/specialty-requests` | POST | Aprova ou rejeita uma solicitação. Body `{ requestId, action: 'approve'\|'reject', rejectionReason? }`. Aprovação atualiza `providers/{id}.services` e envia notificação FCM ao prestador |
 | `/api/admin-logs` | GET | Lista logs de auditoria (filtros: action, targetType, limit) |
 | `/api/admin-logs` | POST | Grava ação de auditoria (action, targetId, targetType, payload) |
 | `/api/financial/providers` | GET | Saldo/ganhos dos prestadores |
@@ -289,6 +306,7 @@ Todas as rotas estão em `dashboard_admin/app/api/`:
 | Detalhe OS | `/dashboard/servicos/os/[orderId]` | Exibe checklist completo: GPS, fotos antes/durante/depois, assinaturas, comissão |
 | Notificações | `/dashboard/controle/notificacoes` | Envia FCM push para todos clientes, todos prestadores, todos usuários ou UID específico |
 | Rastreamento | `/dashboard/controle/autem-mobile/rastreamento` | Mapa ao vivo com pinos de prestadores + lista GPS com link Google Maps |
+| Aprovação de Especialidades | `/dashboard/controle/especialidades` | Fila de solicitações de alteração de especialidades dos prestadores — aprovar/rejeitar com motivo opcional; aprovação atualiza `providers/{id}.services` via Admin SDK e notifica o prestador |
 | Cashback (AquiCash) | `/dashboard/configuracoes/aquicash` | Configura fases, tiers, combos e salva em `app_config/cashback` via Admin SDK |
 | Logs de Auditoria | `/dashboard/controle/logs` | Histórico de todas as ações críticas do admin (verificações, bloqueios, cancelamentos) |
 
@@ -502,6 +520,7 @@ Cashback é uma configuração financeira crítica. Só o Firebase Admin SDK (vi
 | Novos serviços não aparecem na lista do app | App ainda com APK antigo (lista de serviços era hardcoded) | Gerar novo APK (`./gradlew assembleDebug`); preço de serviços já existentes muda na hora via backend |
 | Reembolso falha no painel | `API_KEY_PRIVATE_PAGARME` ausente ou cobrança não-paga | Conferir chave no Vercel; só cobranças `paid`/`captured` são reembolsáveis |
 | Webhook Pagar.me rejeitado (401) | `PAGARME_WEBHOOK_SECRET` no Render ≠ segredo enviado pelo painel Pagar.me | Manter os dois iguais OU deixar ambos vazios (polling de 5s do app já confirma o pagamento) |
+| Botão "Salvar Serviços" desabilitado permanentemente | Prestador tem solicitação `pending` em `provider_specialty_requests` | Aprovar ou rejeitar no painel (`/dashboard/controle/especialidades`); o botão reabilita no próximo reload |
 | **`PERMISSION_DENIED` ao fazer pedido (com fotos)** | `validClientOrderUpdate` → `orderSensitiveAssignmentFieldsUnchanged()` lia `assignedProvider`/códigos direto; pedido recém-criado não tem esses campos (proibidos por `validOrderCreate`), então o `update("images")` pós-criação era negado e o pedido revertia | **CORRIGIDO** (commit `94d9136`, ruleset `c4770cb9`): guard usa `get(campo, null)`. É correção de **regra** → vale pro APK já instalado, sem novo APK. Detalhes: `docs/CORRECAO_PERMISSION_DENIED_PEDIDO_2026-06-15.md` |
 | `PERMISSION_DENIED` ao criar pedido (APK antigo) | APK pré-18/05 grava o `OrderData` inteiro com `status='distributing'` e sem `paymentStatus`; `validOrderCreate` (pay-before-distribution) nega | Rebuildar o APK (o código atual já grava o payload enxuto correto) |
 | Precisa publicar/testar regra sem `firebase` CLI | A máquina não tem o Firebase CLI | Usar a REST API com a service account: `POST /v1/projects/{P}/rulesets` + `PATCH …/releases/cloud.firestore?updateMask=rulesetName`; testar com ID token (`signInWithCustomToken`) na REST do Firestore. Ver doc da correção 2026-06-15 |
