@@ -322,12 +322,29 @@ export default function CombosPage() {
             </p>
           </div>
         </div>
-        {!showForm && (
-          <Button onClick={startNew} className="gap-2">
-            <Plus className="h-4 w-4" /> Novo combo
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" onClick={load} disabled={loading} className="gap-2">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Atualizar
           </Button>
-        )}
+          {!showForm && (
+            <Button onClick={startNew} className="gap-2">
+              <Plus className="h-4 w-4" /> Novo combo
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Sem serviços no catálogo → impossível montar combo. Avisa e orienta. */}
+      {!loading && services.length === 0 && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            Nenhum serviço ativo disponível no catálogo. Cadastre serviços em{" "}
+            <strong>Serviços → Catálogo do App → aba Serviços</strong> (ou rode o seed do catálogo)
+            para conseguir montar combos.
+          </span>
+        </div>
+      )}
 
       {showForm && (
         <Card>
@@ -406,6 +423,9 @@ export default function CombosPage() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium">
                   Serviços do combo ({form.items.length} selecionado{form.items.length === 1 ? "" : "s"})
+                  <span className="ml-1 font-normal text-muted-foreground">
+                    · {services.length} disponíve{services.length === 1 ? "l" : "is"}
+                  </span>
                 </label>
                 <Button 
                   type="button"
@@ -448,7 +468,11 @@ export default function CombosPage() {
                   </div>
                   <div className="max-h-56 overflow-y-auto rounded-lg border bg-background">
                     {filteredServices.length === 0 ? (
-                      <p className="p-3 text-sm text-muted-foreground">Nenhum serviço encontrado.</p>
+                      <p className="p-3 text-sm text-muted-foreground">
+                        {services.length === 0
+                          ? "Catálogo sem serviços ativos. Cadastre serviços no Catálogo do App."
+                          : "Nenhum serviço encontrado para a busca."}
+                      </p>
                     ) : (
                       filteredServices.map((svc) => {
                         const selected = isSelected(svc)
