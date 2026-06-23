@@ -254,6 +254,15 @@ awaiting_payment → pending → distributing → assigned → in_progress → c
 - KPI cards: **Avaliação Média** (ex.: `4.7 ★`) e **Avaliações Recebidas** em `components/dashboard/dashboard-metrics.tsx`.
 - Widget de distribuição (média + barra horizontal por estrela): `components/dashboard/ratings-breakdown.tsx`, plugado em `/dashboard` na seção "Avaliações" (acima do mapa de rastreamento).
 
+### Gestão de Pedidos — raio-x do pedido (painel)
+A aba **Gestão de Pedidos** (`/orders`, sidebar "Todos os Pedidos") mostra de relance quem é o cliente, **quem é o prestador, se o pedido foi pago e se travou**.
+- **Tabela** (`components/orders/orders-table.tsx`): nova coluna **Prestador** (nome ou "Sem prestador" em âmbar) + selo **Pago / A pagar** na célula de Valor (heurística `isOrderPaid`: `paymentStatus` ∈ paid/captured/approved OU status pós-pagamento — o app só distribui pago). Mesmos dados nos cards mobile.
+- **Modal de detalhe** (`components/orders/order-detail-modal.tsx`): logo após Status entra o **`OrderInsightsPanel`** (`components/orders/order-insights-panel.tsx`) — só no modo `view`:
+  - **Diagnóstico** (banner verde/âmbar/vermelho): sinais de pago, prestador atribuído e **travamento** (aguardando pagamento >30min; sem prestador >20min em distribuição; localização do prestador parada >15min em atendimento ativo; atendimento aberto >6h).
+  - **Prestador**: nome, telefone (link `tel:`), email, nota, status de verificação e saldo — perfil de `providers/{id}`.
+  - **Localização ao vivo**: lê `users/{providerId}` (`latitude`/`longitude`/`lastLocationUpdate`/`locationEnabled`/`accuracy`, atualizado pelo `ProviderLocationForegroundService` do app) via `onSnapshot`; mostra coordenadas, **link Google Maps**, **distância (haversine) até o local do pedido**, frescor ("há X min") e alerta se desatualizada/off.
+- Leitura via client SDK do admin (regras: `providers`/`users` = `read: isSignedIn()`); sem coleção/rota nova — 100% frontend sobre dados que o app já grava.
+
 ### Cashback — Fase Launch (desconto direto por nº de serviços + combos)
 Onde é aplicado: **no carrinho**, NÃO no `PaymentActivity` (este só recebe o total já com desconto). O caminho completo é:
 1. Painel admin em `/dashboard/configuracoes/aquicash` grava `activePhase`, `directDiscount2/3/4Plus`, `combosEnabled` e `combo*` em `app_config/cashback` (Admin SDK).

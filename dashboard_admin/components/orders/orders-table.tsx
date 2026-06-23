@@ -32,6 +32,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  UserCog,
+  AlertTriangle,
 } from "lucide-react"
 import { useOperationalOrdersNotifications } from "@/hooks/use-operational-orders-notifications"
 import { useOrdersFilteredRealtime } from "@/hooks/use-orders-filtered-realtime"
@@ -139,6 +141,23 @@ function getAddressLabel(order: any): string {
     [order.city, order.state].filter(Boolean).join(", ") ||
     "Endereço não informado"
   )
+}
+
+/** Nome do prestador (ou "Atribuído" se só houver id), ou null se ainda não há prestador. */
+function getProviderLabel(order: any): string | null {
+  const name =
+    order.assignedProviderName || order.providerName || order.assignedTechnician?.name
+  if (name) return String(name)
+  if (order.assignedProvider || order.providerId) return "Atribuído"
+  return null
+}
+
+/** Heurística de "pedido pago": paymentStatus explícito ou status pós-pagamento (o app só distribui pago). */
+function isOrderPaid(order: any): boolean {
+  const pay = String(order.paymentStatus ?? "").toLowerCase()
+  if (["paid", "captured", "approved"].includes(pay)) return true
+  const st = String(order.status ?? "").toLowerCase()
+  return ["paid", "assigned", "in_progress", "started", "on_the_way", "distributing", "completed"].includes(st)
 }
 
 export function OrdersTable({ filters, onView }: OrdersTableProps) {
@@ -283,6 +302,7 @@ export function OrdersTable({ filters, onView }: OrdersTableProps) {
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">ID</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cliente</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Serviço</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Prestador</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Endereço</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Operação</TableHead>
                       <TableHead className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Status</TableHead>
@@ -312,6 +332,19 @@ export function OrdersTable({ filters, onView }: OrdersTableProps) {
                             )}
                           </TableCell>
                           <TableCell>
+                            {getProviderLabel(order) ? (
+                              <span className="inline-flex items-center gap-1 text-sm text-foreground">
+                                <UserCog className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <span className="truncate max-w-[140px]">{getProviderLabel(order)}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+                                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                Sem prestador
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
                             <div className="flex items-start gap-1.5 max-w-40">
                               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
                               <span className="text-xs text-muted-foreground truncate">{getAddressLabel(order)}</span>
@@ -330,13 +363,24 @@ export function OrdersTable({ filters, onView }: OrdersTableProps) {
                           </TableCell>
                           <TableCell>
                             <span className={cn(
-                              "text-sm font-semibold tabular-nums",
+                              "block text-sm font-semibold tabular-nums",
                               amount !== null ? "text-emerald-600" : "text-muted-foreground"
                             )}>
                               {amount === null
                                 ? "—"
                                 : `R$ ${amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             </span>
+                            {order.status !== "cancelled" && !order.cancelledAt && (
+                              isOrderPaid(order) ? (
+                                <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-emerald-600">
+                                  <CheckCircle className="h-3 w-3" /> Pago
+                                </span>
+                              ) : (
+                                <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-amber-600">
+                                  <Clock className="h-3 w-3" /> A pagar
+                                </span>
+                              )
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
@@ -388,16 +432,35 @@ export function OrdersTable({ filters, onView }: OrdersTableProps) {
                           <span className="font-medium text-foreground">Local: </span>
                           {getAddressLabel(order)}
                         </p>
+                        <p className="text-xs break-words">
+                          <span className="font-medium text-foreground">Prestador: </span>
+                          {getProviderLabel(order) ? (
+                            <span className="text-muted-foreground">{getProviderLabel(order)}</span>
+                          ) : (
+                            <span className="text-amber-600">sem prestador</span>
+                          )}
+                        </p>
                         <div className="flex flex-col gap-1 pt-1 sm:flex-row sm:items-center sm:justify-between">
                           <p className="text-xs text-muted-foreground">{formatRelativeDate(order.createdAt)}</p>
-                          <span className={cn(
-                            "text-sm font-bold tabular-nums",
-                            amount !== null ? "text-emerald-600" : "text-muted-foreground"
-                          )}>
-                            {amount === null
-                              ? "—"
-                              : `R$ ${amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {order.status !== "cancelled" && !order.cancelledAt && (
+                              <span className={cn(
+                                "inline-flex items-center gap-1 text-[11px]",
+                                isOrderPaid(order) ? "text-emerald-600" : "text-amber-600"
+                              )}>
+                                {isOrderPaid(order) ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                {isOrderPaid(order) ? "Pago" : "A pagar"}
+                              </span>
+                            )}
+                            <span className={cn(
+                              "text-sm font-bold tabular-nums",
+                              amount !== null ? "text-emerald-600" : "text-muted-foreground"
+                            )}>
+                              {amount === null
+                                ? "—"
+                                : `R$ ${amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                            </span>
+                          </div>
                         </div>
                       </div>
 

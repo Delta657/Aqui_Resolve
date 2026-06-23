@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
-import { MapPin, Calendar, User, Star, Clock, MessageCircle, Phone, Mail, AlertTriangle, CheckCircle, XCircle, UserPlus, Trash2, ClipboardList, RotateCcw, Loader2 } from "lucide-react"
+import { MapPin, Calendar, User, Clock, MessageCircle, Phone, Mail, AlertTriangle, CheckCircle, XCircle, UserPlus, Trash2, ClipboardList, RotateCcw, Loader2 } from "lucide-react"
 import { ServiceOperationalPanel } from "@/components/orders/service-operational-panel"
+import { OrderInsightsPanel } from "@/components/orders/order-insights-panel"
 import { CheckInPanel } from "@/components/orders/checkin-panel"
 import { OrderLocationMap } from "@/components/orders/order-location-map"
 import { ServiceChecklistPanel } from "@/components/orders/service-checklist-panel"
@@ -305,6 +306,9 @@ export function OrderDetailModal({
             </CardContent>
           </Card>
 
+          {/* Raio-x do pedido: diagnóstico (pago? travado?) + prestador + localização ao vivo */}
+          {isReadOnly ? <OrderInsightsPanel order={order as unknown as Record<string, unknown>} /> : null}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
@@ -384,31 +388,6 @@ export function OrderDetailModal({
               ) : null}
             </CardContent>
           </Card>
-
-          {order.providerName ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <UserPlus className="h-5 w-5" />
-                  Prestador atribuido
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className="font-medium">{order.providerName}</p>
-                    <p className="break-all text-sm text-muted-foreground">ID: {order.providerId || "N/A"}</p>
-                  </div>
-                  {order.rating ? (
-                    <div className="flex items-center gap-1 self-start sm:self-auto">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span className="font-medium">{order.rating}</span>
-                    </div>
-                  ) : null}
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
 
           <Card>
             <CardHeader>
