@@ -133,25 +133,26 @@ via Admin SDK no backend, para melhorar prompts — fora do escopo desta entrega
 ## ✔️ Checklist
 
 ### Backend (Render)
-- [ ] Implementar `POST /api/ai/classify` (proxy Groq, JSON estruturado, restrição à lista de nichos).
-- [ ] Verificação de ID token Firebase + rate-limit.
-- [ ] Configurar `GROQ_API_KEY` no Render.
-- [ ] Deploy manual do backend (autoDeploy off).
+- [x] Implementar `POST /api/ai/classify` (proxy Groq, JSON estruturado, restrição à lista de nichos).
+      `backend/src/routes/ai.routes.js` + `backend/src/services/ai-classify.service.js`.
+- [x] Verificação de ID token Firebase (`authenticateRequest`) + rate-limit (`aiLimiter`, 15/min/IP).
+- [ ] Configurar `GROQ_API_KEY` no Render (e opcional `GROQ_MODEL`). **← pendente: aguardando a chave.**
+- [ ] Deploy manual do backend (autoDeploy off) após a chave.
 - [ ] Testar via curl (descrições variadas → nicho correto / null quando não encaixa).
 
 ### App
-- [ ] `AiApiService.kt` (Retrofit) apontando ao backend.
-- [ ] UI do assistente (Activity ou bottom-sheet) + layout.
-- [ ] Botão "🤖 Assistente" na Home.
-- [ ] Gancho no estado "sem resultado" da busca.
-- [ ] Enviar `niches` do `CatalogRepository`; validar nicho retornado contra o catálogo.
-- [ ] Roteamento "Continuar" → criação de pedido no nicho.
-- [ ] Fallbacks (erro de rede, confiança baixa, niche null).
-- [ ] Eventos Analytics da IA.
+- [x] Cliente de rede (`AssistantClient.kt`, OkHttp como o `RouteClient`) apontando ao backend `/api/ai/classify`.
+- [x] UI do assistente (`AssistantActivity` + `activity_assistant.xml`) + registro no Manifest.
+- [x] Card "🤖 Assistente AquiResolve" na Home (`cardAssistant` ao final da Home).
+- [x] Gancho no estado "sem resultado" da busca → abre o Assistente com a query preenchida (`EXTRA_PREFILL`).
+- [x] Enviar `niches` do `CatalogRepository`; validar nicho retornado contra o catálogo (no backend e no app).
+- [x] Roteamento "Continuar" → `CreateOrderActivity` com `service_category_name` (mesma chave das categorias).
+- [x] Fallbacks (erro de rede, confiança baixa, niche null) → mensagem amigável + "ver todos os serviços".
+- [x] Eventos Analytics da IA (`ia_assistente_open`, `ia_nicho_sugerido`, `ia_sugestao_aceita`).
 
 ### Segurança / QA
-- [ ] **Confirmar que NÃO há `GROQ_API_KEY` no app/BuildConfig.**
-- [ ] Descrições comuns classificam certo (vazamento→Encanador, luz→Elétrica, faxina→Limpeza, ar→Ar condicionado).
+- [x] **Confirmado: NÃO há `GROQ_API_KEY` no app/BuildConfig** — o app só chama o proxy do backend.
+- [ ] Descrições comuns classificam certo (vazamento→Encanador, luz→Elétrica, faxina→Limpeza, ar→Ar condicionado). **← teste com a chave.**
 - [ ] Descrição sem sentido → `niche=null` → fallback amigável.
 - [ ] Offline/erro do backend → app não trava, oferece busca/lista.
 - [ ] Latência aceitável (< ~3s) com loading visível.

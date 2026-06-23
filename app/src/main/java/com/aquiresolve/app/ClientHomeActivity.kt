@@ -90,6 +90,7 @@ class ClientHomeActivity : AppCompatActivity() {
         setupWindowInsets()
         setupUI()
         setupClickListeners()
+        setupSwipeRefresh()
         setupCategories()
         setupBannerCarousel()
         setupCombos()
@@ -97,6 +98,24 @@ class ClientHomeActivity : AppCompatActivity() {
         setupSearchSuggestions()
         loadProfileImage()
         loadRecentOrders()
+    }
+
+    /**
+     * Pull-to-refresh (plano 07): recarrega as seções dinâmicas da Home. Cada seção já trata erro
+     * isolado e se esconde quando vazia, então o refresh nunca quebra a tela. O spinner some assim
+     * que os carregamentos são disparados (cada seção atualiza sozinha ao concluir).
+     */
+    private fun setupSwipeRefresh() {
+        binding.swipeRefresh.setColorSchemeResources(R.color.primary_color, R.color.secondary_color)
+        binding.swipeRefresh.setOnRefreshListener {
+            setupCategories()
+            setupBannerCarousel()
+            setupCombos()
+            setupPartners()
+            loadRecentOrders()
+            loadCashbackBalance()
+            binding.swipeRefresh.isRefreshing = false
+        }
     }
 
     override fun onResume() {
@@ -149,7 +168,11 @@ class ClientHomeActivity : AppCompatActivity() {
         binding.bottomNavigation.selectedItemId = R.id.navigation_home
         window.statusBarColor = ContextCompat.getColor(this, R.color.primary_color)
         window.navigationBarColor = ContextCompat.getColor(this, R.color.white)
-        binding.tvWelcome.text = "Olá! Que tipo de serviço você precisa?"
+        // Saudação enxuta de 1 linha (Home Premium), personalizada quando há nome local.
+        val firstName = authManager.getLocalUserData()?.fullName?.trim()?.split(" ")?.firstOrNull().orEmpty()
+        binding.tvWelcome.text =
+            if (firstName.isNotEmpty()) "Olá, $firstName! O que você precisa hoje?"
+            else "Olá! O que você precisa hoje?"
         binding.tvRecentOrders.text = "Seus Pedidos Recentes"
     }
 
@@ -217,9 +240,9 @@ class ClientHomeActivity : AppCompatActivity() {
             startActivity(Intent(this, ProfileActivity::class.java))
         }
 
-        binding.btnMakeOrder.setOnClickListener {
-            // Pedidos só podem ser feitos pela aba Serviços
-            startActivity(Intent(this, ServicesActivity::class.java))
+        binding.cardAssistant.setOnClickListener {
+            // Assistente IA (plano 06): descreve o problema → IA sugere o nicho.
+            startActivity(Intent(this, AssistantActivity::class.java))
         }
 
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
@@ -601,9 +624,13 @@ class ClientHomeActivity : AppCompatActivity() {
         binding.tvSearchEmptyCta.setOnClickListener {
             logSearchNoResult(lastSearchQuery)
             hideSuggestions()
+            // Gancho do plano 06: sem resultado textual → leva ao Assistente IA com a busca já
+            // preenchida (que por sua vez tem fallback "ver todos os serviços").
             startActivity(
-                Intent(this, ServicesActivity::class.java).apply {
-                    if (lastSearchQuery.isNotBlank()) putExtra("search_query", lastSearchQuery)
+                Intent(this, AssistantActivity::class.java).apply {
+                    if (lastSearchQuery.isNotBlank()) {
+                        putExtra(AssistantActivity.EXTRA_PREFILL, lastSearchQuery)
+                    }
                 }
             )
         }

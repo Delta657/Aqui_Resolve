@@ -158,14 +158,19 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Conteúdo principal -->
+    <!-- Conteúdo principal (pull-to-refresh recarrega as seções dinâmicas da Home) -->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
     <androidx.core.widget.NestedScrollView
         android:id="@+id/contentScroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:fillViewport="true"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -209,7 +214,7 @@
                         android:id="@+id/tvSearchEmptyCta"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Não encontramos esse serviço. Toque para ver todos os serviços →"
+                        android:text="Não encontramos esse serviço. Toque para descrever ao Assistente 🤖 →"
                         android:textColor="@color/primary_color"
                         android:textSize="14sp"
                         android:background="?android:attr/selectableItemBackground"
@@ -246,69 +251,16 @@
 
             </LinearLayout>
 
-            <!-- Seção de boas-vindas -->
-            <LinearLayout
+            <!-- Saudação enxuta (1 linha) — o acesso ao serviço vem pela busca/categorias/banner -->
+            <TextView
+                android:id="@+id/tvWelcome"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="24dp">
-
-                <TextView
-                    android:id="@+id/tvWelcome"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Olá! Que tipo de serviço você precisa?"
-                    android:textSize="24sp"
-                    android:textColor="@color/text_primary"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Encontre os melhores profissionais para resolver seus problemas"
-                    android:textSize="16sp"
-                    android:textColor="@color/text_secondary"
-                    android:lineSpacingExtra="4dp" />
-
-            </LinearLayout>
-
-            <!-- Botão centralizado para fazer pedido -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginBottom="32dp"
-                android:gravity="center">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnMakeOrder"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Ver Serviços"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:paddingHorizontal="32dp"
-                    android:paddingVertical="16dp"
-                    app:cornerRadius="24dp"
-                    app:backgroundTint="@color/primary_color"
-                    android:textColor="@android:color/white"
-                    app:icon="@drawable/ic_add"
-                    app:iconGravity="textStart"
-                    app:iconTint="@android:color/white"
-                    app:iconSize="24dp"
-                    android:elevation="6dp"
-                    app:strokeWidth="0dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Acesse a aba Serviços para solicitar um pedido"
-                    android:textSize="14sp"
-                    android:textColor="@color/text_secondary"
-                    android:layout_marginTop="8dp" />
-
-            </LinearLayout>
+                android:text="Olá! O que você precisa hoje?"
+                android:textSize="22sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:layout_marginBottom="20dp" />
 
             <!-- Seção de Categorias (nichos em scroll horizontal) -->
             <LinearLayout
@@ -340,69 +292,7 @@
 
             </LinearLayout>
 
-            <!-- Combos Promocionais (vitrine — plano 03). GONE até haver combos ativos. -->
-            <LinearLayout
-                android:id="@+id/sectionCombos"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone"
-                android:layout_marginBottom="24dp">
-
-                <TextView
-                    android:id="@+id/tvCombosTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🔥 Combos Promocionais"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="12dp" />
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvCombos"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:clipToPadding="false"
-                    android:nestedScrollingEnabled="false"
-                    android:overScrollMode="never"
-                    tools:listitem="@layout/item_home_combo"
-                    tools:orientation="horizontal" />
-
-            </LinearLayout>
-
-            <!-- Parceiros AquiResolve (vitrine — plano 04). GONE até haver parceiros ativos. -->
-            <LinearLayout
-                android:id="@+id/sectionPartners"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone"
-                android:layout_marginBottom="24dp">
-
-                <TextView
-                    android:id="@+id/tvPartnersTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="🤝 Parceiros AquiResolve"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="12dp" />
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvPartners"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:clipToPadding="false"
-                    android:nestedScrollingEnabled="false"
-                    android:overScrollMode="never"
-                    tools:listitem="@layout/item_partner"
-                    tools:orientation="horizontal" />
-
-            </LinearLayout>
-
-            <!-- Card de cashback -->
+            <!-- Card de cashback em destaque (logo após Categorias, na ordem Premium) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardCashback"
                 android:layout_width="match_parent"
@@ -467,6 +357,68 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Combos Promocionais (vitrine — plano 03). GONE até haver combos ativos. -->
+            <LinearLayout
+                android:id="@+id/sectionCombos"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:id="@+id/tvCombosTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🔥 Combos Promocionais"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvCombos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false"
+                    android:overScrollMode="never"
+                    tools:listitem="@layout/item_home_combo"
+                    tools:orientation="horizontal" />
+
+            </LinearLayout>
+
+            <!-- Parceiros AquiResolve (vitrine — plano 04). GONE até haver parceiros ativos. -->
+            <LinearLayout
+                android:id="@+id/sectionPartners"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:id="@+id/tvPartnersTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🤝 Parceiros AquiResolve"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvPartners"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false"
+                    android:overScrollMode="never"
+                    tools:listitem="@layout/item_partner"
+                    tools:orientation="horizontal" />
+
+            </LinearLayout>
+
             <!-- Seção de pedidos recentes -->
             <LinearLayout
                 android:layout_width="match_parent"
@@ -505,9 +457,75 @@
 
             </LinearLayout>
 
+            <!-- CTA do Assistente IA (plano 06) — fecha a Home como conveniência para indecisos -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardAssistant"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="3dp"
+                app:cardBackgroundColor="@color/white"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/gray_200"
+                android:layout_marginBottom="24dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="18dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🤖"
+                        android:textSize="30sp"
+                        android:layout_marginEnd="14dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Não sabe o nome do serviço?"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Descreva o problema e o Assistente AquiResolve encontra para você."
+                            android:textSize="13sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="2dp"
+                            android:lineSpacingExtra="2dp" />
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/primary_color" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
         </LinearLayout>
 
     </androidx.core.widget.NestedScrollView>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <!-- Bottom Navigation -->
     <com.google.android.material.bottomnavigation.BottomNavigationView

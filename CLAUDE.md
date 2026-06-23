@@ -165,6 +165,23 @@ Seção "🤝 Parceiros AquiResolve" na `ClientHomeActivity` (abaixo de Combos):
 - **Analytics:** `parceiro_click`, `parceiro_cupom_copiado`, `parceiro_link_aberto` (id/nome).
 - **Validado ao vivo** (Waydroid): 3 parceiros (desconto/cupom/cashback) renderizaram; Telhanorte → "Copiar" pôs `AQUI15` no clipboard (comprovado colando no campo de busca); "Visitar site" abriu `https://www.telhanorte.com.br/`.
 
+### Home Premium (montagem — plano 07)
+A `ClientHomeActivity` foi reorganizada na **ordem Premium** (do topo): Busca inteligente → Banner rotativo → Saudação (1 linha, personalizada com o nome) → **Categorias** → **Card de cashback** → **Combos** → **Parceiros** → **Pedidos recentes** → **CTA Assistente IA** (`cardAssistant`). O botão "Ver Serviços" foi removido (redundante com categorias + bottom nav). O `NestedScrollView` (`contentScroll`) agora vive dentro de um `SwipeRefreshLayout` (`swipeRefresh`): o pull-to-refresh re-chama os `setup*`/`load*` (`setupSwipeRefresh()`). Cada seção dinâmica continua isolada (erro/vazio → `GONE`), insets preservados em `setupWindowInsets`. Mudança é de **código** → exige novo APK.
+
+### Assistente IA (app cliente — plano 06) — `AssistantActivity`
+O cliente descreve o problema em linguagem natural ("minha pia está vazando") e a IA (Groq via **proxy no backend**) identifica o **nicho** do catálogo e direciona para o pedido. A IA é conveniência: qualquer falha cai no fallback "ver todos os serviços", nunca bloqueia a contratação.
+- **App:** `AssistantActivity.kt` + `activity_assistant.xml` (registrada no Manifest). `AssistantClient.kt` (OkHttp, espelha o `RouteClient`) chama `POST /api/ai/classify` com `Authorization: Bearer <ID token>` — a chave Groq **nunca** fica no APK. Envia `CatalogRepository.cachedNicheNames()`; valida o nicho retornado contra o catálogo. "Continuar" → `CreateOrderActivity` (`service_category_name`). **Acessos:** card `cardAssistant` na Home + gancho no estado "sem resultado" da busca (abre o Assistente com `EXTRA_PREFILL`).
+- **Backend:** `POST /api/ai/classify` (`backend/src/routes/ai.routes.js` + `services/ai-classify.service.js`): exige ID token (`authenticateRequest`), rate-limit `aiLimiter` (15/min/IP), chama Groq (`llama-3.3-70b-versatile`, `temperature:0`, `response_format: json_object`), valida `niche ∈ niches` (anti-alucinação), nunca derruba o fluxo. **Env:** `GROQ_API_KEY` (+ opcional `GROQ_MODEL`) no Render. **autoDeploy off → deploy manual** após setar a chave.
+- **Analytics:** `ia_assistente_open`, `ia_nicho_sugerido` (niche/confidence), `ia_sugestao_aceita`.
+- **Status:** código pronto e compilando; **falta** `GROQ_API_KEY` no Render + teste ponta a ponta.
+
+### Copiloto IA do Painel (plano 08) — aba Manual
+Widget de chat no topo de `/dashboard/manual`: o admin pergunta "como faço X?" e recebe passos com onde clicar, **fundamentado** no conteúdo real do Manual.
+- **Conteúdo único:** `dashboard_admin/lib/manual-content.ts` exporta `SECTIONS/CONCEPTS/INFRA` (movidos de `page.tsx`) + `manualAsPromptContext()`. A página **renderiza** e a rota **injeta no prompt** — Manual e IA nunca divergem. Ao adicionar área nova ao painel, edite **este** arquivo.
+- **Rota:** `app/api/assistant/route.ts` (POST, `runtime='nodejs'`): system prompt + grounding do Manual + histórico curto → Groq. Chave `GROQ_API_KEY` **só no servidor** (Vercel), nunca no browser. Trata erro/timeout (502/504/503).
+- **Widget:** `components/manual/assistant-chat.tsx` (chat + exemplos clicáveis + estados).
+- **Status:** código pronto e passando no typecheck; **falta** `GROQ_API_KEY` na Vercel + teste.
+
 ### Manual do Painel — `/dashboard/manual`
 Aba "Manual do Painel" na sidebar (`app/dashboard/manual/page.tsx`, ícone `BookOpen`): documentação navegável (índice + âncoras) de **cada área do painel** (Painel, Serviços, Controle, Usuários, Pedidos, Financeiro, Relatórios, Configurações, Área Master), além de **conceitos** ("conteúdo é dado, não código", segurança das coleções, preço do catálogo) e **infraestrutura** (Firebase/Render/Vercel). Conteúdo estático em arrays no próprio componente — atualizar ao adicionar área nova.
 
@@ -381,6 +398,7 @@ Todas as rotas estão em `dashboard_admin/app/api/`:
 | `/api/client-chats/broadcast` | POST | Envia em massa (audience: all\|active\|specific) |
 | `/api/specialty-requests` | GET | Lista solicitações de especialidades (`?status=pending\|approved\|rejected\|all`) |
 | `/api/specialty-requests` | POST | Aprova ou rejeita uma solicitação. Body `{ requestId, action: 'approve'\|'reject', rejectionReason? }`. Aprovação atualiza `providers/{id}.services` e envia notificação FCM ao prestador |
+| `/api/assistant` | POST | Copiloto IA do painel (plano 08): responde "como faço X?" fundamentado no Manual (`manualAsPromptContext()`). Chave `GROQ_API_KEY` só no servidor (Vercel) |
 | `/api/admin-logs` | GET | Lista logs de auditoria (filtros: action, targetType, limit) |
 | `/api/admin-logs` | POST | Grava ação de auditoria (action, targetId, targetType, payload) |
 | `/api/financial/providers` | GET | Saldo/ganhos dos prestadores |
@@ -453,6 +471,7 @@ FIREBASE_PROJECT_ID=aplicativoservico-143c2
 FIREBASE_CLIENT_EMAIL=firebase-adminsdk-...@aplicativoservico-143c2.iam.gserviceaccount.com
 FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
 CORS_ORIGIN=*
+GROQ_API_KEY=gsk_...        # IA do assistente do app (plano 06); opcional GROQ_MODEL
 ```
 
 ### Endpoints
@@ -463,6 +482,7 @@ CORS_ORIGIN=*
 | POST | `/api/payments/pix` | Pagamento PIX |
 | POST | `/api/payments/pricing/calculate` | Cálculo de preço — lê `catalog_services` (Firestore) PRIMEIRO, com fallback na tabela hardcoded. Requer `FIREBASE_*` no Render |
 | GET | `/api/payments/{orderId}/status` | Status do pagamento |
+| POST | `/api/ai/classify` | Assistente IA (plano 06): classifica a descrição do cliente em UM nicho do catálogo (proxy Groq). Exige ID token + rate-limit. Requer `GROQ_API_KEY` no Render |
 
 ### Deploy (Render.com)
 - URL produção: `https://aquiresolve.onrender.com`
@@ -640,6 +660,7 @@ CORS_ORIGIN=*
 KEEP_ALIVE_ENABLED=true
 KEEP_ALIVE_URL=https://aquiresolve.onrender.com/api/health
 KEEP_ALIVE_INTERVAL_MS=840000
+GROQ_API_KEY=gsk_...          # IA do assistente do app (plano 06); opcional GROQ_MODEL (default llama-3.3-70b-versatile)
 ```
 
 **Atenção:** `FIREBASE_PRIVATE_KEY` deve conter a chave PEM completa com `\n` literal (não quebras de linha reais). O `env.js` do backend faz o `replace(/\\n/g, '\n')` automaticamente.
@@ -713,6 +734,7 @@ npx vercel deploy --prod --yes
 | `API_KEY_PRIVATE_PAGARME` | Pagar.me secret key |
 | `API_KEY_PUBLIC_PAGARME` | Pagar.me public key |
 | `ID_PUBLIC_PAGARME` | Pagar.me public ID |
+| `GROQ_API_KEY` | Copiloto IA do painel (plano 08) — server-only; opcional `GROQ_MODEL` (pendente de configuração) |
 
 **ATENÇÃO ao atualizar `FIREBASE_SERVICE_ACCOUNT` no Vercel:**
 

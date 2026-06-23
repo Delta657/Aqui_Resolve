@@ -137,22 +137,22 @@ enriquecer o Manual. **Não** logar dados sensíveis.
 ## ✔️ Checklist
 
 ### Infra / Variáveis
-- [ ] `GROQ_API_KEY` (e opcional `GROQ_MODEL`) nas Environment Variables da Vercel (server-only).
+- [ ] `GROQ_API_KEY` (e opcional `GROQ_MODEL`) nas Environment Variables da Vercel (server-only). **← pendente: aguardando a chave.**
 - [ ] Atualizar `infra-config/vercel/vercel.env` + `vercel-config.md` com as novas variáveis.
 
 ### Painel
-- [ ] `lib/manual-content.ts` (mover `SECTIONS/CONCEPTS/INFRA` + `manualAsPromptContext()`).
-- [ ] `app/api/assistant/route.ts` (POST → Groq; chave só no servidor; tratamento de erro).
-- [ ] `components/manual/assistant-chat.tsx` (chat + passos + exemplos + estados).
-- [ ] `app/dashboard/manual/page.tsx` usa o conteúdo compartilhado e renderiza `<AssistantChat />`.
-- [ ] (Opcional) coleção `assistant_logs` + gravação na rota.
+- [x] `lib/manual-content.ts` (movido `SECTIONS/CONCEPTS/INFRA` + `manualAsPromptContext()`).
+- [x] `app/api/assistant/route.ts` (POST → Groq; chave só no servidor `runtime='nodejs'`; tratamento de erro/timeout).
+- [x] `components/manual/assistant-chat.tsx` (chat + passos + exemplos clicáveis + estados loading/erro).
+- [x] `app/dashboard/manual/page.tsx` usa o conteúdo compartilhado e renderiza `<AssistantChat />` no topo.
+- [ ] (Opcional) coleção `assistant_logs` + gravação na rota — **não implementado** (fora do escopo mínimo).
 
 ### QA
-- [ ] "Como cadastro um combo?" → passos citando *Serviços → Combos Promocionais → Novo combo*.
+- [ ] "Como cadastro um combo?" → passos citando *Serviços → Combos Promocionais → Novo combo*. **← teste com a chave.**
 - [ ] "Como reembolso um pedido?" → passos citando *Gestão de Pedidos* / Financeiro.
 - [ ] "Como crio um banner?" → passos citando *Configurações → Banners da Home*.
 - [ ] Pergunta fora de escopo → resposta educada, sem alucinar telas.
-- [ ] Groq indisponível → mensagem de erro amigável (não quebra a aba).
+- [ ] Groq indisponível → mensagem de erro amigável (não quebra a aba). **(já tratado na rota/o widget mostra o erro)**
 - [ ] `GROQ_API_KEY` **não** aparece em nenhum bundle do cliente (checar no DevTools/Network).
 
 ---

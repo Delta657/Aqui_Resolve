@@ -91,9 +91,13 @@ Assistente IA ───────────┘        (IA depende de proxy n
 | 3 | Combos promocionais | [x] | [x] | [x] | [ ] | 🟡 Requer polimento visual UX |
 | 4 | Parceiros | [x] | [x] | [x] | [ ] | 🟡 Requer polimento visual UX |
 | 5 | Busca inteligente | n/a | reusa `catalog_services` | [x] | [ ] | 🟡 Requer polimento visual UX |
-| 6 | Assistente IA (app) | [ ] (proxy) | [ ] | [ ] | [ ] | ⬜ Suspensa até Home Premium perfeita |
-| 7 | Home Premium (montagem) | n/a | n/a | [~] | [ ] | 🟡 Foco Atual: Montar e polir a UX |
-| 8 | Copiloto IA (painel admin) | [ ] | [ ] (opcional `assistant_logs`) | n/a | [ ] | ⬜ Não iniciado |
+| 6 | Assistente IA (app) | [x] (proxy `/api/ai/classify`) | n/a | [x] | [ ] | 🟢 Código pronto — falta `GROQ_API_KEY` no Render + teste |
+| 7 | Home Premium (montagem) | n/a | n/a | [x] | [ ] | 🟢 Montada (ordem Premium + pull-to-refresh + CTA IA); falta QA |
+| 8 | Copiloto IA (painel admin) | [x] | n/a | n/a | [ ] | 🟢 Código pronto — falta `GROQ_API_KEY` na Vercel + teste |
+
+> **Atualização (2026-06-22):** Home Premium (07) montada e compilando; Assistente IA do app (06)
+> e Copiloto do painel (08) com **código completo**, faltando apenas configurar a chave Groq
+> (`GROQ_API_KEY` no Render p/ o app; na Vercel p/ o painel) e o teste ponta a ponta.
 
 > **IMPORTANTE PARA A IA DESENVOLVEDORA:** Embora o código funcional base das features 1-5 já tenha sido comitado, **a montagem final (07)** e o polimento visual de cada item para alcançar a qualidade "Home Premium" exigida pela gerência são o trabalho de agora. Trate a interface com muito cuidado.
 

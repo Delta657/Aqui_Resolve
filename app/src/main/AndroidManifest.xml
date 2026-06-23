@@ -212,6 +212,12 @@
             android:theme="@style/Theme.LoginApp"
             android:screenOrientation="portrait" />
         <activity
+            android:name=".AssistantActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".ProviderHomeActivity"
             android:exported="false"
             android:theme="@style/Theme.LoginApp"

@@ -114,14 +114,16 @@ Do topo para baixo, dentro do `LinearLayout` do conteúdo:
 ## ✔️ Checklist
 
 ### App
-- [ ] Reordenar/inserir todas as seções no `activity_client_home.xml` (cada uma em container com id).
-- [ ] Enxugar seção de boas-vindas / reavaliar botão "Ver Serviços".
-- [ ] Orquestrar `setup*`/`load*` em `ClientHomeActivity` (cada um isolado e tolerante a falha).
-- [ ] Esconder seções vazias (visibility GONE).
-- [ ] Pré-aquecer catálogo no `AppApplication` (se ainda não).
-- [ ] (Opcional) `SwipeRefreshLayout` com refresh de tudo.
-- [ ] Revisar insets/scroll/padding com todo o conteúdo.
-- [ ] Consolidar eventos Analytics.
+- [x] Reordenar/inserir todas as seções no `activity_client_home.xml` (cada uma em container com id).
+      Ordem Premium aplicada: Busca → Banner → Saudação → Categorias → **Cashback** → Combos → Parceiros → Pedidos recentes → **CTA Assistente IA**.
+- [x] Enxugar seção de boas-vindas / reavaliar botão "Ver Serviços". Saudação virou 1 linha
+      (personalizada com o nome) e o botão "Ver Serviços" foi **removido** (redundante com categorias/bottom nav).
+- [x] Orquestrar `setup*`/`load*` em `ClientHomeActivity` (cada um isolado e tolerante a falha).
+- [x] Esconder seções vazias (visibility GONE) — já era o comportamento de cada `apply*`.
+- [x] Pré-aquecer catálogo no `AppApplication` (já feito; `setup*` também garante via `load()`).
+- [x] `SwipeRefreshLayout` com refresh de tudo (`setupSwipeRefresh()` re-chama os `setup*`/`load*`).
+- [~] Revisar insets/scroll/padding com todo o conteúdo (insets preservados em `setupWindowInsets`; falta QA no device).
+- [x] Consolidar eventos Analytics (cada seção já loga seu evento; CTA IA loga `ia_assistente_open`).
 
 ### QA (regressão + novo)
 - [ ] Cashback e pedidos recentes continuam funcionando.

@@ -66,6 +66,9 @@ function loadEnv() {
     firebaseProjectId: getEnv('FIREBASE_PROJECT_ID', { required: false, defaultValue: '' }),
     firebaseClientEmail: getEnv('FIREBASE_CLIENT_EMAIL', { required: false, defaultValue: '' }),
     firebasePrivateKey: (getEnv('FIREBASE_PRIVATE_KEY', { required: false, defaultValue: '' }) || '').replace(/\\n/g, '\n'),
+    // IA do app cliente (plano 06) — proxy Groq. A chave vive SÓ no backend, nunca no APK.
+    groqApiKey: getEnv('GROQ_API_KEY', { required: false, defaultValue: '' }),
+    groqModel: getEnv('GROQ_MODEL', { required: false, defaultValue: 'llama-3.3-70b-versatile' }),
     corsOrigin: getEnv('CORS_ORIGIN', { required: false, defaultValue: '*' }),
     keepAliveEnabled: parseBoolean(
       getEnv('KEEP_ALIVE_ENABLED', {

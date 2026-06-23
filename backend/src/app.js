@@ -9,6 +9,7 @@ const healthRoutes = require('./routes/health.routes');
 const paymentsRoutes = require('./routes/payments.routes');
 const cronRoutes = require('./routes/cron.routes');
 const routeRoutes = require('./routes/route.routes');
+const aiRoutes = require('./routes/ai.routes');
 const { notFoundHandler, errorHandler } = require('./middlewares/error-handler');
 
 const paymentLimiter = rateLimit({
@@ -20,6 +21,20 @@ const paymentLimiter = rateLimit({
     error: {
       code: 'RATE_LIMITED',
       message: 'Muitas requisições. Aguarde um momento e tente novamente.'
+    }
+  }
+});
+
+// A IA é mais cara/abusável que uma rota comum → limite por IP mais apertado.
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 15, // 15 classificações por minuto por IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: {
+      code: 'RATE_LIMITED',
+      message: 'Muitas solicitações ao assistente. Aguarde um momento.'
     }
   }
 });
@@ -70,6 +85,7 @@ function createApp({ config }) {
   app.use('/api/health', healthRoutes);
   app.use('/api/payments', paymentLimiter, paymentsRoutes);
   app.use('/api/route', routeRoutes);
+  app.use('/api/ai', aiLimiter, aiRoutes);
   app.use('/api/cron', cronRoutes);
 
   app.use(notFoundHandler);
