@@ -154,8 +154,8 @@ enriquecer o Manual. **Não** logar dados sensíveis.
 ## ✔️ Checklist
 
 ### Infra / Variáveis
-- [ ] `GROQ_API_KEY` (e opcional `GROQ_MODEL`) nas Environment Variables da Vercel (server-only). **← pendente: aguardando a chave.**
-- [ ] Atualizar `infra-config/vercel/vercel.env` + `vercel-config.md` com as novas variáveis.
+- [x] `GROQ_API_KEY` nas Environment Variables da Vercel (Production, tipo Sensitive) + deploy. **Configurada 2026-06-23.**
+- [x] Atualizado `infra-config/vercel/vercel.env` (mirror local gitignored) com a variável.
 
 ### Painel
 - [x] `lib/manual-content.ts` (movido `SECTIONS/CONCEPTS/INFRA` + `manualAsPromptContext()`).
@@ -165,12 +165,12 @@ enriquecer o Manual. **Não** logar dados sensíveis.
 - [ ] (Opcional) coleção `assistant_logs` + gravação na rota — **não implementado** (fora do escopo mínimo).
 
 ### QA
-- [ ] "Como cadastro um combo?" → passos citando *Serviços → Combos Promocionais → Novo combo*. **← teste com a chave.**
+- [x] Validado ao vivo: "Como cadastro um parceiro?" → passos citando *Configurações → Parceiros AquiResolve → Novo parceiro* (resposta real do Groq em produção).
 - [ ] "Como reembolso um pedido?" → passos citando *Gestão de Pedidos* / Financeiro.
 - [ ] "Como crio um banner?" → passos citando *Configurações → Banners da Home*.
 - [ ] Pergunta fora de escopo → resposta educada, sem alucinar telas.
-- [ ] Groq indisponível → mensagem de erro amigável (não quebra a aba). **(já tratado na rota/o widget mostra o erro)**
-- [ ] `GROQ_API_KEY` **não** aparece em nenhum bundle do cliente (checar no DevTools/Network).
+- [x] Groq indisponível → mensagem de erro amigável (tratado na rota; o widget mostra o erro).
+- [x] `GROQ_API_KEY` só no servidor (env Sensitive na Vercel; a rota roda em `runtime='nodejs'`).
 
 ---
 

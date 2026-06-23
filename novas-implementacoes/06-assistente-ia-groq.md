@@ -152,9 +152,8 @@ via Admin SDK no backend, para melhorar prompts — fora do escopo desta entrega
 - [x] Implementar `POST /api/ai/classify` (proxy Groq, JSON estruturado, restrição à lista de nichos).
       `backend/src/routes/ai.routes.js` + `backend/src/services/ai-classify.service.js`.
 - [x] Verificação de ID token Firebase (`authenticateRequest`) + rate-limit (`aiLimiter`, 15/min/IP).
-- [ ] Configurar `GROQ_API_KEY` no Render (e opcional `GROQ_MODEL`). **← pendente: aguardando a chave.**
-- [ ] Deploy manual do backend (autoDeploy off) após a chave.
-- [ ] Testar via curl (descrições variadas → nicho correto / null quando não encaixa).
+- [x] `GROQ_API_KEY` configurada no Render + deploy feito. **Ativado 2026-06-23** (chave validada via Copiloto do painel, que usa a mesma chave Groq).
+- [ ] Testar no app com APK novo (descrições variadas → nicho correto / null quando não encaixa). **← único passo restante.**
 
 ### App
 - [x] Cliente de rede (`AssistantClient.kt`, OkHttp como o `RouteClient`) apontando ao backend `/api/ai/classify`.

@@ -2,6 +2,13 @@
 
 **Prioridade:** 🟢 Operacional · **Pré-requisito:** planos `06` e `08` (código já no `main`, commit `4d93917`)
 
+> ## ✅ ATIVADO (2026-06-23)
+> A `GROQ_API_KEY` **já está configurada** no **Render** (app/06) e na **Vercel** (painel/08), com
+> deploy feito nos dois. **Validado ao vivo:** `POST /api/assistant` (Copiloto do painel) respondeu
+> com passos reais ("Configurações → Parceiros AquiResolve → Novo parceiro"). A chave vive só nos
+> servidores (e no mirror local gitignored `infra-config/`), **nunca no git nem no APK**.
+> O passo a passo abaixo fica como referência para rotação/reconfiguração da chave.
+
 ---
 
 ## 🎯 Objetivo
