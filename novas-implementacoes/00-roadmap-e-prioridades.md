@@ -1,34 +1,33 @@
 # 00 — Roadmap & Prioridades
 
-> Ordem de execução pensada para **gerar conversão o quanto antes**. A IA fica por último
-> de propósito: hoje o maior ganho é organização visual + velocidade de contratação,
-> não inteligência artificial.
+> **DIRETRIZ ESTRATÉGICA ATUAL:**
+> "O foco agora é criar uma **Home Premium** com organização visual impecável. O cliente precisa encontrar e contratar um serviço em menos de 30 segundos. **Experiência do Usuário (UX) primeiro, Inteligência Artificial (IA) depois.** Isso gera conversão imediata."
+> *(Nota à IA desenvolvedora: Embora ferramentas como Flutter tenham sido cogitadas, o desenvolvimento continua no **Android/Kotlin nativo** atual. Use os conceitos para enriquecer a UX nativa).*
 
 ---
 
 ## 🪜 Fases
 
-### Fase 1 — Fundamentos visuais da Home (entrega rápida, alto impacto) — ✅ CONCLUÍDA (2026-06-22)
-Foco: o cliente bate o olho e em segundos sabe o que fazer.
+### Fase 1 — Fundamentos visuais da Home (Entrega rápida, alto impacto)
+Foco: o cliente bate o olho e em segundos sabe o que fazer. (UX fluida, acesso rápido).
 
-1. ✅ **Categorias horizontais** (`02`) — substitui a navegação atual por nichos em scroll lateral.
-2. ✅ **Banner rotativo** (`01`) — topo da Home, comunica cashback/promos/combos/parceiros.
-3. ✅ **Busca inteligente** (`05`) — sugestões instantâneas ao digitar → contratação em 1 toque.
+1. 🟡 **Categorias horizontais** (`02`) — nichos em scroll lateral (ex: ⚡ Elétrica, 🚿 Hidráulica, 🛋 Limpeza).
+2. 🟡 **Banner rotativo** (`01`) — topo da Home (Cashback, Promoções, Combos, Parceiros).
+3. 🟡 **Busca inteligente** (`05`) — sugestões instantâneas ao digitar → contratação em 1 toque.
 
 > Ao final da Fase 1 a Home já parece "premium" e a conversão tende a subir, **sem IA**.
 
-### Fase 2 — Monetização e parcerias (conteúdo gerenciável) — ✅ CONCLUÍDA (2026-06-22)
-4. ✅ **Combos promocionais** (`03`) — reaproveita a lógica de desconto já existente. **CONCLUÍDO (2026-06-22)**.
-5. ✅ **Parceiros AquiResolve** (`04`) — espaço para patrocinadores (descontos/cashback/cupons). **CONCLUÍDO (2026-06-22)**.
+### Fase 2 — Monetização e parcerias (Conteúdo gerenciável)
+4. 🟡 **Combos promocionais** (`03`) — nova seção (ex: Combo Casa Nova, Segurança, Limpeza).
+5. 🟡 **Parceiros AquiResolve** (`04`) — empresas patrocinadoras (ex: Leroy Merlin, Telhanorte) com descontos/cupons.
 
 ### Fase 3 — Inteligência (conveniência)
 6. **Assistente IA Groq** (`06`) — app cliente: descreve o problema → IA identifica o nicho e direciona.
 8. **Copiloto IA do Painel Admin** (`08`) — web, dentro da aba Manual: admin pergunta "como faço X?"
    → IA responde passo a passo (onde clicar). Trilha **do painel**, paralela ao app — pode ir em paralelo.
 
-### Fase 4 — Fechamento
-7. **Home Premium — montagem** (`07`) — integra todas as seções, ajusta ordem/scroll/estados,
-   polimento final e QA de regressão.
+### Fase 4 — Fechamento (O Foco Atual)
+7. 🟡 **Home Premium — montagem** (`07`) — **Onde o esforço principal deve se concentrar agora.** Integrar todas as seções, ajustar ordem/scroll/estados para criar uma vitrine premium (Banner, Cashback, Categorias, Combos, Parceiros, Pedidos recentes, Busca). O visual e a usabilidade devem ser perfeitos.
 
 ---
 
@@ -87,16 +86,16 @@ Assistente IA ───────────┘        (IA depende de proxy n
 
 | # | Feature | Painel | Firestore/Regras | App | QA | Status |
 |---|---------|--------|------------------|-----|----|--------|
-| 1 | Banner rotativo | [x] | [x] | [x] | [x] | ✅ Concluído (2026-06-22) |
-| 2 | Categorias horizontais | n/a | reusa `service_categories` | [x] | [x] | ✅ Concluído (2026-06-22) |
-| 3 | Combos promocionais | [x] | [x] | [x] | [x] | ✅ Concluído (2026-06-22) |
-| 4 | Parceiros | [x] | [x] | [x] | [x] | ✅ Concluído (2026-06-22) |
-| 5 | Busca inteligente | n/a | reusa `catalog_services` | [x] | [x] | ✅ Concluído (2026-06-22) |
-| 6 | Assistente IA (app) | [ ] (proxy) | [ ] | [ ] | [ ] | ⬜ Não iniciado |
-| 7 | Home Premium (montagem) | n/a | n/a | [ ] | [ ] | ⬜ Não iniciado |
+| 1 | Banner rotativo | [x] | [x] | [x] | [ ] | 🟡 Requer polimento visual UX |
+| 2 | Categorias horizontais | n/a | reusa `service_categories` | [x] | [ ] | 🟡 Requer polimento visual UX |
+| 3 | Combos promocionais | [x] | [x] | [x] | [ ] | 🟡 Requer polimento visual UX |
+| 4 | Parceiros | [x] | [x] | [x] | [ ] | 🟡 Requer polimento visual UX |
+| 5 | Busca inteligente | n/a | reusa `catalog_services` | [x] | [ ] | 🟡 Requer polimento visual UX |
+| 6 | Assistente IA (app) | [ ] (proxy) | [ ] | [ ] | [ ] | ⬜ Suspensa até Home Premium perfeita |
+| 7 | Home Premium (montagem) | n/a | n/a | [~] | [ ] | 🟡 Foco Atual: Montar e polir a UX |
 | 8 | Copiloto IA (painel admin) | [ ] | [ ] (opcional `assistant_logs`) | n/a | [ ] | ⬜ Não iniciado |
 
-> Atualize esta tabela conforme avança (⬜ → 🟨 em andamento → ✅ concluído).
+> **IMPORTANTE PARA A IA DESENVOLVEDORA:** Embora o código funcional base das features 1-5 já tenha sido comitado, **a montagem final (07)** e o polimento visual de cada item para alcançar a qualidade "Home Premium" exigida pela gerência são o trabalho de agora. Trate a interface com muito cuidado.
 
 ---
 

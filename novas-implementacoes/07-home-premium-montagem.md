@@ -10,6 +10,8 @@ Integrar todas as seções (banner, categorias, combos, parceiros, busca, IA) nu
 coesa, com ordem que maximiza conversão, scroll/insets corretos e estados tratados — sem regressão
 do que já funciona (cashback, pedidos recentes, bottom nav).
 
+> **DIRETRIZ UX PREMIUM:** O cliente deve ser capaz de bater o olho, encontrar a categoria/combo desejado e contratar um serviço em **menos de 30 segundos**. O layout deve ser moderno, organizado, claro, sem bagunça visual. Essa é a maior prioridade técnica agora, superando a implementação imediata de Inteligência Artificial.
+
 ---
 
 ## 🧩 Contexto atual
@@ -24,29 +26,27 @@ do que já funciona (cashback, pedidos recentes, bottom nav).
 
 ---
 
-## 🧱 Nova ordem da Home (proposta)
+## 🧱 Nova ordem da Home (proposta Premium)
 
 Do topo para baixo, dentro do `LinearLayout` do conteúdo:
 
-```
+```text
 ┌─ AppBar (mantém) ──────────────────────────────┐
 │  [Central] [Notif] [Carrinho] [Perfil]         │
-│  🔍 Busca inteligente (etSearch + sugestões)   │  ← plano 05
+│  🔍 Busca inteligente (etSearch + sugestões)   │  ← plano 05 (Contratação em 1 toque)
 └────────────────────────────────────────────────┘
-1. 🎞  Banner rotativo                              ← plano 01
+1. 🎞  Banner rotativo                              ← plano 01 (Destaques: Cashback, Promos)
 2. 👋  Saudação curta (1 linha, enxugar a atual)
-3. 🧭  Categorias horizontais                       ← plano 02
-4. 💸  Card de cashback (MANTÉM, já existe)
-5. 🔥  Combos promocionais                          ← plano 03
-6. 🤝  Parceiros AquiResolve                        ← plano 04
-7. 🤖  Card "Assistente AquiResolve" (CTA)          ← plano 06
-8. 🧾  Pedidos recentes (MANTÉM, já existe)
+3. 🧭  Categorias horizontais                       ← plano 02 (Substitui lista gigante, ex: ⚡ Elétrica, 🚿 Hidráulica)
+4. 💸  Card de cashback em destaque                 ← MANTÉM, já existe (Destaque visual forte)
+5. 🔥  Combos promocionais                          ← plano 03 (Ex: Combo Casa Nova, Limpeza Completa)
+6. 🤝  Parceiros AquiResolve                        ← plano 04 (Ex: Leroy Merlin, com descontos/cupons)
+7. 🧾  Pedidos recentes                             ← MANTÉM, já existe (Facilita recompra)
+8. 🤖  Card "Assistente AquiResolve" (CTA IA)       ← plano 06 (Estrutura preparada, IA entra depois)
 └─ BottomNavigation (mantém) ────────────────────┘
 ```
 
-> Racional: o que gera contratação rápida vem primeiro (busca + banner + categorias). Cashback logo
-> após reforça valor. Combos/parceiros monetizam. Assistente é alternativa para indecisos. Pedidos
-> recentes fecham (retenção/recompra).
+> **Racional de Conversão:** O que gera contratação rápida vem primeiro (busca + banner + categorias). Cashback logo após reforça valor. Combos e parceiros monetizam. Pedidos recentes fecham o fluxo de retenção. O Assistente IA é a alternativa para indecisos e fica mais para o final como conveniência (deixe estruturalmente pronto para quando a IA for ligada).
 
 ---
 
@@ -99,12 +99,14 @@ Do topo para baixo, dentro do `LinearLayout` do conteúdo:
 
 ---
 
-## 🎨 Design / UX
+## 🎨 Design / UX (Padrão Premium)
 
-- Espaçamento vertical consistente entre seções (~24dp).
-- Títulos de seção no mesmo estilo (20sp bold, `text_primary`), com emoji onde fizer sentido.
-- Paleta: `primary_color` `#FF7A00`, `secondary_color` `#10B981`, fundos neutros.
-- Garantir que o último item não fique escondido atrás do bottom nav (padding inferior já é
+- **Sensação de Modernidade:** Evitar listas pesadas. Usar os *scrolls* horizontais.
+- **Espaçamento:** Espaçamento vertical consistente entre seções (~24dp) para dar "respiro".
+- **Títulos de seção:** 20sp bold, cor `text_primary`, com emoji onde fizer sentido (ex: 🔥 Combos, 🤝 Parceiros).
+- **Paleta:** `primary_color` `#FF7A00`, `secondary_color` `#10B981`, fundos neutros.
+- **Cashback em Destaque:** Garantir que o card de cashback existente seja visualmente atraente.
+- **Insets:** Garantir que o último item não fique escondido atrás do bottom nav (padding inferior já é
   calculado em `setupWindowInsets` — revalidar com o novo conteúdo).
 
 ---

@@ -1,16 +1,16 @@
 # Novas Implementações — AquiResolve (Home Premium + IA)
 
-> Leva de evolução do **app cliente** (Android/Kotlin nativo) focada em **conversão**:
-> fazer o cliente *encontrar e contratar um serviço em menos de 30 segundos*.
-> A IA entra por último, como camada de conveniência — **UX primeiro**.
+> **MENSAGEM DO GESTOR / DIRETRIZ PRINCIPAL:**
+> "O objetivo agora é criar uma **Home Premium** com: Banner rotativo, Cashback em destaque, Categorias horizontais, Combos promocionais, Parceiros AquiResolve, Pedidos recentes, Busca inteligente, e Estrutura preparada para IA.
+> **Observação importante:** invista primeiro em organização visual e experiência do usuário antes da IA. A maior oportunidade hoje é fazer o cliente encontrar e contratar um serviço em menos de 30 segundos. Isso gera conversão imediatamente. 🚀💙🧡"
+
+> **INSTRUÇÃO PARA A PRÓXIMA IA DESENVOLVEDORA:**
+> Você está assumindo a base de código atual do app cliente (Android/Kotlin nativo). Embora haja recomendações externas para uso de Flutter, **o desenvolvimento deve continuar na base nativa atual (`app/src/main/java...`)**. Sua missão é localizar as implementações já iniciadas e polir a **Home Premium**, garantindo a melhor UX possível. A Inteligência Artificial será a última etapa.
 
 **Stack confirmada:** implementação **no app Kotlin existente** (`app/`), reaproveitando
 toda a base já pronta (Firebase, catálogo dinâmico, pagamentos, cashback, chat).
-Nada de Flutter/reescrita.
 
-> **Status (2026-06-22):** ✅ **Fase 1** (banner, categorias, busca) e ✅ **Fase 2** (combos, parceiros)
-> concluídas e validadas ao vivo. Pendentes: 🤖 IA do app (`06`), 🧩 montagem da Home (`07`) e a nova
-> trilha do painel 🤖 IA do painel admin (`08`). Detalhe na tabela de [`00-roadmap-e-prioridades.md`](./00-roadmap-e-prioridades.md).
+> **Status:** As features individuais (Fase 1 e 2) já tiveram seu código base estruturado. O seu foco principal agora é a **Montagem da Home Premium (Plano 07)**, garantindo o visual e usabilidade descritos na mensagem do gestor, antes de focar na IA (Plano 06 e 08). Detalhe na tabela de [`00-roadmap-e-prioridades.md`](./00-roadmap-e-prioridades.md).
 
 ---
 
