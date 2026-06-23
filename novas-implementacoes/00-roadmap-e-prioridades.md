@@ -98,6 +98,11 @@ Assistente IA ───────────┘        (IA depende de proxy n
 > **Atualização (2026-06-23):** `GROQ_API_KEY` **configurada e deployada** no Render (06) e na Vercel (08).
 > Copiloto do painel (08) **validado ao vivo**. Falta só testar o Assistente do app (06) com um APK novo.
 
+> **Atualização (2026-06-23) — Monitoramento de Pedidos:** implementada a aba **Monitoramento de
+> Pedidos em Andamento** no painel (`/dashboard/controle/monitoramento`) — tempo real, localização ao
+> vivo, detecção de ociosidade do prestador com alerta visual+sonoro, e ações (reatribuir/cancelar/
+> contato). Build + testes (`test:monitoring`) verdes. Detalhes em `plano_controle_admin_pedidos.md`.
+
 > **IMPORTANTE PARA A IA DESENVOLVEDORA:** Embora o código funcional base das features 1-5 já tenha sido comitado, **a montagem final (07)** e o polimento visual de cada item para alcançar a qualidade "Home Premium" exigida pela gerência são o trabalho de agora. Trate a interface com muito cuidado.
 
 ---

@@ -1,5 +1,31 @@
 # Plano de Implementação: Painel de Controle de Pedidos em Andamento (Admin)
 
+> ✅ **IMPLEMENTADO em 2026-06-23** — aba **Monitoramento de Pedidos** no painel admin.
+> Rota: `/dashboard/controle/monitoramento` (sidebar grupo **Controle**, ícone `Activity`).
+>
+> **O que foi entregue (tempo real, sem cron/backend novo):**
+> - **Dashboard ao vivo** via Firestore client SDK (`onSnapshot` em `orders` com `status in` dos
+>   monitoráveis) + KPIs (em andamento / aguardando prestador / a caminho / em atendimento / com alerta)
+>   e filtros (Todos · Com alerta · Aguardando · A caminho · Em atendimento).
+> - **Geolocalização em tempo real** do prestador: assina `users/{providerId}` (`latitude`/`longitude`/
+>   `lastLocationUpdate`), calcula **distância (haversine) até o cliente**, frescor do GPS e link Google Maps.
+> - **Detecção de ociosidade** (regra central do plano) em `lib/order-monitoring.ts` (lógica pura,
+>   testada em `tests/order-monitoring.test.ts`): alerta quando o prestador **aceitou há > 10 min e não
+>   se deslocou** (baseline de posição capturada no cliente, deslocamento < 150 m) **ou** a **localização
+>   está parada > 15 min**; também alerta **sem prestador > 20 min** na distribuição e **aguardando
+>   pagamento > 30 min**. Alerta **visual** (borda vermelha + chips) **e sonoro** (bipe WebAudio ao surgir
+>   um novo alerta; botão de silenciar).
+> - **Ações do admin:** **reatribuir** (a outro prestador ou de volta à fila) via `POST /api/orders/[id]/redirect`,
+>   **cancelamento administrativo** via `PATCH /api/orders/[id]` (motivo obrigatório), **contato rápido**
+>   (ligar prestador/cliente por `tel:` + atalho para o Chat com Prestadores).
+> - **Permissões:** consulta exige `gestaoPedidos`; ações (reatribuir/cancelar) exigem `operarPedidos`
+>   (botões escondidos sem a permissão). Rota mapeada em `lib/admin-permissions.ts`.
+>
+> **Decisão de arquitetura:** dispensamos o cron/worker e os WebSockets do plano original — o
+> `onSnapshot` do client SDK já entrega tempo real e a detecção de ociosidade roda no cliente (ticker
+> de 20 s + baseline em memória), reaproveitando o padrão do `OrderInsightsPanel`. Itens 5.1/5.2 do
+> plano (logs de localização e cron no backend) ficam **opcionais/futuros** — hoje não são necessários.
+
 ## 1. Visão Geral
 O objetivo deste plano é criar uma aba específica no painel do administrador focada no monitoramento em tempo real dos pedidos em andamento. A funcionalidade visa dar controle total ao administrador sobre o status dos serviços, localização dos prestadores e identificação proativa de problemas (ex: prestador ocioso após aceitar o pedido).
 
