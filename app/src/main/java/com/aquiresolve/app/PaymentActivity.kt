@@ -343,7 +343,9 @@ class PaymentActivity : AppCompatActivity() {
     override fun onBackPressed() {
         AlertDialog.Builder(this)
             .setTitle("⚠️ Cancelar Pagamento?")
-            .setMessage("Se você sair agora, seu pedido NÃO será criado.\n\nPara criar o pedido, é necessário efetuar o pagamento.")
+            // ✅ BUG-05: o pedido já existe como rascunho (awaiting_payment) neste ponto; sair
+            // o cancela/remove. A mensagem antiga dizia "NÃO será criado", o que é impreciso.
+            .setMessage("Se você sair agora, o pedido não será confirmado e será cancelado.\n\nPara concluir o pedido, é necessário efetuar o pagamento.")
             .setPositiveButton("Sair e Cancelar") { _, _ ->
                 // Retornar como cancelado
                 setResult(RESULT_CANCELED)

@@ -58,20 +58,30 @@ class FirebaseAuthManager(private val context: Context) {
     suspend fun signUp(email: String, password: String, userData: UserData): Result<FirebaseUser> {
         return try {
             android.util.Log.d("FirebaseAuthManager", "Iniciando cadastro")
-            
-            // Verificar se o username já está em uso
-            if (!isUsernameAvailable(userData.username)) {
-                android.util.Log.e("FirebaseAuthManager", "❌ ERRO: Username já está em uso")
-                return Result.failure(Exception("Este nome de usuário já está em uso por outra conta. O nome de usuário precisa ser único no app."))
-            }
-            
+
             android.util.Log.d("FirebaseAuthManager", "🔄 CRIANDO USUÁRIO NO FIREBASE AUTH...")
-            
+
             val result = auth.createUserWithEmailAndPassword(email, password).await()
-            
+
             android.util.Log.d("FirebaseAuthManager", "Usuário criado no Firebase Auth")
-            
+
             result.user?.let { user ->
+                // ✅ BUG-01: a unicidade do username só pode ser validada DEPOIS de autenticar,
+                // pois as regras do Firestore exigem isSignedIn() para ler a coleção `users`.
+                // Antes a checagem rodava pré-auth, levava PERMISSION_DENIED e era engolida
+                // (sempre "disponível"), permitindo usernames duplicados. Agora que o usuário
+                // já está autenticado a consulta funciona; se o nome estiver em uso, desfazemos
+                // a conta recém-criada para não deixar órfã no Authentication.
+                if (!isUsernameAvailable(userData.username)) {
+                    android.util.Log.e("FirebaseAuthManager", "❌ ERRO: Username já está em uso — desfazendo conta recém-criada")
+                    try {
+                        user.delete().await()
+                    } catch (delErr: Exception) {
+                        android.util.Log.w("FirebaseAuthManager", "Não foi possível remover a conta órfã do Auth", delErr)
+                    }
+                    return Result.failure(Exception("Este nome de usuário já está em uso por outra conta. O nome de usuário precisa ser único no app."))
+                }
+
                 android.util.Log.d("FirebaseAuthManager", "Salvando dados no Firestore")
                 
                 // Salvar dados do usuário no Firestore

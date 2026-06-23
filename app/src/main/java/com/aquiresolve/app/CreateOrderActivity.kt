@@ -687,13 +687,15 @@ class CreateOrderActivity : AppCompatActivity() {
     }
     
     private fun selectFromGallery() {
-        // Verificar permissões e abrir seletor de imagens
-        permissionManager.checkAndRequestImagePermissions(
+        // ✅ BUG-04: pedir SOMENTE a permissão de galeria (leitura de mídia). A câmera tem o
+        // seu próprio pedido de permissão em takePhoto(); escolher "Galeria" não deve mais
+        // disparar o diálogo de permissão de CÂMERA.
+        permissionManager.checkAndRequestGalleryPermissions(
             onGranted = {
                 imagePickerLauncher.launch("image/*")
             },
             onDenied = {
-                showErrorMessage("Permissões necessárias para adicionar imagens")
+                showErrorMessage("Permissão de acesso às imagens é necessária para anexar fotos")
             }
         )
     }

@@ -204,8 +204,11 @@ class ClientHomeActivity : AppCompatActivity() {
             .placeholder(R.drawable.ic_person)
             .error(R.drawable.ic_person)
         
+        // ✅ BUG-03: quando não há foto, carregamos o placeholder diretamente em vez de
+        // `load(null)` — este último dispara o warning "Glide: Received null model".
+        val model: Any = profileImageUrl?.takeIf { it.isNotEmpty() } ?: R.drawable.ic_person
         Glide.with(this)
-            .load(profileImageUrl?.takeIf { it.isNotEmpty() })
+            .load(model)
             .apply(requestOptions)
             .into(binding.btnProfile)
     }

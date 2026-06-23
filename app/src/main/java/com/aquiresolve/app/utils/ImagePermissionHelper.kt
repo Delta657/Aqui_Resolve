@@ -38,11 +38,27 @@ class ImagePermissionHelper {
         }
         val WRITE_EXTERNAL_STORAGE_PERMISSION = Manifest.permission.WRITE_EXTERNAL_STORAGE
         
-        // Todas as permissões necessárias
+        // Todas as permissões necessárias (câmera + galeria) — usar só quando a tela
+        // realmente oferece as duas opções de uma vez.
         val ALL_PERMISSIONS = arrayOf(
             CAMERA_PERMISSION,
             READ_MEDIA_IMAGES_PERMISSION
         )
+
+        // ✅ BUG-04: escolher "Galeria" não deve exigir permissão de CÂMERA. Este conjunto
+        // contém apenas a leitura de mídia, usado pelo fluxo de seleção na galeria.
+        val GALLERY_PERMISSIONS = arrayOf(
+            READ_MEDIA_IMAGES_PERMISSION
+        )
+
+        /**
+         * Verifica se as permissões de galeria (apenas leitura de mídia) estão concedidas.
+         */
+        fun hasGalleryPermissions(context: Context): Boolean {
+            return GALLERY_PERMISSIONS.all { permission ->
+                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            }
+        }
         
         /**
          * Verifica se todas as permissões estão concedidas
@@ -153,6 +169,13 @@ class ActivityPermissionManager(private val activity: ComponentActivity) {
     }
     
     /**
+     * Solicita apenas as permissões de galeria (leitura de mídia, sem câmera)
+     */
+    fun requestGalleryPermissions(onResult: (Boolean) -> Unit) {
+        requestPermissions(ImagePermissionHelper.GALLERY_PERMISSIONS, onResult)
+    }
+
+    /**
      * Verifica e solicita permissões se necessário
      */
     fun checkAndRequestImagePermissions(
@@ -168,6 +191,23 @@ class ActivityPermissionManager(private val activity: ComponentActivity) {
                 } else {
                     onDenied()
                 }
+            }
+        }
+    }
+
+    /**
+     * ✅ BUG-04: verifica/solicita SOMENTE a permissão de galeria (leitura de mídia).
+     * Use no fluxo "Galeria"; a câmera tem o seu próprio pedido de permissão.
+     */
+    fun checkAndRequestGalleryPermissions(
+        onGranted: () -> Unit,
+        onDenied: () -> Unit = {}
+    ) {
+        if (ImagePermissionHelper.hasGalleryPermissions(activity)) {
+            onGranted()
+        } else {
+            requestGalleryPermissions { granted ->
+                if (granted) onGranted() else onDenied()
             }
         }
     }
