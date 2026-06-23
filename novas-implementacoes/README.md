@@ -8,6 +8,10 @@
 toda a base já pronta (Firebase, catálogo dinâmico, pagamentos, cashback, chat).
 Nada de Flutter/reescrita.
 
+> **Status (2026-06-22):** ✅ **Fase 1** (banner, categorias, busca) e ✅ **Fase 2** (combos, parceiros)
+> concluídas e validadas ao vivo. Pendentes: 🤖 IA do app (`06`), 🧩 montagem da Home (`07`) e a nova
+> trilha do painel 🤖 IA do painel admin (`08`). Detalhe na tabela de [`00-roadmap-e-prioridades.md`](./00-roadmap-e-prioridades.md).
+
 ---
 
 ## 📁 Índice dos planos
@@ -20,8 +24,12 @@ Nada de Flutter/reescrita.
 | 3 | [`03-combos-promocionais.md`](./03-combos-promocionais.md) | Seção "🔥 Combos Promocionais" (foto, descrição, valor, economia) | 🟡 Média |
 | 4 | [`04-parceiros-aquiresolve.md`](./04-parceiros-aquiresolve.md) | Seção "Parceiros AquiResolve" (descontos, cashback, cupons) | 🟡 Média |
 | 5 | [`05-busca-inteligente.md`](./05-busca-inteligente.md) | Sugestões instantâneas ao digitar (serviços/nichos) — atalho de contratação | 🟢 Alta |
-| 6 | [`06-assistente-ia-groq.md`](./06-assistente-ia-groq.md) | 🤖 Assistente: descreve o problema → IA identifica o nicho e direciona | 🔵 Baixa (último) |
+| 6 | [`06-assistente-ia-groq.md`](./06-assistente-ia-groq.md) | 🤖 Assistente do **app cliente**: descreve o problema → IA identifica o nicho e direciona | 🔵 Baixa (último) |
 | 7 | [`07-home-premium-montagem.md`](./07-home-premium-montagem.md) | Montagem final: reorganização da Home unindo todas as seções | 🟢 (fecha a leva) |
+| 8 | [`08-assistente-ia-painel-admin.md`](./08-assistente-ia-painel-admin.md) | 🤖 Copiloto do **painel admin** (Groq, dentro da aba Manual): admin pergunta "como faço X?" → passos com onde clicar | 🟡 Média |
+
+> **Nota:** os planos `01–07` evoluem o **app cliente**; o plano `08` é uma trilha **do painel admin**
+> (web), independente da Home do app — pode ser feito em paralelo.
 
 ---
 

@@ -22,7 +22,9 @@ Foco: o cliente bate o olho e em segundos sabe o que fazer.
 5. ✅ **Parceiros AquiResolve** (`04`) — espaço para patrocinadores (descontos/cashback/cupons). **CONCLUÍDO (2026-06-22)**.
 
 ### Fase 3 — Inteligência (conveniência)
-6. **Assistente IA Groq** (`06`) — descreve o problema → IA identifica o nicho e direciona.
+6. **Assistente IA Groq** (`06`) — app cliente: descreve o problema → IA identifica o nicho e direciona.
+8. **Copiloto IA do Painel Admin** (`08`) — web, dentro da aba Manual: admin pergunta "como faço X?"
+   → IA responde passo a passo (onde clicar). Trilha **do painel**, paralela ao app — pode ir em paralelo.
 
 ### Fase 4 — Fechamento
 7. **Home Premium — montagem** (`07`) — integra todas as seções, ajusta ordem/scroll/estados,
@@ -75,8 +77,9 @@ Assistente IA ───────────┘        (IA depende de proxy n
 | Busca inteligente | Média | Baixo | Reusa `ServiceSearchHelper`; dropdown de sugestões |
 | Combos promocionais | Média | Médio | UI nova + admin CRUD; lógica de desconto já existe |
 | Parceiros | Média | Baixo | CRUD + seção; imagens via Storage/URL |
-| Assistente IA | Média-Alta | Médio | Proxy backend + prompt + parsing + roteamento |
+| Assistente IA (app) | Média-Alta | Médio | Proxy backend + prompt + parsing + roteamento |
 | Montagem Home | Média | Médio | Regressão de layout/scroll/insets |
+| Copiloto IA (painel) | Média | Baixo | Rota Next.js + Groq + grounding no Manual + widget de chat |
 
 ---
 
@@ -89,8 +92,9 @@ Assistente IA ───────────┘        (IA depende de proxy n
 | 3 | Combos promocionais | [x] | [x] | [x] | [x] | ✅ Concluído (2026-06-22) |
 | 4 | Parceiros | [x] | [x] | [x] | [x] | ✅ Concluído (2026-06-22) |
 | 5 | Busca inteligente | n/a | reusa `catalog_services` | [x] | [x] | ✅ Concluído (2026-06-22) |
-| 6 | Assistente IA | [ ] (proxy) | [ ] | [ ] | [ ] | ⬜ Não iniciado |
+| 6 | Assistente IA (app) | [ ] (proxy) | [ ] | [ ] | [ ] | ⬜ Não iniciado |
 | 7 | Home Premium (montagem) | n/a | n/a | [ ] | [ ] | ⬜ Não iniciado |
+| 8 | Copiloto IA (painel admin) | [ ] | [ ] (opcional `assistant_logs`) | n/a | [ ] | ⬜ Não iniciado |
 
 > Atualize esta tabela conforme avança (⬜ → 🟨 em andamento → ✅ concluído).
 
