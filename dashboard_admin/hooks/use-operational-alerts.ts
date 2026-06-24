@@ -81,8 +81,15 @@ export function useOperationalAlerts(maxDocs = 100) {
         setLoading(false)
         setError(null)
       },
-      () => {
-        setError("Erro ao carregar alertas operacionais")
+      (firestoreError) => {
+        // PERMISSION_DENIED indica que a regra `operationalAlerts` está ausente ou
+        // bloqueando o client SDK. Ver docs/CORRECAO_CENTRAL_OPERACIONAL_2026-06-24.md
+        console.error("[useOperationalAlerts] Firestore error:", firestoreError.code, firestoreError.message)
+        const msg =
+          firestoreError.code === "permission-denied"
+            ? "Sem permissão para carregar alertas operacionais. Verifique as regras do Firestore."
+            : "Erro ao carregar alertas operacionais"
+        setError(msg)
         setLoading(false)
       }
     )

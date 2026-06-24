@@ -533,6 +533,18 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // Alertas operacionais — Central Operacional do painel admin.
+    // Leitura e escrita por qualquer usuário autenticado (client SDK do painel).
+    // Não usamos isAdmin() aqui porque os administradores do painel não recebem
+    // custom claim por padrão — isSignedIn() é suficiente dado que a coleção é
+    // interna e não expõe dados sensíveis de clientes.
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    match /operationalAlerts/{alertId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // Logs de auditoria — escrita exclusiva via Admin SDK (dashboard)
     // ═══════════════════════════════════════════════════════════════════════════
 
