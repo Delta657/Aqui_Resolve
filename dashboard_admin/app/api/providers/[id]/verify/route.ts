@@ -115,20 +115,32 @@ export async function GET(
     const { id } = await params
     const providerId = id
 
+    // Filtra por providerId no Firestore e ORDENA EM MEMÓRIA por reviewedAt desc.
+    // where('providerId') + orderBy('reviewedAt') exigiria índice composto
+    // (FAILED_PRECONDITION → 500). Padrão do painel: consulta simples + sort em código.
     const [providerSnap, historySnap] = await Promise.all([
       db.collection('providers').doc(providerId).get(),
       db.collection('provider_verifications')
         .where('providerId', '==', providerId)
-        .orderBy('reviewedAt', 'desc')
-        .limit(10)
         .get(),
     ])
+
+    const toMillis = (v: unknown): number => {
+      const ts = v as { toMillis?: () => number } | null
+      if (ts && typeof ts.toMillis === 'function') return ts.toMillis()
+      const t = new Date(v as string).getTime()
+      return Number.isNaN(t) ? 0 : t
+    }
+    const history = historySnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => toMillis((b as Record<string, unknown>).reviewedAt) - toMillis((a as Record<string, unknown>).reviewedAt))
+      .slice(0, 10)
 
     return NextResponse.json({
       success: true,
       providerId,
       verificationStatus: providerSnap.data()?.verificationStatus ?? 'pending',
-      history: historySnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      history,
     })
   } catch (error: unknown) {
     const denied = adminAuthorizationResponse(error)

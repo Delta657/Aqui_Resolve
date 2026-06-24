@@ -11,16 +11,28 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') ?? 'pending'
 
-    let query = db.collection('provider_specialty_requests')
-      .orderBy('createdAt', 'desc')
-      .limit(100) as admin.firestore.Query
+    // Filtra por status no Firestore, mas ORDENA EM MEMÓRIA por createdAt desc.
+    // Combinar where('status') + orderBy('createdAt') exigiria um índice composto
+    // (gerava FAILED_PRECONDITION → 500). Seguimos o padrão dos demais endpoints do
+    // painel (provider-chats etc.): consulta simples + ordenação/limite em código.
+    let query = db.collection('provider_specialty_requests') as admin.firestore.Query
 
     if (status !== 'all') {
       query = query.where('status', '==', status)
     }
 
     const snap = await query.get()
-    const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    const toMillis = (v: unknown): number => {
+      if (v && typeof (v as admin.firestore.Timestamp).toMillis === 'function') {
+        return (v as admin.firestore.Timestamp).toMillis()
+      }
+      const t = new Date(v as string).getTime()
+      return Number.isNaN(t) ? 0 : t
+    }
+    const requests = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => toMillis((b as Record<string, unknown>).createdAt) - toMillis((a as Record<string, unknown>).createdAt))
+      .slice(0, 100)
 
     return NextResponse.json({ success: true, requests })
   } catch (error: unknown) {

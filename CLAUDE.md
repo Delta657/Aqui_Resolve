@@ -7,6 +7,7 @@ Este arquivo é lido automaticamente pelo Claude Code. Contém tudo que qualquer
 > - **`aquiresolve-render`** — env vars e deploy do backend de pagamentos (autoDeploy OFF → deploy via API).
 > - **`aquiresolve-vercel`** — deploy do painel e env vars (sem auto-deploy do GitHub; Node 20 obrigatório; fix do `FIREBASE_SERVICE_ACCOUNT`).
 > - **`aquiresolve-emulador`** — emular e testar o APK neste PC via Waydroid (Android em container): instalar APK, abrir telas, validar UI/serviços, screenshot/extrair texto. Credenciais de teste em `.emulator-test-credentials` (gitignored).
+> - **`aquiresolve-painel-qa`** — validar o painel admin num Chrome real: subir o dev server (sandbox OFF), criar admin temp com todas as permissões (`scripts/qa-temp-admin.mjs`), smoke-test de todas as páginas do sidebar (`scripts/qa-smoke.mjs`). Cobre o gotcha de **índice composto** (`where`+`orderBy` → 500; corrigir ordenando em memória).
 
 ---
 
