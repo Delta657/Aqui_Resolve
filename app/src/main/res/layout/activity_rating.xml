@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/surface_color"
@@ -11,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="20dp">
 
         <!-- Header -->
         <LinearLayout
@@ -19,7 +18,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="32dp">
+            android:layout_marginBottom="24dp">
 
             <ImageButton
                 android:id="@+id/btnBack"
@@ -43,68 +42,24 @@
             <View
                 android:layout_width="48dp"
                 android:layout_height="48dp" />
-
         </LinearLayout>
 
-        <!-- Card do prestador -->
+        <!-- Card: Informações do serviço -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="20dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/surface_color">
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/surface_color"
+            app:strokeColor="@color/orange_200"
+            app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Prestador"
-                    android:textSize="14sp"
-                    android:textColor="@color/gray_600"
-                    android:layout_marginBottom="8dp" />
-
-                <TextView
-                    android:id="@+id/tvProviderName"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="João Silva"
-                    android:textSize="18sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary" />
-
-            </LinearLayout>
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Avaliação Geral -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/surface_color">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Avaliação Geral"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"
-                    android:layout_marginBottom="16dp" />
+                android:padding="16dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -113,70 +68,160 @@
                     android:gravity="center_vertical"
                     android:layout_marginBottom="8dp">
 
-                    <RatingBar
-                        android:id="@+id/ratingBar"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:numStars="5"
-                        android:stepSize="1.0"
-                        android:progressTint="@color/orange_500"
-                        android:rating="0" />
+                    <View
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:background="@drawable/circle_background"
+                        android:backgroundTint="@color/orange_200"
+                        android:layout_marginEnd="12dp" />
 
-                    <TextView
-                        android:id="@+id/tvRatingLabel"
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Selecione uma avaliação"
-                        android:textSize="16sp"
-                        android:textColor="@color/gray_600"
-                        android:layout_marginStart="16dp" />
+                        android:orientation="vertical">
 
+                        <TextView
+                            android:id="@+id/tvProviderName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Prestador"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:id="@+id/tvServiceInfo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Serviço realizado"
+                            android:textSize="13sp"
+                            android:textColor="@color/gray_600"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
                 </LinearLayout>
 
-            </LinearLayout>
+                <!-- Chips de tags rápidas -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="O que achou? (toque para selecionar)"
+                    android:textSize="12sp"
+                    android:textColor="@color/gray_500"
+                    android:layout_marginBottom="8dp" />
 
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupTags"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="false"
+                    app:chipSpacingHorizontal="8dp"
+                    app:chipSpacingVertical="8dp" />
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Avaliações por Categoria -->
+        <!-- Card: Avaliação com Emoji -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
+            android:layout_marginBottom="20dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
+            app:cardElevation="2dp"
             app:cardBackgroundColor="@color/surface_color">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="16dp"
+                android:gravity="center">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Como foi sua experiência?"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:gravity="center"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:id="@+id/tvEmojiFeedback"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="😊"
+                    android:textSize="48sp"
+                    android:gravity="center"
+                    android:layout_marginBottom="8dp" />
+
+                <RatingBar
+                    android:id="@+id/ratingBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:numStars="5"
+                    android:stepSize="1.0"
+                    android:progressTint="@color/orange_500"
+                    android:rating="0"
+                    android:layout_marginBottom="4dp"
+                    android:scaleX="1.3"
+                    android:scaleY="1.3"
+                    android:transformPivotX="0dp"
+                    android:transformPivotY="0dp" />
+
+                <TextView
+                    android:id="@+id/tvRatingLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Toque nas estrelas para avaliar"
+                    android:textSize="14sp"
+                    android:textColor="@color/gray_500"
+                    android:gravity="center"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Card: Avaliações Detalhadas -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardDetailedRatings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp"
+            app:cardBackgroundColor="@color/surface_color">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Avaliações Detalhadas"
-                    android:textSize="16sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="12dp" />
 
                 <!-- Qualidade -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="16dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
 
                     <TextView
                         android:id="@+id/tvQualityLabel"
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="Qualidade do Serviço"
+                        android:layout_weight="1"
+                        android:text="Qualidade"
                         android:textSize="14sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginBottom="8dp" />
+                        android:textColor="@color/text_primary" />
 
                     <RatingBar
                         android:id="@+id/ratingBarQuality"
@@ -185,25 +230,26 @@
                         android:numStars="5"
                         android:stepSize="1.0"
                         android:progressTint="@color/orange_500"
-                        android:rating="0" />
-
+                        android:rating="0"
+                        style="?android:attr/ratingBarStyleSmall" />
                 </LinearLayout>
 
                 <!-- Pontualidade -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="16dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
 
                     <TextView
                         android:id="@+id/tvPunctualityLabel"
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="Pontualidade"
                         android:textSize="14sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginBottom="8dp" />
+                        android:textColor="@color/text_primary" />
 
                     <RatingBar
                         android:id="@+id/ratingBarPunctuality"
@@ -212,25 +258,26 @@
                         android:numStars="5"
                         android:stepSize="1.0"
                         android:progressTint="@color/orange_500"
-                        android:rating="0" />
-
+                        android:rating="0"
+                        style="?android:attr/ratingBarStyleSmall" />
                 </LinearLayout>
 
                 <!-- Comunicação -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="16dp">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
 
                     <TextView
                         android:id="@+id/tvCommunicationLabel"
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:text="Comunicação"
                         android:textSize="14sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginBottom="8dp" />
+                        android:textColor="@color/text_primary" />
 
                     <RatingBar
                         android:id="@+id/ratingBarCommunication"
@@ -239,24 +286,25 @@
                         android:numStars="5"
                         android:stepSize="1.0"
                         android:progressTint="@color/orange_500"
-                        android:rating="0" />
-
+                        android:rating="0"
+                        style="?android:attr/ratingBarStyleSmall" />
                 </LinearLayout>
 
                 <!-- Limpeza -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
                     <TextView
                         android:id="@+id/tvCleanlinessLabel"
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="Limpeza do Local"
+                        android:layout_weight="1"
+                        android:text="Limpeza / Organização"
                         android:textSize="14sp"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginBottom="8dp" />
+                        android:textColor="@color/text_primary" />
 
                     <RatingBar
                         android:id="@+id/ratingBarCleanliness"
@@ -265,37 +313,35 @@
                         android:numStars="5"
                         android:stepSize="1.0"
                         android:progressTint="@color/orange_500"
-                        android:rating="0" />
-
+                        android:rating="0"
+                        style="?android:attr/ratingBarStyleSmall" />
                 </LinearLayout>
-
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Comentário -->
+        <!-- Card: Comentário -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="32dp"
+            android:layout_marginBottom="24dp"
             app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
+            app:cardElevation="2dp"
             app:cardBackgroundColor="@color/surface_color">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="16dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Comentário (Opcional)"
-                    android:textSize="16sp"
+                    android:text="Comentário (opcional)"
+                    android:textSize="15sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="12dp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:layout_width="match_parent"
@@ -313,11 +359,18 @@
                         android:minLines="3"
                         android:maxLines="5"
                         android:textColor="@color/text_primary" />
-
                 </com.google.android.material.textfield.TextInputLayout>
 
+                <TextView
+                    android:id="@+id/tvCharCount"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="0/500"
+                    android:textSize="11sp"
+                    android:textColor="@color/gray_400"
+                    android:gravity="end"
+                    android:layout_marginTop="4dp" />
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
         <!-- Botões -->
@@ -326,7 +379,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Botão Enviar -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSubmitRating"
                 android:layout_width="match_parent"
@@ -339,7 +391,6 @@
                 app:cornerRadius="16dp"
                 android:layout_marginBottom="12dp" />
 
-            <!-- Botão Pular -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSkip"
                 android:layout_width="match_parent"
@@ -351,10 +402,9 @@
                 app:cornerRadius="16dp"
                 app:strokeColor="@color/gray_300"
                 app:strokeWidth="1dp" />
-
         </LinearLayout>
 
-        <!-- Progress Bar -->
+        <!-- Progress -->
         <ProgressBar
             android:id="@+id/progressBar"
             android:layout_width="wrap_content"
@@ -362,7 +412,5 @@
             android:layout_gravity="center"
             android:visibility="gone"
             android:layout_marginTop="16dp" />
-
     </LinearLayout>
-
-</ScrollView> 
+</ScrollView>

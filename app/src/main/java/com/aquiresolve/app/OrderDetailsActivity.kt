@@ -662,6 +662,8 @@ class OrderDetailsActivity : AppCompatActivity() {
                             val intent = Intent(this, RatingActivity::class.java)
                             intent.putExtra("order_id", order.id)
                             intent.putExtra("provider_name", order.assignedProviderName)
+                            intent.putExtra("service_type", order.serviceType)
+                            intent.putExtra("service_name", order.serviceName)
                             ratingResultLauncher.launch(intent)
                         }
                     }

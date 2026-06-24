@@ -123,7 +123,23 @@
                     android:layout_height="wrap_content"
                     android:text="Sem avaliações ainda"
                     android:textSize="14sp"
-                    android:textColor="@color/text_secondary" />
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="8dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnViewReviews"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Ver avaliações"
+                    android:textSize="12sp"
+                    android:textColor="@color/orange_500"
+                    android:backgroundTint="@color/orange_50"
+                    app:cornerRadius="18dp"
+                    app:strokeColor="@color/orange_500"
+                    app:strokeWidth="1dp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:visibility="visible" />
 
             </LinearLayout>
 

@@ -162,5 +162,10 @@
     <color name="background_light">@color/background_secondary</color>
     <color name="icon_tint">@color/gray_600</color>
     <color name="divider">@color/divider_color</color>
+
+    <!-- Rating / Review colors -->
+    <color name="orange_50">#FFF7ED</color>
+    <color name="orange_200">#FED7AA</color>
+    <color name="star_gold">#F59E0B</color>
 </resources>
 

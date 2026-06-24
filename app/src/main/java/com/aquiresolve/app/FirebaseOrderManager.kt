@@ -38,6 +38,7 @@ class FirebaseOrderManager {
     companion object {
         private const val TAG = "FirebaseOrderManager"
         private const val ORDERS_COLLECTION = "orders"
+        private const val PROVIDER_REVIEWS_COLLECTION = "provider_reviews"
     }
 
     data class DetailedRatings(
@@ -45,6 +46,24 @@ class FirebaseOrderManager {
         val punctualityRating: Int? = null,
         val communicationRating: Int? = null,
         val cleanlinessRating: Int? = null
+    )
+
+    data class ProviderReview(
+        val id: String = "",
+        val orderId: String = "",
+        val providerId: String = "",
+        val providerName: String = "",
+        val clientId: String = "",
+        val clientName: String = "",
+        val rating: Int = 0,
+        val review: String? = null,
+        val qualityRating: Int? = null,
+        val punctualityRating: Int? = null,
+        val communicationRating: Int? = null,
+        val cleanlinessRating: Int? = null,
+        val serviceType: String = "",
+        val serviceName: String = "",
+        val createdAt: Timestamp = Timestamp.now()
     )
     
     /**
@@ -471,6 +490,10 @@ class FirebaseOrderManager {
 
             val orderRef = db.collection(ORDERS_COLLECTION).document(orderId)
             var providerIdToUpdate: String? = null
+            var clientNameForReview: String? = null
+            var providerNameForReview: String? = null
+            var serviceTypeForReview: String? = null
+            var serviceNameForReview: String? = null
 
             db.runTransaction { transaction ->
                 val orderDoc = transaction.get(orderRef)
@@ -495,6 +518,10 @@ class FirebaseOrderManager {
                 }
 
                 providerIdToUpdate = orderDoc.getString("assignedProvider")
+                clientNameForReview = orderDoc.getString("clientName") ?: user.displayName
+                providerNameForReview = orderDoc.getString("assignedProviderName")
+                serviceTypeForReview = orderDoc.getString("serviceType")
+                serviceNameForReview = orderDoc.getString("serviceName")
 
                 val updates = mutableMapOf<String, Any>(
                     "rating" to rating,
@@ -520,6 +547,36 @@ class FirebaseOrderManager {
                 updateProviderAverageRatingFromOrders(providerId)
             }
 
+            // Cria documento na coleção provider_reviews para consulta pública
+            providerIdToUpdate?.takeIf { it.isNotBlank() }?.let { providerId ->
+                val reviewData = mutableMapOf<String, Any>(
+                    "orderId" to orderId,
+                    "providerId" to providerId,
+                    "providerName" to (providerNameForReview ?: "Prestador"),
+                    "clientId" to user.uid,
+                    "clientName" to (clientNameForReview ?: "Cliente"),
+                    "rating" to rating,
+                    "createdAt" to Timestamp.now()
+                )
+
+                val normalizedReview = review?.trim()
+                if (!normalizedReview.isNullOrEmpty()) {
+                    reviewData["review"] = normalizedReview
+                }
+
+                serviceTypeForReview?.let { reviewData["serviceType"] = it }
+                serviceNameForReview?.let { reviewData["serviceName"] = it }
+                detailedRatings.qualityRating?.let { reviewData["qualityRating"] = it }
+                detailedRatings.punctualityRating?.let { reviewData["punctualityRating"] = it }
+                detailedRatings.communicationRating?.let { reviewData["communicationRating"] = it }
+                detailedRatings.cleanlinessRating?.let { reviewData["cleanlinessRating"] = it }
+
+                db.collection(PROVIDER_REVIEWS_COLLECTION)
+                    .document(orderId)
+                    .set(reviewData, SetOptions.merge())
+                    .await()
+            }
+
             Log.d(TAG, "Pedido avaliado com sucesso: $orderId -> $rating estrelas")
             Result.success(Unit)
         } catch (e: SecurityException) {
@@ -540,6 +597,82 @@ class FirebaseOrderManager {
     )
     suspend fun rateOrder(orderId: String, rating: Int, review: String? = null): Result<Unit> {
         return submitOrderRating(orderId, rating, review)
+    }
+
+    /**
+     * Busca todas as avaliações públicas de um prestador (da coleção provider_reviews).
+     * Ordenado por data decrescente (mais recentes primeiro).
+     */
+    suspend fun getProviderReviews(providerId: String, limit: Long = 50): List<ProviderReview> {
+        if (providerId.isBlank()) return emptyList()
+
+        return try {
+            val snapshot = db.collection(PROVIDER_REVIEWS_COLLECTION)
+                .whereEqualTo("providerId", providerId)
+                .orderBy("createdAt", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .limit(limit)
+                .get()
+                .await()
+
+            snapshot.documents.map { doc ->
+                ProviderReview(
+                    id = doc.id,
+                    orderId = doc.getString("orderId") ?: "",
+                    providerId = doc.getString("providerId") ?: providerId,
+                    providerName = doc.getString("providerName") ?: "",
+                    clientId = doc.getString("clientId") ?: "",
+                    clientName = doc.getString("clientName") ?: "Cliente",
+                    rating = (doc.getLong("rating") ?: 0L).toInt(),
+                    review = doc.getString("review"),
+                    qualityRating = doc.getLong("qualityRating")?.toInt(),
+                    punctualityRating = doc.getLong("punctualityRating")?.toInt(),
+                    communicationRating = doc.getLong("communicationRating")?.toInt(),
+                    cleanlinessRating = doc.getLong("cleanlinessRating")?.toInt(),
+                    serviceType = doc.getString("serviceType") ?: "",
+                    serviceName = doc.getString("serviceName") ?: "",
+                    createdAt = doc.getTimestamp("createdAt") ?: Timestamp.now()
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao buscar avaliações do prestador $providerId: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Retorna estatísticas agregadas das avaliações de um prestador.
+     */
+    suspend fun getProviderReviewStats(providerId: String): Map<String, Any> {
+        if (providerId.isBlank()) return mapOf("averageRating" to 0.0, "totalReviews" to 0, "distribution" to mapOf(1 to 0, 2 to 0, 3 to 0, 4 to 0, 5 to 0))
+
+        return try {
+            val snapshot = db.collection(PROVIDER_REVIEWS_COLLECTION)
+                .whereEqualTo("providerId", providerId)
+                .get()
+                .await()
+
+            var total = 0.0
+            var count = 0
+            val distribution = mutableMapOf(1 to 0, 2 to 0, 3 to 0, 4 to 0, 5 to 0)
+
+            for (doc in snapshot.documents) {
+                val r = (doc.getLong("rating") ?: 0L).toInt()
+                if (r in 1..5) {
+                    total += r
+                    count++
+                    distribution[r] = (distribution[r] ?: 0) + 1
+                }
+            }
+
+            mapOf(
+                "averageRating" to if (count > 0) total / count else 0.0,
+                "totalReviews" to count,
+                "distribution" to distribution
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao buscar estatísticas do prestador $providerId: ${e.message}", e)
+            mapOf("averageRating" to 0.0, "totalReviews" to 0, "distribution" to mapOf(1 to 0, 2 to 0, 3 to 0, 4 to 0, 5 to 0))
+        }
     }
 
     private suspend fun updateProviderAverageRatingFromOrders(providerId: String) {
