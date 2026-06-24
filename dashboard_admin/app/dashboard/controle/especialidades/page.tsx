@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { CheckCircle, XCircle, Clock, RefreshCw, Layers } from "lucide-react"
+import { CheckCircle, XCircle, Clock, RefreshCw, Layers, FileText } from "lucide-react"
 import { adminFetch } from "@/lib/admin-api"
 
 interface SpecialtyRequest {
@@ -30,6 +30,7 @@ interface SpecialtyRequest {
   providerName: string
   requestedServices: string[]
   currentServices: string[]
+  documentUrls?: string[]
   status: "pending" | "approved" | "rejected"
   rejectionReason?: string
   createdAt: { seconds: number } | null
@@ -213,6 +214,39 @@ export default function EspecialidadesPage() {
                         </div>
                       </div>
                     </div>
+
+                    {req.documentUrls && req.documentUrls.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                          Documentos comprobatórios ({req.documentUrls.length})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {req.documentUrls.map((url, i) => {
+                            const isPdf = url.split("?")[0].toLowerCase().endsWith(".pdf")
+                            return (
+                              <a
+                                key={url}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-md border bg-muted/40 text-xs text-muted-foreground hover:border-primary"
+                                title={`Documento ${i + 1}`}
+                              >
+                                {isPdf ? (
+                                  <span className="flex flex-col items-center gap-1">
+                                    <FileText className="h-6 w-6" />
+                                    PDF {i + 1}
+                                  </span>
+                                ) : (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={url} alt={`Documento ${i + 1}`} className="h-full w-full object-cover" />
+                                )}
+                              </a>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {req.rejectionReason && (
                       <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

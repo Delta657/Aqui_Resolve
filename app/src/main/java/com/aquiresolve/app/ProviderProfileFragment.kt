@@ -24,6 +24,7 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
+import com.google.firebase.storage.FirebaseStorage
 import com.yalantis.ucrop.UCrop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -57,6 +58,24 @@ class ProviderProfileFragment : Fragment() {
     ) { success ->
         if (success) cameraImageUri?.let { launchCrop(it) }
         cameraImageUri = null
+    }
+
+    // Documentos comprobatórios anexados à solicitação de alteração de nichos (ainda não enviados)
+    private val pendingServiceDocs = mutableListOf<Uri>()
+    private val serviceDocsLauncher = registerForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNullOrEmpty()) return@registerForActivityResult
+        uris.forEach { uri ->
+            if (pendingServiceDocs.size >= MAX_SERVICE_DOCS) {
+                showToast("⚠️ Máximo de $MAX_SERVICE_DOCS documentos")
+                return@forEach
+            }
+            if (pendingServiceDocs.none { it.toString() == uri.toString() }) {
+                pendingServiceDocs.add(uri)
+            }
+        }
+        renderServiceDocs()
     }
 
     // Launcher para UCrop (recorte 1:1 estilo WhatsApp)
@@ -130,6 +149,11 @@ class ProviderProfileFragment : Fragment() {
         binding.btnSaveServices.setOnClickListener {
             saveServices()
         }
+
+        // Anexar documento comprobatório dos nichos
+        binding.btnAttachServiceDoc.setOnClickListener {
+            serviceDocsLauncher.launch("*/*")
+        }
         
         // Salvar dados bancários
         binding.btnSaveBankData.setOnClickListener {
@@ -196,6 +220,57 @@ class ProviderProfileFragment : Fragment() {
                 isCloseIconVisible = false
             }
             chipGroup.addView(chip)
+        }
+    }
+
+    /**
+     * Renderiza a lista de documentos comprobatórios anexados (ainda não enviados).
+     */
+    private fun renderServiceDocs() {
+        val container = binding.llServiceDocs
+        container.removeAllViews()
+        val ctx = requireContext()
+        pendingServiceDocs.forEachIndexed { index, uri ->
+            val row = android.widget.LinearLayout(ctx).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, 8, 0, 8)
+            }
+            val name = android.widget.TextView(ctx).apply {
+                text = "📎 ${resolveDisplayName(uri)}"
+                textSize = 13f
+                setTextColor(resources.getColor(R.color.text_primary, null))
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
+            }
+            val remove = android.widget.ImageButton(ctx).apply {
+                setImageResource(R.drawable.ic_close)
+                background = null
+                contentDescription = "Remover documento"
+                setOnClickListener {
+                    if (index < pendingServiceDocs.size) {
+                        pendingServiceDocs.removeAt(index)
+                        renderServiceDocs()
+                    }
+                }
+            }
+            row.addView(name)
+            row.addView(remove)
+            container.addView(row)
+        }
+    }
+
+    private fun resolveDisplayName(uri: Uri): String {
+        return try {
+            requireContext().contentResolver.query(uri, null, null, null, null)?.use { c ->
+                val idx = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (idx >= 0 && c.moveToFirst()) c.getString(idx) else null
+            } ?: uri.lastPathSegment ?: "documento"
+        } catch (_: Exception) {
+            uri.lastPathSegment ?: "documento"
         }
     }
 
@@ -603,6 +678,13 @@ class ProviderProfileFragment : Fragment() {
                     ?: authManager.getLocalUserData()?.fullName
                     ?: "Prestador"
 
+                // Sobe os documentos comprobatórios (se houver) para o Storage
+                binding.btnSaveServices.isEnabled = false
+                val documentUrls = if (pendingServiceDocs.isNotEmpty()) {
+                    showToast("⏫ Enviando documentos...")
+                    uploadServiceDocuments(userId)
+                } else emptyList()
+
                 // Cria solicitação pendente — admin aprova/rejeita no painel
                 firestore.collection("provider_specialty_requests")
                     .add(
@@ -611,18 +693,48 @@ class ProviderProfileFragment : Fragment() {
                             "providerName" to providerName,
                             "requestedServices" to canonicalServices,
                             "currentServices" to currentServices,
+                            "documentUrls" to documentUrls,
                             "status" to "pending",
                             "createdAt" to Timestamp.now()
                         )
                     )
                     .await()
 
+                pendingServiceDocs.clear()
+                renderServiceDocs()
                 binding.btnSaveServices.isEnabled = false
                 showToast("✅ Solicitação enviada! Aguardando aprovação do administrador.")
             } catch (e: Exception) {
+                binding.btnSaveServices.isEnabled = true
                 showToast("❌ Erro ao enviar solicitação: ${e.message}")
             }
         }
+    }
+
+    /**
+     * Faz upload dos documentos comprobatórios para o Storage e devolve as URLs.
+     * Caminho: provider_documents/{uid}/specialty_<timestamp>_<n>.<ext>
+     * (coberto pela regra ownerCanModifyImageOrPdf — imagem/PDF até 10 MB).
+     */
+    private suspend fun uploadServiceDocuments(userId: String): List<String> {
+        val storage = FirebaseStorage.getInstance().reference
+        val resolver = requireContext().contentResolver
+        val urls = mutableListOf<String>()
+        pendingServiceDocs.forEachIndexed { index, uri ->
+            val mime = resolver.getType(uri) ?: "application/octet-stream"
+            val ext = when {
+                mime.contains("pdf") -> "pdf"
+                mime.contains("png") -> "png"
+                mime.contains("webp") -> "webp"
+                else -> "jpg"
+            }
+            val ref = storage.child(
+                "provider_documents/$userId/specialty_${System.currentTimeMillis()}_$index.$ext"
+            )
+            ref.putFile(uri).await()
+            urls.add(ref.downloadUrl.await().toString())
+        }
+        return urls
     }
 
     /**
@@ -720,5 +832,9 @@ class ProviderProfileFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    companion object {
+        private const val MAX_SERVICE_DOCS = 5
     }
 }

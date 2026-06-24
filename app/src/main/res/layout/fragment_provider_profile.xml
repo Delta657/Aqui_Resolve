@@ -333,6 +333,48 @@
 
                 </com.google.android.material.chip.ChipGroup>
 
+                <!-- Documentos comprobatórios da alteração de nichos -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/gray_200"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Documentos comprobatórios"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Anexe certificados, diplomas ou comprovantes que justifiquem os nichos selecionados. O administrador analisará antes de aprovar (imagens ou PDF, até 10 MB)."
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="10dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAttachServiceDoc"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Anexar documento"
+                    android:textSize="14sp"
+                    app:cornerRadius="8dp"
+                    app:icon="@drawable/ic_upload"
+                    android:layout_marginBottom="8dp" />
+
+                <LinearLayout
+                    android:id="@+id/llServiceDocs"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp" />
+
                 <!-- Botão salvar serviços -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSaveServices"
