@@ -184,9 +184,18 @@ class ClientHomeActivity : AppCompatActivity() {
 
             binding.appBarLayout.updatePadding(top = systemBars.top)
             binding.contentScroll.updatePadding(bottom = dpToPx(96) + systemBars.bottom)
-            binding.bottomNavigation.updatePadding(bottom = systemBars.bottom)
 
             windowInsets
+        }
+
+        // A BottomNavigationView (Material) já aplica o inset da barra de navegação do sistema
+        // sozinha. Antes adicionávamos `systemBars.bottom` TAMBÉM no listener da raiz, o que
+        // duplicava o padding em Android antigo (3 botões) e deixava a barra com tamanho bugado.
+        // Aqui assumimos o controle com UM listener próprio (substitui o interno do Material),
+        // garantindo o inset aplicado exatamente uma vez, em qualquer versão (minSdk 24).
+        ViewCompat.setOnApplyWindowInsetsListener(binding.bottomNavigation) { v, insets ->
+            v.updatePadding(bottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom)
+            insets
         }
     }
 
