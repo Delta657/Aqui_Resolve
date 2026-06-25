@@ -15,7 +15,6 @@ import com.google.android.material.chip.Chip
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -104,9 +103,6 @@ class ProviderNichesActivity : AppCompatActivity() {
     private fun renderProofPhotos() {
         binding.llProofPhotos.removeAllViews()
         for ((index, uri) in proofPhotoUris.withIndex()) {
-            val view = layoutInflater.inflate(R.layout.item_home_banner, binding.llProofPhotos, false)
-            val imageView = view.findViewById<ImageView>(R.id.ivBannerImage) // Reusing banner image view or we can just create an ImageView dynamically
-            
             val dynamicImageView = ImageView(this).apply {
                 layoutParams = android.widget.LinearLayout.LayoutParams(300, 300).apply {
                     setMargins(0, 0, 16, 0)
@@ -179,12 +175,12 @@ class ProviderNichesActivity : AppCompatActivity() {
         try {
             val result = db.collection("provider_specialty_requests")
                 .whereEqualTo("providerId", uid)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
-                .limit(1)
                 .get().await()
 
             if (!result.isEmpty) {
-                val request = result.documents[0]
+                val request = result.documents
+                    .maxByOrNull { it.getTimestamp("createdAt")?.toDate()?.time ?: 0L }
+                    ?: return
                 val status = request.getString("status") ?: ""
                 
                 if (status == "pending" || status == "rejected") {

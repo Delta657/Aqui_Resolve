@@ -130,17 +130,17 @@ Fonte única de verdade = painel admin → Firestore `catalog_services`. Um doc 
 
 Fluxo completo de aprovação opcional (escopo do item 5 — Edição de Perfil):
 
-1. **App** (`ProviderProfileFragment.saveServices()`): ao salvar especialidades, verifica se já há solicitação `pending`. Se não houver e as especialidades mudaram, cria um doc em `provider_specialty_requests` com `status=pending` e desabilita o botão. Não grava diretamente em `providers/{uid}.services`.
-2. **Documentos comprobatórios anexos** (novo — 2026-06-24): o prestador pode **anexar documentos** (certificados/diplomas/comprovantes, imagem ou PDF, até 5 arquivos × 10 MB) que justifiquem os nichos antes de enviar. UI no `fragment_provider_profile.xml` (`btnAttachServiceDoc` + lista `llServiceDocs` com remover). O `ActivityResultContracts.GetMultipleContents("*/*")` coleta os arquivos; ao salvar, `uploadServiceDocuments()` sobe cada um para **Storage `provider_documents/{uid}/specialty_<ts>_<n>.<ext>`** (regra `ownerCanModifyImageOrPdf`) e grava o array `documentUrls` no doc da solicitação. Anexar é **opcional** (solicitação sem documentos continua válida — `documentUrls: []`).
-3. **Regra Firestore** (`provider_specialty_requests`): prestador pode criar a própria solicitação (providerId == auth.uid, status == 'pending'); `documentUrls` é campo extra **opcional** (o `hasAll` exige só as chaves obrigatórias, não bloqueia extras → compatível com APK antigo). Update/delete exclusivos via Admin SDK.
-4. **Painel** (`/dashboard/controle/especialidades`): fila de solicitações pendentes com diff visual (verde = novo, tachado-vermelho = removido) **+ galeria dos `documentUrls`** (thumbnail de imagem ou cartão PDF, abre em nova aba) para o admin revisar antes de decidir. Aprovar → `providers/{id}.services` é atualizado + notificação FCM ao prestador. Rejeitar → motivo opcional + notificação FCM.
-5. **API** (`POST /api/specialty-requests`): Admin SDK — bypassa Firestore rules. O GET devolve `documentUrls` no spread do doc (sem mudança de schema na rota).
+1. **App** (`ProfileActivity` → `ProviderNichesActivity`): o prestador abre "Meus Nichos de Serviço", escolhe os nichos desejados, informa justificativa e envia uma solicitação. O app não grava diretamente em `providers/{uid}.services`; cria um doc em `provider_specialty_requests` com `status=pending`.
+2. **Evidências obrigatórias** (novo — 2026-06-25): a solicitação exige foto do documento (`documentPhotoUrl`), selfie com documento (`selfiePhotoUrl`) e 1 a 3 comprovantes (`proofPhotoUrls`). O app também grava `documentUrls` com todos os links para compatibilidade com telas antigas do painel.
+3. **Regra Firestore** (`provider_specialty_requests`): prestador pode criar a própria solicitação (providerId == auth.uid, status == 'pending') somente com justificativa mínima e fotos obrigatórias. Update/delete exclusivos via Admin SDK.
+4. **Painel** (`/dashboard/servicos/nichos-prestadores` e `/dashboard/controle/especialidades`): fila de solicitações pendentes com diff visual (verde = novo, tachado-vermelho = removido) + galeria de documento, selfie e comprovantes. Aprovar → `providers/{id}.services` é atualizado + notificação ao prestador. Rejeitar → motivo opcional + notificação.
+5. **API** (`GET/POST /api/specialty-requests`): Admin SDK — bypassa Firestore rules. O GET filtra por status e ordena em memória por `createdAt` para evitar índice composto. O POST aprova/rejeita e registra `adminLogs`.
 
 **Gotchas:**
 - O botão "Salvar Serviços" fica desabilitado enquanto houver solicitação `pending`. Reabilita somente após reload da tela (quando a solicitação foi aprovada/rejeitada pelo admin). Em erro de upload/escrita o botão é reabilitado para retry.
-- `loadPendingSpecialtyRequest()` é chamado em `onViewCreated` além de `saveServices()`.
-- Aprovação do admin NÃO requer novo APK — apenas atualiza `services` no Firestore; o app lê o campo a cada abertura do perfil. **Mas o anexo de documentos exige o APK novo** (UI é código).
-- Storage e Firestore rules **não precisaram mudar**: o caminho `provider_documents/{uid}/...` e o campo extra `documentUrls` já eram permitidos pelas regras vigentes.
+- `ProviderNichesActivity.loadPendingRequest()` consulta por `providerId` e ordena em memória; não reintroduzir `orderBy("createdAt")` sem adicionar/deployar o índice composto correspondente.
+- Aprovação do admin NÃO requer novo APK — apenas atualiza `services` no Firestore; o app lê o campo a cada abertura do perfil. **Mas a nova tela/anexos obrigatórios exigem APK novo** (UI é código).
+- Storage usa `provider_documents/{uid}/...` com regra `ownerCanModifyImageOrPdf`; a tela atual só seleciona imagens (`image/*`).
 
 ### Banner Rotativo (carrossel da Home) — `home_banners`
 Carrossel no topo da `ClientHomeActivity`, com banners gerenciados pelo painel (conteúdo é dado, não código → **sem novo APK** para criar/editar/desativar).
