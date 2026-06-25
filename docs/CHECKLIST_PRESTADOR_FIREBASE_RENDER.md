@@ -83,6 +83,7 @@ O painel lê dois formatos:
 2. `orders/{orderId}/checklists/{checklistId}`: contrato legado/configurável do dashboard.
 
 O adaptador em `dashboard_admin/lib/services/firebase-checklists.ts` normaliza o documento mobile para `ServiceChecklist`.
+A listagem administrativa em `/api/checklists` usa `checklists/{orderId}.providerId` quando existir e faz fallback para `orders/{orderId}.assignedProvider` (campo padrão do app) antes de aceitar o legado `assignedProviderId`.
 
 Mapeamento principal:
 
