@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.MotionEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,19 +21,6 @@ import com.aquiresolve.app.databinding.ActivityAssistantChatBinding
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
 
-/**
- * Chat multi-turno do Hello AquiResolve (v2 do plano 06).
- *
- * Streaming SSE token-por-token via [AssistantChatClient] + chips de sugestão
- * na abertura. Substitui o fluxo single-turn antigo de [AssistantActivity].
- *
- * Features:
- * - Conversa completa com histórico (a IA lembra do contexto)
- * - Texto aparece token por token (streaming via Groq)
- * - Chips clicáveis com problemas comuns (vazamento, elétrica, faxina...)
- * - UI de chat bubbles (usuário à direita, assistente à esquerda)
- * - Fallback amigável em caso de erro (nunca bloqueia a contratação)
- */
 class AssistantChatActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAssistantChatBinding
@@ -42,20 +28,14 @@ class AssistantChatActivity : AppCompatActivity() {
     private var isStreaming = false
     private var niches: List<String> = emptyList()
     private var voiceManager: VoiceInputManager? = null
-    private var pendingVoiceStart = false
 
-    private val microphonePermissionLauncher =
+    private val micPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-            if (granted && pendingVoiceStart) {
-                startVoiceInput()
-            } else if (!granted) {
-                toast("Permita o microfone para falar com o Hello.")
-            }
-            pendingVoiceStart = false
+            if (granted) startVoice()
+            else toast("Permita o microfone para falar com o Hello.")
         }
 
     companion object {
-        /** Extra opcional: pré-preenche a descrição (ex.: vindo da busca sem resultado). */
         const val EXTRA_PREFILL = "prefill_description"
 
         private val SUGGESTIONS = listOf(
@@ -84,16 +64,11 @@ class AssistantChatActivity : AppCompatActivity() {
         setupVoice()
         setupListeners()
 
-        // Carrega catálogo de nichos (enviado no prompt para a IA classificar)
         lifecycleScope.launch {
-            try {
-                CatalogRepository.load()
-            } catch (_: Exception) {
-            }
+            try { CatalogRepository.load() } catch (_: Exception) {}
             niches = CatalogRepository.cachedNicheNames()
         }
 
-        // Pré-preenche descrição se veio da busca sem resultado
         val prefill = intent.getStringExtra(EXTRA_PREFILL)?.trim().orEmpty()
         if (prefill.isNotEmpty()) {
             binding.etInput.setText(prefill)
@@ -110,22 +85,17 @@ class AssistantChatActivity : AppCompatActivity() {
     }
 
     private fun setupSuggestions() {
-        val container = binding.suggestionsContainer
         for (text in SUGGESTIONS) {
-            val chip = MaterialButton(this).apply {
+            val chip = MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
                 this.text = text
                 textSize = 13f
                 setTextColor(ContextCompat.getColor(context, R.color.text_primary))
-                setBackgroundColor(ContextCompat.getColor(context, R.color.surface_color))
-                strokeWidth = 1
-                strokeColor = ContextCompat.getColorStateList(context, R.color.gray_300)
                 cornerRadius = resources.getDimensionPixelSize(R.dimen.chip_corner_radius)
-                isClickable = true
-                isFocusable = true
-                setPadding(24, 8, 24, 8)
+                setPadding(32, 0, 32, 0)
+                minHeight = resources.getDimensionPixelSize(R.dimen.chip_min_height)
                 setOnClickListener {
+                    binding.suggestionsScroll.visibility = View.GONE
                     binding.etInput.setText(text)
-                    binding.etInput.setSelection(text.length)
                     sendMessage()
                 }
             }
@@ -135,32 +105,94 @@ class AssistantChatActivity : AppCompatActivity() {
             ).apply {
                 marginEnd = resources.getDimensionPixelSize(R.dimen.chip_spacing)
             }
-            container.addView(chip, params)
+            binding.suggestionsContainer.addView(chip, params)
         }
     }
 
     private fun setupListeners() {
         binding.btnBack.setOnClickListener { finish() }
         binding.btnSend.setOnClickListener { sendMessage() }
-        binding.fabVoice.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    if (!isStreaming) requestVoiceInput()
-                    true
+        binding.btnMic.setOnClickListener { onMicToggle() }
+    }
+
+    // ---- Voz: tap para ligar/desligar -----------------------------------------------
+
+    private fun setupVoice() {
+        voiceManager = VoiceInputManager(
+            context = this,
+            onReadyForSpeech = {
+                runOnUiThread { setVoiceActive(true) }
+            },
+            onPartial = { text ->
+                runOnUiThread {
+                    binding.etInput.setText(text)
+                    binding.etInput.setSelection(text.length)
                 }
-                MotionEvent.ACTION_UP -> {
-                    voiceManager?.stop()
-                    true
+            },
+            onResult = { text ->
+                runOnUiThread {
+                    binding.etInput.setText(text)
+                    binding.etInput.setSelection(text.length)
+                    setVoiceActive(false)
+                    logEvent("ia_voz_reconhecida", Bundle().apply { putInt("len", text.length) })
+                    // Auto-envia após reconhecimento — comportamento consistente
+                    sendMessage()
                 }
-                MotionEvent.ACTION_CANCEL -> {
-                    voiceManager?.cancel()
-                    setVoiceListening(false)
-                    true
+            },
+            onError = { msg ->
+                runOnUiThread {
+                    setVoiceActive(false)
+                    if (msg.isNotBlank()) toast(msg)
                 }
-                else -> true
+            },
+            onEnd = {
+                runOnUiThread { setVoiceActive(false) }
             }
+        )
+
+        if (voiceManager?.isAvailable() != true) {
+            binding.btnMic.visibility = View.GONE
         }
     }
+
+    private fun onMicToggle() {
+        val vm = voiceManager ?: return
+        if (vm.isListening) {
+            vm.stop()
+            return
+        }
+        if (isStreaming) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            startVoice()
+        } else {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun startVoice() {
+        hideKeyboard()
+        binding.etInput.setText("")
+        logEvent("ia_voz_iniciada", null)
+        voiceManager?.start()
+    }
+
+    private fun setVoiceActive(active: Boolean) {
+        binding.voiceActiveBar.visibility = if (active) View.VISIBLE else View.GONE
+        binding.btnMic.setBackgroundResource(
+            if (active) R.drawable.bg_mic_button_active else R.drawable.bg_mic_button
+        )
+        val tintColor = if (active) R.color.white else R.color.gray_500
+        binding.btnMic.setColorFilter(ContextCompat.getColor(this, tintColor))
+        if (!active) {
+            binding.etInput.hint = "Descreva o que precisa..."
+        } else {
+            binding.etInput.hint = "Fale agora..."
+        }
+    }
+
+    // ---- Envio de mensagem ----------------------------------------------------------
 
     private fun sendMessage() {
         if (isStreaming) return
@@ -168,36 +200,27 @@ class AssistantChatActivity : AppCompatActivity() {
         if (text.length < 2) return
 
         binding.etInput.text?.clear()
+        binding.suggestionsScroll.visibility = View.GONE
         hideKeyboard()
 
-        // Adiciona mensagem do usuário
         adapter.addMessage(ChatAdapter.ChatMessage(role = "user", content = text))
+        scrollToBottom()
 
-        // Mostra indicador de digitando
         showTyping(true)
         isStreaming = true
         binding.btnSend.isEnabled = false
+        binding.btnMic.isEnabled = false
 
-        // Cria placeholder da resposta do assistente que será atualizado via streaming
-        val assistantMsg = ChatAdapter.ChatMessage(
-            role = "assistant",
-            content = "",
-            isStreaming = true
-        )
+        val assistantMsg = ChatAdapter.ChatMessage(role = "assistant", content = "", isStreaming = true)
         adapter.addMessage(assistantMsg)
 
-        // Constrói histórico (mensagens não-streaming com conteúdo)
         val history = adapter.messages
             .filter { !it.isStreaming && it.content.isNotEmpty() }
             .map { AssistantChatClient.Message(role = it.role, content = it.content) }
 
         lifecycleScope.launch {
-            // Garante que os nichos estão carregados
             if (niches.isEmpty()) {
-                try {
-                    CatalogRepository.load()
-                } catch (_: Exception) {
-                }
+                try { CatalogRepository.load() } catch (_: Exception) {}
                 niches = CatalogRepository.cachedNicheNames()
             }
 
@@ -209,17 +232,22 @@ class AssistantChatActivity : AppCompatActivity() {
                         runOnUiThread {
                             assistantMsg.content += token
                             adapter.updateLastMessage(assistantMsg)
+                            scrollToBottom()
                         }
                     }
 
                     override fun onDone(fullText: String) {
                         runOnUiThread {
-                            assistantMsg.content = fullText.ifEmpty { "Não consegui processar sua pergunta agora. Tente de novo ou use a busca." }
+                            assistantMsg.content = fullText.ifEmpty {
+                                "Não consegui processar agora. Tente de novo ou use a busca."
+                            }
                             assistantMsg.isStreaming = false
                             adapter.updateLastMessage(assistantMsg)
                             showTyping(false)
                             isStreaming = false
                             binding.btnSend.isEnabled = true
+                            binding.btnMic.isEnabled = true
+                            scrollToBottom()
                         }
                     }
 
@@ -227,12 +255,13 @@ class AssistantChatActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (assistantMsg.content.isEmpty()) {
                                 assistantMsg.content = message
-                                assistantMsg.isStreaming = false
-                                adapter.updateLastMessage(assistantMsg)
                             }
+                            assistantMsg.isStreaming = false
+                            adapter.updateLastMessage(assistantMsg)
                             showTyping(false)
                             isStreaming = false
                             binding.btnSend.isEnabled = true
+                            binding.btnMic.isEnabled = true
                         }
                     }
                 }
@@ -241,80 +270,27 @@ class AssistantChatActivity : AppCompatActivity() {
     }
 
     private fun showTyping(show: Boolean) {
-        binding.tvTypingIndicator.visibility = if (show) View.VISIBLE else View.GONE
-        binding.tvTypingIndicator.text = if (show) "Digitando..." else ""
+        binding.typingLayout.visibility = if (show) View.VISIBLE else View.GONE
     }
 
-    private fun setupVoice() {
-        voiceManager = VoiceInputManager(
-            context = this,
-            onReadyForSpeech = { setVoiceListening(true) },
-            onPartial = { text -> fillInputWithVoiceText(text) },
-            onResult = { text -> fillInputWithVoiceText(text) },
-            onError = { message ->
-                if (message.isNotBlank()) toast(message)
-            },
-            onEnd = { setVoiceListening(false) }
-        )
-
-        if (voiceManager?.isAvailable() != true) {
-            binding.fabVoice.visibility = View.GONE
-            binding.tvVoiceStatus.visibility = View.GONE
-        }
-    }
-
-    private fun requestVoiceInput() {
-        val vm = voiceManager ?: return
-        if (!vm.isAvailable()) {
-            toast("Reconhecimento de voz indisponível neste aparelho.")
-            return
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            startVoiceInput()
-        } else {
-            pendingVoiceStart = true
-            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-        }
-    }
-
-    private fun startVoiceInput() {
-        hideKeyboard()
-        binding.etInput.hint = "Fale agora..."
-        voiceManager?.start()
-    }
-
-    private fun fillInputWithVoiceText(text: String) {
-        val clean = text.trim()
-        if (clean.isEmpty()) return
-        binding.etInput.setText(clean)
-        binding.etInput.setSelection(clean.length)
-    }
-
-    private fun setVoiceListening(listening: Boolean) {
-        binding.tvVoiceStatus.visibility = if (listening) View.VISIBLE else View.GONE
-        binding.fabVoice.alpha = if (listening) 0.72f else 1f
-        binding.etInput.hint = if (listening) "Fale agora..." else "Digite sua mensagem..."
+    private fun scrollToBottom() {
+        val count = adapter.itemCount
+        if (count > 0) binding.recyclerChat.scrollToPosition(count - 1)
     }
 
     private fun hideKeyboard() {
         try {
             val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             imm.hideSoftInputFromWindow(binding.etInput.windowToken, 0)
-        } catch (_: Exception) {
-        }
-    }
-
-    private fun logEvent(name: String, params: Bundle?) {
-        try {
-            FirebaseConfig.getAnalytics()?.logEvent(name, params)
-        } catch (_: Exception) {
-        }
+        } catch (_: Exception) {}
     }
 
     private fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun logEvent(name: String, params: Bundle?) {
+        try { FirebaseConfig.getAnalytics()?.logEvent(name, params) } catch (_: Exception) {}
     }
 
     override fun onDestroy() {
@@ -330,7 +306,7 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     data class ChatMessage(
         val id: Long = System.nanoTime(),
-        val role: String,        // "user" | "assistant"
+        val role: String,
         var content: String,
         var isStreaming: Boolean = false
     )
@@ -381,15 +357,14 @@ class ChatAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tv: TextView = view.findViewById(R.id.tvMessage)
-        fun bind(msg: ChatMessage) {
-            tv.text = msg.content
-        }
+        fun bind(msg: ChatMessage) { tv.text = msg.content }
     }
 
     class AssistantViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         private val tv: TextView = view.findViewById(R.id.tvMessage)
         fun bind(msg: ChatMessage) {
-            tv.text = msg.content
+            // Placeholder animado enquanto o stream ainda não chegou
+            tv.text = if (msg.isStreaming && msg.content.isEmpty()) "..." else msg.content
         }
     }
 }

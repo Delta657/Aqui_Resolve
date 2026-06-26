@@ -2,4 +2,5 @@
 <resources>
     <dimen name="chip_corner_radius">20dp</dimen>
     <dimen name="chip_spacing">8dp</dimen>
+    <dimen name="chip_min_height">36dp</dimen>
 </resources>
