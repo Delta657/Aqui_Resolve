@@ -59,7 +59,7 @@ class ProviderOrdersAdapter(
             
             // Mostrar APENAS a comissão do prestador (não o valor total que o cliente pagou)
             if (order.providerCommission > 0) {
-                tvPrice.text = "💰 Você ganha: R$ ${String.format("%.2f", order.providerCommission)}"
+                tvPrice.text = "💰 Você ganha: R$ ${String.format(java.util.Locale("pt", "BR"), "%.2f", order.providerCommission)}"
             } else {
                 tvPrice.text = "Valor não disponível"
             }

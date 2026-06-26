@@ -874,7 +874,7 @@ class ProviderOrdersFragment : Fragment() {
             binding.root.findViewById<android.widget.TextView>(R.id.tvCompletedOrders).text = completed.toString()
         }
         if (binding.root.findViewById<android.widget.TextView>(R.id.tvTotalValue) != null) {
-            binding.root.findViewById<android.widget.TextView>(R.id.tvTotalValue).text = "R$ ${String.format("%.2f", totalValue)}"
+            binding.root.findViewById<android.widget.TextView>(R.id.tvTotalValue).text = "R$ ${String.format(java.util.Locale("pt", "BR"), "%.2f", totalValue)}"
         }
         
         android.util.Log.d("ProviderOrders", "📊 Estatísticas atualizadas - Total: $total, Aceitos: $accepted, Pendentes: $pending, Recusados: $rejected, Concluídos: $completed, Valor Total: R$ ${String.format("%.2f", totalValue)}")

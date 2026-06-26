@@ -39,7 +39,7 @@ class CartItemsAdapter(
             binding.tvCartService.text = "${item.serviceNiche} • ${item.serviceType}"
             binding.tvCartAddress.text = item.address
             binding.tvCartDescription.text = item.description
-            binding.tvCartPrice.text = String.format("R$ %.2f", item.estimatedPrice)
+            binding.tvCartPrice.text = String.format(java.util.Locale("pt", "BR"), "R$ %.2f", item.estimatedPrice)
 
             val firstImage = item.imageUrls.firstOrNull()
             if (!firstImage.isNullOrBlank()) {

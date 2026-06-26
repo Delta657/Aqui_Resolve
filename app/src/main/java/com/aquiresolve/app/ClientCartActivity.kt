@@ -151,14 +151,15 @@ class ClientCartActivity : AppCompatActivity() {
         val total = (subtotal - currentDiscount.amount).coerceAtLeast(0.0)
 
         binding.tvCartItemsCount.text = "${cartItems.size} item(ns)"
-        binding.tvCartTotal.text = String.format("R$ %.2f", total)
+        binding.tvCartTotal.text = String.format(Locale("pt", "BR"), "R$ %.2f", total)
 
         if (currentDiscount.hasDiscount) {
             binding.layoutSubtotal.visibility = View.VISIBLE
-            binding.tvCartSubtotalValue.text = String.format("R$ %.2f", subtotal)
+            binding.tvCartSubtotalValue.text = String.format(Locale("pt", "BR"), "R$ %.2f", subtotal)
             binding.layoutDiscount.visibility = View.VISIBLE
             binding.tvDiscountLabel.text = currentDiscount.label
             binding.tvCartDiscount.text = String.format(
+                Locale("pt", "BR"),
                 "- R$ %.2f (%s)",
                 currentDiscount.amount,
                 CashbackManager.formatRate(currentDiscount.percent)

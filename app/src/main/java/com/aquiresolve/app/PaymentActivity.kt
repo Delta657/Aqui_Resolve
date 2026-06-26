@@ -120,7 +120,7 @@ class PaymentActivity : AppCompatActivity() {
 
                 binding.layoutCashback.visibility = View.VISIBLE
                 binding.tvCashbackAvailable.text =
-                    String.format("Disponível: R$ %.2f", cashbackBalance)
+                    String.format(java.util.Locale("pt", "BR"), "Disponível: R$ %.2f", cashbackBalance)
 
                 binding.switchUseCashback.setOnCheckedChangeListener { _, isChecked ->
                     applyCashback(isChecked)
@@ -151,12 +151,13 @@ class PaymentActivity : AppCompatActivity() {
         if (appliedCashback > 0.0) {
             binding.layoutDiscountRow.visibility = View.VISIBLE
             binding.layoutFinalTotalRow.visibility = View.VISIBLE
-            binding.tvCashbackDiscount.text = String.format("- R$ %.2f", appliedCashback)
-            binding.tvFinalAmount.text = String.format("R$ %.2f", effectiveAmount())
+            binding.tvCashbackDiscount.text = String.format(java.util.Locale("pt", "BR"), "- R$ %.2f", appliedCashback)
+            binding.tvFinalAmount.text = String.format(java.util.Locale("pt", "BR"), "R$ %.2f", effectiveAmount())
 
             // Avisar quando o saldo não pôde ser usado totalmente (teto do admin)
             if (appliedCashback < cashbackBalance) {
                 binding.tvCashbackAvailable.text = String.format(
+                    java.util.Locale("pt", "BR"),
                     "Disponível: R$ %.2f (limite de %.0f%% por pedido)",
                     cashbackBalance, cashbackConfig.maxRedeemPercentage
                 )
@@ -199,7 +200,7 @@ class PaymentActivity : AppCompatActivity() {
     private fun setupUI() {
         // Exibir resumo do pedido
         binding.tvOrderDescription.text = orderDescription
-        binding.tvOrderAmount.text = String.format("R$ %.2f", orderAmount)
+        binding.tvOrderAmount.text = String.format(java.util.Locale("pt", "BR"), "R$ %.2f", orderAmount)
     }
     
     /**
@@ -491,9 +492,9 @@ class PaymentActivity : AppCompatActivity() {
         phone: String
     ) {
         val cashbackLine = if (appliedCashback > 0.0)
-            "\nCashback aplicado: - R$ ${String.format("%.2f", appliedCashback)}" else ""
+            "\nCashback aplicado: - R$ ${String.format(java.util.Locale("pt", "BR"), "%.2f", appliedCashback)}" else ""
         val message = """
-            Confirma o pagamento de R$ ${String.format("%.2f", effectiveAmount())}?$cashbackLine
+            Confirma o pagamento de R$ ${String.format(java.util.Locale("pt", "BR"), "%.2f", effectiveAmount())}?$cashbackLine
 
             Cartão: **** **** **** ${cardNumber.takeLast(4)}
             Titular: $cardHolder

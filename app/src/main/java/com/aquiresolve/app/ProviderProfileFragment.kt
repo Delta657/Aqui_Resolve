@@ -393,7 +393,7 @@ class ProviderProfileFragment : Fragment() {
                 }
 
                 val valueView = android.widget.TextView(ctx).apply {
-                    text = "R$ ${String.format("%.2f", value)}"
+                    text = "R$ ${String.format(java.util.Locale("pt", "BR"), "%.2f", value)}"
                     textSize = 13f
                     setTypeface(typeface, android.graphics.Typeface.BOLD)
                     setTextColor(resources.getColor(R.color.success_color, null))

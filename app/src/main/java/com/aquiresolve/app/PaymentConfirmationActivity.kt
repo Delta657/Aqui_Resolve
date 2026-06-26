@@ -76,7 +76,7 @@ class PaymentConfirmationActivity : AppCompatActivity() {
         binding.tvPaymentDate.text = paymentDate
 
         // Valor
-        binding.tvAmount.text = String.format("R$ %.2f", amount)
+        binding.tvAmount.text = String.format(java.util.Locale("pt", "BR"), "R$ %.2f", amount)
 
         // Método de pagamento
         binding.tvPaymentMethod.text = paymentMethod
@@ -153,7 +153,7 @@ class PaymentConfirmationActivity : AppCompatActivity() {
                     putExtra(
                         Intent.EXTRA_TEXT,
                         "Comprovante de pagamento\n" +
-                                "Valor: R$ ${String.format("%.2f", amount)}\n" +
+                                "Valor: R$ ${String.format(java.util.Locale("pt", "BR"), "%.2f", amount)}\n" +
                                 "Protocolo: $protocol\n" +
                                 "Data: $paymentDate\n\n" +
                                 "Aqui Resolve - www.aquiresolve.com.br"

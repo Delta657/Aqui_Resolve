@@ -90,7 +90,7 @@ class PixPaymentActivity : AppCompatActivity() {
     
     private fun setupUI() {
         binding.tvOrderDescription.text = orderDescription
-        binding.tvOrderAmount.text = String.format("R$ %.2f", orderAmount)
+        binding.tvOrderAmount.text = String.format(java.util.Locale("pt", "BR"), "R$ %.2f", orderAmount)
         
         // Verificar se CPF está vazio
         if (clientCpf.isBlank() || clientCpf.length != 11) {
