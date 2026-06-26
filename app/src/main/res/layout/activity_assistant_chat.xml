@@ -71,7 +71,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Hello"
+                android:text="Helô"
                 android:textColor="@color/white"
                 android:textSize="17sp"
                 android:textStyle="bold" />
@@ -152,7 +152,7 @@
             android:id="@+id/tvTypingIndicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Hello está digitando..."
+            android:text="Helô está digitando..."
             android:textColor="@color/text_secondary"
             android:textSize="13sp"
             android:textStyle="italic" />
@@ -216,7 +216,7 @@
             android:background="@drawable/bg_mic_button"
             android:src="@drawable/ic_mic"
             app:tint="@color/gray_500"
-            android:contentDescription="Falar com o Hello"
+            android:contentDescription="Falar com o Helô"
             android:padding="10dp" />
 
         <!-- Campo de texto -->

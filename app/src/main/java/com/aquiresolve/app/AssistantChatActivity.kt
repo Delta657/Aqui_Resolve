@@ -50,7 +50,7 @@ class AssistantChatActivity : AppCompatActivity() {
     private val micPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (granted) startVoice()
-            else toast("Permita o microfone para falar com o Hello.")
+            else toast("Permita o microfone para falar com o Helô.")
         }
 
     companion object {

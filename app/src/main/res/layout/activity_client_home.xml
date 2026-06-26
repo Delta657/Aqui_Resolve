@@ -214,7 +214,7 @@
                         android:id="@+id/tvSearchEmptyCta"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Não encontramos esse serviço. Toque para descrever ao Hello →"
+                        android:text="Não encontramos esse serviço. Toque para descrever ao Helô →"
                         android:textColor="@color/primary_color"
                         android:textSize="14sp"
                         android:background="?android:attr/selectableItemBackground"

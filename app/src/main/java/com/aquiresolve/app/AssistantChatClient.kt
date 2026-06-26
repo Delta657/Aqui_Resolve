@@ -15,7 +15,7 @@ import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 
 /**
- * Cliente SSE do chat multi-turno do Hello AquiResolve (v2).
+ * Cliente SSE do chat multi-turno do Helô AquiResolve (v2).
  *
  * Chama POST /api/ai/chat com streaming SSE token-por-token via Groq.
  * A chave da IA vive SÓ no backend (nunca no APK) — mesmo padrão do [AssistantClient].
@@ -68,7 +68,7 @@ object AssistantChatClient {
         val token = try {
             val user = FirebaseAuth.getInstance().currentUser
                 ?: run {
-                    callback.onError("Faça login para usar o Hello.")
+                    callback.onError("Faça login para usar o Helô.")
                     return@withContext
                 }
             user.getIdToken(false).await().token
@@ -101,7 +101,7 @@ object AssistantChatClient {
         try {
             client.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
-                    callback.onError("Hello indisponível (${response.code}). Tente a busca.")
+                    callback.onError("Helô indisponível (${response.code}). Tente a busca.")
                     return@use
                 }
 
@@ -146,7 +146,7 @@ object AssistantChatClient {
                 callback.onDone(fullText.toString(), null)
             }
         } catch (e: Exception) {
-            callback.onError("Sem conexão com o Hello. Tente a busca.")
+            callback.onError("Sem conexão com o Helô. Tente a busca.")
         }
     }
 }
