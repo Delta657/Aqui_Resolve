@@ -253,11 +253,6 @@ class ClientHomeActivity : AppCompatActivity() {
             startActivity(Intent(this, ProfileActivity::class.java))
         }
 
-        binding.cardAssistant.setOnClickListener {
-            // Assistente IA (plano 06 v2): chat multi-turno com streaming.
-            startActivity(Intent(this, AssistantChatActivity::class.java))
-        }
-
         binding.bottomNavigation.setOnItemSelectedListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.navigation_home -> true
@@ -267,6 +262,10 @@ class ClientHomeActivity : AppCompatActivity() {
                 }
                 R.id.navigation_services -> {
                     startActivity(Intent(this, ServicesActivity::class.java))
+                    true
+                }
+                R.id.navigation_assistant -> {
+                    startActivity(Intent(this, AssistantChatActivity::class.java))
                     true
                 }
                 R.id.navigation_profile -> {

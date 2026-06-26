@@ -14,7 +14,12 @@
         android:id="@+id/navigation_orders"
         android:icon="@drawable/ic_orders"
         android:title="Pedidos" />
-    
+
+    <item
+        android:id="@+id/navigation_assistant"
+        android:icon="@drawable/ic_assistant"
+        android:title="Hello" />
+
     <item
         android:id="@+id/navigation_profile"
         android:icon="@drawable/ic_person"
