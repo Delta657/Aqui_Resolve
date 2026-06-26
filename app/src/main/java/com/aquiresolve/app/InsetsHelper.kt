@@ -17,12 +17,12 @@ import androidx.core.view.updatePadding
 object InsetsHelper {
 
     /**
-     * Aplica edge-to-edge + padding de navegação.
+     * Aplica edge-to-edge + padding de status bar e navigation bar.
      *
      * @param activity a Activity atual
      * @param rootView a view raiz do layout (deve ter um id)
-     * @param bottomView (opcional) view que fica no final e precisa de padding extra
-     * @param extraBottomDp (opcional) padding adicional em dp além do inset do sistema
+     * @param bottomView (opcional) view que fica grudada no fundo (BottomNavigationView, input bar...)
+     * @param extraBottomDp (opcional) padding adicional em dp
      */
     fun apply(
         activity: Activity,
@@ -31,6 +31,7 @@ object InsetsHelper {
         extraBottomDp: Int = 0
     ) {
         WindowCompat.setDecorFitsSystemWindows(activity.window, false)
+        val density = activity.resources.displayMetrics.density
 
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -41,15 +42,12 @@ object InsetsHelper {
             insets
         }
 
-        // Se houver uma view no fundo (BottomNavigationView, input bar, etc.),
-        // adiciona padding da barra de navegação
-        if (bottomView != null) {
-            val density = activity.resources.displayMetrics.density
-            ViewCompat.setOnApplyWindowInsetsListener(bottomView) { v, insets ->
-                val navBar = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-                v.updatePadding(bottom = navBar + (extraBottomDp * density).toInt())
-                insets
-            }
+        // View do fundo: sempre aplica o inset da navigation bar
+        val targetBottom = bottomView ?: rootView
+        ViewCompat.setOnApplyWindowInsetsListener(targetBottom) { v, insets ->
+            val navBar = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            v.updatePadding(bottom = navBar + (extraBottomDp * density).toInt())
+            insets
         }
     }
 }
