@@ -573,7 +573,7 @@ class ClientHomeActivity : AppCompatActivity() {
      * [PartnerRepository] (coleção `partners`, gerida pelo painel), filtrado por
      * [PartnerImpressionManager.availablePartners] (limite diário de clientes + janela da campanha).
      * Cada banner roda por `rotationSeconds`; ao virar página, registra a impressão. Sem parceiros
-     * disponíveis, a seção fica `GONE`. Tocar abre [PartnerDetailActivity] (WhatsApp/Instagram/Site).
+     * disponíveis, a seção fica `GONE`. Tocar abre [PartnerBottomSheet] (WhatsApp/Instagram/Site).
      */
     private fun setupPartners() {
         partnerBannerAdapter = PartnerBannerAdapter(emptyList()) { partner -> onPartnerClicked(partner) }
@@ -682,10 +682,8 @@ class ClientHomeActivity : AppCompatActivity() {
 
     private fun onPartnerClicked(partner: Partner) {
         logPartnerClick(partner)
-        startActivity(
-            Intent(this, PartnerDetailActivity::class.java)
-                .putExtra(PartnerDetailActivity.EXTRA_PARTNER_ID, partner.id)
-        )
+        PartnerBottomSheet.newInstance(partner.id)
+            .show(supportFragmentManager, PartnerBottomSheet.TAG)
     }
 
     private fun logPartnerClick(partner: Partner) {

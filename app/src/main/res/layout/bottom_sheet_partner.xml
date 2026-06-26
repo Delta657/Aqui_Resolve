@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/surface_color">
+
+    <!-- Handle de arraste -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="6dp"
+        android:background="@color/gray_300"
+        android:backgroundTint="@color/gray_300" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="32dp">
+
+            <!-- Banner/logo do parceiro -->
+            <ImageView
+                android:id="@+id/ivBanner"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+                android:scaleType="centerCrop"
+                android:contentDescription="@null" />
+
+            <!-- Corpo com padding -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="16dp">
+
+                <!-- Nome + badge de benefício lado a lado -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/tvName"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/text_primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="10dp" />
+
+                    <TextView
+                        android:id="@+id/tvBenefit"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_partner_benefit_badge"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="5dp"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                </LinearLayout>
+
+                <!-- Descrição -->
+                <TextView
+                    android:id="@+id/tvDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:lineSpacingExtra="3dp"
+                    android:layout_marginBottom="8dp"
+                    android:visibility="gone" />
+
+                <!-- Aviso para discount/cashback (benefício concedido pelo parceiro) -->
+                <TextView
+                    android:id="@+id/tvBenefitExplanation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/surface_warning"
+                    android:padding="12dp"
+                    android:textColor="@color/warning_text"
+                    android:textSize="13sp"
+                    android:lineSpacingExtra="2dp"
+                    android:layout_marginBottom="12dp"
+                    android:visibility="gone" />
+
+                <!-- Cupom copiável -->
+                <LinearLayout
+                    android:id="@+id/sectionCoupon"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Seu cupom exclusivo"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_coupon_pill"
+                        android:padding="12dp">
+
+                        <TextView
+                            android:id="@+id/tvCouponCode"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:letterSpacing="0.12"
+                            android:textColor="@color/primary_color"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnCopyCoupon"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Copiar"
+                            android:textSize="13sp"
+                            app:icon="@drawable/ic_content_copy"
+                            app:iconSize="16dp" />
+
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Divisor -->
+                <View
+                    android:id="@+id/dividerContact"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="@color/gray_200"
+                    android:layout_marginBottom="16dp"
+                    android:visibility="gone" />
+
+                <!-- Título de contato -->
+                <TextView
+                    android:id="@+id/tvContactTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Fale com o parceiro"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"
+                    android:visibility="gone" />
+
+                <!-- WhatsApp -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnWhatsapp"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="WhatsApp"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="#25D366"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_send"
+                    app:iconSize="18dp"
+                    android:visibility="gone" />
+
+                <!-- Instagram -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnInstagram"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginBottom="10dp"
+                    android:text="Instagram"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="#E1306C"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_arrow_right"
+                    app:iconSize="18dp"
+                    android:visibility="gone" />
+
+                <!-- Site -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSite"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:text="Visitar site"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/primary_color"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_arrow_right"
+                    app:iconSize="18dp"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>
