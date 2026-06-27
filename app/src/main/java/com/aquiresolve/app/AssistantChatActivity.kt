@@ -104,7 +104,7 @@ class AssistantChatActivity : AppCompatActivity() {
         }
 
         // Se veio do botão flutuante de microfone, inicia voz automaticamente
-        if (intent.getBooleanExtra(\"start_with_voice\", false)) {
+        if (intent.getBooleanExtra("start_with_voice", false)) {
             binding.root.postDelayed({ startVoiceIfPermitted() }, 400)
         }
     }
