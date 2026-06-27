@@ -155,7 +155,7 @@ class ProviderVerificationManager {
                 id = providerId,
                 providerId = providerId,
                 status = when (statusString.lowercase()) {
-                    "verified", "verificado" -> VerificationStatus.APPROVED
+                    "verified", "verificado", "approved", "aprovado" -> VerificationStatus.APPROVED
                     "rejected", "rejeitado" -> VerificationStatus.REJECTED
                     "under_review", "em_analise" -> VerificationStatus.UNDER_REVIEW
                     "expired", "expirado" -> VerificationStatus.EXPIRED
