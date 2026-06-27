@@ -655,6 +655,11 @@ class ProviderHomeActivity : AppCompatActivity() {
             return false
         }
 
+        // Excluir pedidos que este prestador já rejeitou
+        if (order.rejectedBy.contains(providerId)) {
+            return false
+        }
+
         return ServiceNicheCatalog.matchesProviderServices(providerServicesNormalized, order)
     }
 

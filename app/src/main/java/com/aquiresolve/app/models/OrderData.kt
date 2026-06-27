@@ -140,6 +140,10 @@ data class OrderData(
     @PropertyName("reviewedAt")
     val reviewedAt: Timestamp? = null,
     
+    // Rejeições por prestadores
+    @PropertyName("rejectedBy")
+    val rejectedBy: List<String> = emptyList(),
+    
     // Campos adicionais para compatibilidade
     @PropertyName("complement")
     val complement: String? = null,

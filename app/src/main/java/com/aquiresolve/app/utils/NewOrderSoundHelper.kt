@@ -33,6 +33,12 @@ object NewOrderSoundHelper {
     private var lastPlayTimestamp: Long = 0L
     private var activePlaybackSessionId: Long = 0L
     
+    // Controle de loop contínuo — toca até que stopSound() seja chamado
+    // Mapeia orderId → sessionId para rastrear qual sessão está ativa por pedido
+    private val continuousSessions = mutableMapOf<String, Long>()
+    private var continuousPlayer: MediaPlayer? = null
+    private var continuousSessionId: Long = 0L
+    
     /**
      * Toca o som de alerta de novo pedido.
      * Repete o alerta algumas vezes para garantir audibilidade.
@@ -174,6 +180,116 @@ object NewOrderSoundHelper {
                 releasePlayer()
             }
         }
+    }
+    
+    // ═══════════════════════════════════════════════════════════════════
+    // Loop contínuo — som repete até stopSound() ser chamado
+    // Usado para alertas de novo pedido que devem persistir até
+    // que o prestador aceite ou rejeite.
+    // ═══════════════════════════════════════════════════════════════════
+    
+    /**
+     * Inicia reprodução contínua do som de alerta.
+     * O som repete em loop até que [stopSound] seja chamado.
+     *
+     * @param context  Context da aplicação
+     * @param orderId  ID do pedido associado (para rastreamento)
+     */
+    fun startContinuousPlay(context: Context, orderId: String) {
+        val appContext = context.applicationContext
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            mainHandler.post { startContinuousPlay(appContext, orderId) }
+            return
+        }
+
+        synchronized(this) {
+            // Se já existe uma sessão para este pedido, não duplica
+            if (continuousSessions.containsKey(orderId)) {
+                Log.d(TAG, "Loop contínuo já ativo para pedido $orderId")
+                return
+            }
+
+            continuousSessionId += 1L
+            val sessionId = continuousSessionId
+            continuousSessions[orderId] = sessionId
+            Log.d(TAG, "Iniciando loop contínuo para pedido $orderId (session=$sessionId)")
+        }
+
+        playContinuousIteration(appContext, orderId)
+    }
+
+    /**
+     * Para o som contínuo associado a um pedido específico.
+     * Se nenhum orderId for passado, para TODOS os sons contínuos.
+     */
+    fun stopSound(orderId: String? = null) {
+        synchronized(this) {
+            if (orderId != null) {
+                continuousSessions.remove(orderId)
+                Log.d(TAG, "Loop contínuo parado para pedido $orderId (${continuousSessions.size} ativos restantes)")
+            } else {
+                continuousSessions.clear()
+                Log.d(TAG, "Todos os loops contínuos parados")
+            }
+            stopContinuousPlayer()
+        }
+    }
+
+    /**
+     * Verifica se há som contínuo tocando para um pedido.
+     */
+    fun isPlayingForOrder(orderId: String): Boolean {
+        return synchronized(this) {
+            continuousSessions.containsKey(orderId)
+        }
+    }
+
+    private fun playContinuousIteration(context: Context, orderId: String) {
+        val sessionActive = synchronized(this) {
+            continuousSessions.containsKey(orderId)
+        }
+        if (!sessionActive) {
+            stopContinuousPlayer()
+            return
+        }
+
+        try {
+            stopContinuousPlayer()
+
+            val player = buildPlayer(context)
+            if (player == null) {
+                Log.w(TAG, "Não foi possível criar MediaPlayer para loop contínuo")
+                return
+            }
+
+            continuousPlayer = player
+            player.isLooping = true  // ← loop nativo do MediaPlayer
+            player.setOnErrorListener { _, what, extra ->
+                Log.e(TAG, "Erro no MediaPlayer contínuo: what=$what extra=$extra")
+                stopContinuousPlayer()
+                // Tenta reiniciar após erro
+                mainHandler.postDelayed({
+                    playContinuousIteration(context, orderId)
+                }, 1000L)
+                true
+            }
+            player.start()
+        } catch (e: Exception) {
+            Log.e(TAG, "Erro ao tocar iteração contínua: ${e.message}", e)
+            stopContinuousPlayer()
+        }
+    }
+
+    private fun stopContinuousPlayer() {
+        try {
+            continuousPlayer?.apply {
+                if (isPlaying) stop()
+                release()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Erro ao liberar player contínuo: ${e.message}")
+        }
+        continuousPlayer = null
     }
     
     private fun releasePlayer() {

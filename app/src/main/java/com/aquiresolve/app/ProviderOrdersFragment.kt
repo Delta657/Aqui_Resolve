@@ -540,17 +540,20 @@ class ProviderOrdersFragment : Fragment() {
                     return@launch
                 }
                 
-                // Atualizar status do pedido para "rejected"
-                val updates = mapOf(
-                    "status" to "rejected",
-                    "rejectedBy" to user.uid,
-                    "rejectedAt" to System.currentTimeMillis()
-                )
-                
+                // Adicionar este prestador ao array rejectedBy do pedido
+                // (não muda o status do pedido — apenas o esconde deste prestador)
                 firestore.collection("orders")
                     .document(order.id)
-                    .update(updates)
+                    .update(
+                        mapOf(
+                            "rejectedBy" to com.google.firebase.firestore.FieldValue.arrayUnion(user.uid),
+                            "rejectedAt_${user.uid}" to com.google.firebase.Timestamp.now()
+                        )
+                    )
                     .await()
+                
+                // Parar som contínuo se estiver tocando para este pedido
+                NewOrderSoundHelper.stopSound(order.id)
                 
                 showToast("❌ Pedido recusado")
                 loadOrders() // Recarregar lista
@@ -1039,6 +1042,11 @@ class ProviderOrdersFragment : Fragment() {
         val isAssignedToCurrentProvider = !providerId.isNullOrBlank() && order.assignedProvider == providerId
         if (isAssignedToCurrentProvider) {
             return true
+        }
+
+        // Excluir pedidos que este prestador já rejeitou
+        if (!providerId.isNullOrBlank() && order.rejectedBy.contains(providerId)) {
+            return false
         }
 
         return ServiceNicheCatalog.matchesProviderServices(providerServicesNormalized, order)

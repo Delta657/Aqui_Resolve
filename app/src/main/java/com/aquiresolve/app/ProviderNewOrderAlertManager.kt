@@ -60,6 +60,13 @@ object ProviderNewOrderAlertManager {
     private val lastMatchingOrders = mutableMapOf<String, OrderData>()
     private var providerLocation: GeoPoint? = null
     private val dispatchHandler = Handler(Looper.getMainLooper())
+
+    // IDs dos pedidos para os quais já disparamos alerta sonoro contínuo.
+    // Quando o status do pedido mudar para "assigned" (aceito por alguém),
+    // paramos o som automaticamente.
+    private val alertedOrderIds = mutableSetOf<String>()
+    // Listener que monitora mudanças de status dos pedidos alertados
+    private var ordersStatusListener: ListenerRegistration? = null
     private val dispatchTicker = object : Runnable {
         override fun run() {
             monitoredProviderId?.let { uid -> scope.launch { refreshProviderLocation(uid) } }
@@ -182,6 +189,8 @@ object ProviderNewOrderAlertManager {
                                 Log.w(TAG, "Erro ao converter pedido ${document.id}: ${e.message}")
                                 null
                             } ?: return@forEach
+                            // Pular pedidos que este prestador já rejeitou
+                            if (order.rejectedBy.contains(userId)) return@forEach
                             if (matchesProviderService(order)) lastMatchingOrders[document.id] = order
                         }
 
@@ -228,7 +237,7 @@ object ProviderNewOrderAlertManager {
         knownAvailableOrderIds.addAll(availableIds)
 
         if (newIds.isNotEmpty()) {
-            notifyNewOrders(context, newIds.size)
+            notifyNewOrders(context, newIds)
         }
     }
 
@@ -272,35 +281,127 @@ object ProviderNewOrderAlertManager {
         return emptyList()
     }
 
-    private fun notifyNewOrders(context: Context, newCount: Int) {
+    private fun notifyNewOrders(context: Context, newIds: Set<String>) {
         val handler = Handler(Looper.getMainLooper())
         handler.post {
             try {
-                NewOrderSoundHelper.playNewOrderSound(context)
-                showHeadsUpNotification(context, newCount)
-                Log.d(TAG, "Alerta de novo pedido disparado ($newCount)")
+                // Iniciar som contínuo para cada novo pedido
+                for (orderId in newIds) {
+                    NewOrderSoundHelper.startContinuousPlay(context, orderId)
+                    alertedOrderIds.add(orderId)
+                }
+
+                // Configurar listener para parar o som quando o pedido for aceito
+                setupOrderAcceptedListener(newIds)
+
+                showHeadsUpNotification(context, newIds)
+                Log.d(TAG, "Alerta de novo pedido disparado (${newIds.size} pedidos, som contínuo)")
             } catch (e: Exception) {
                 Log.e(TAG, "Erro ao disparar alerta de novo pedido: ${e.message}", e)
             }
         }
     }
 
-    private fun showHeadsUpNotification(context: Context, count: Int) {
+    /**
+     * Configura um listener Firestore que monitora os pedidos alertados.
+     * Quando o status muda para "assigned" (alguém aceitou), para o som.
+     */
+    private fun setupOrderAcceptedListener(orderIds: Set<String>) {
+        if (orderIds.isEmpty()) return
+
+        val monitoredIds = orderIds.toList()
+        Log.d(TAG, "Monitorando status de ${monitoredIds.size} pedido(s) alertados")
+
+        // Remove listener anterior se existir
+        ordersStatusListener?.remove()
+
+        // Usa whereIn para monitorar todos os pedidos alertados de uma vez
+        ordersStatusListener = firestore.collection("orders")
+            .whereIn(com.google.firebase.firestore.FieldPath.documentId(), monitoredIds)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e(TAG, "Erro no listener de status: ${error.message}", error)
+                    return@addSnapshotListener
+                }
+
+                snapshot?.documents?.forEach { doc ->
+                    val orderId = doc.id
+                    val status = doc.getString("status") ?: return@forEach
+                    val assigned = doc.getString("assignedProvider")
+
+                    // Para o som se o pedido foi aceito por alguém
+                    // ou se o status não é mais distributing/pending
+                    val isAccepted = status == OrderData.STATUS_ASSIGNED && !assigned.isNullOrBlank()
+                    val isNoLongerAvailable = status != OrderData.STATUS_DISTRIBUTING
+                        && status != OrderData.STATUS_PENDING
+                        && status != "available"
+                        && status != OrderData.STATUS_DISTRIBUTING.uppercase(Locale.ROOT)
+                        && status != OrderData.STATUS_PENDING.uppercase(Locale.ROOT)
+                        && status != "AVAILABLE"
+
+                    if (isAccepted || isNoLongerAvailable) {
+                        Log.d(TAG, "Pedido $orderId mudou para '$status' — parando som")
+                        NewOrderSoundHelper.stopSound(orderId)
+                        alertedOrderIds.remove(orderId)
+                    }
+                }
+
+                // Se todos os pedidos já foram resolvidos, remove o listener
+                if (alertedOrderIds.isEmpty()) {
+                    ordersStatusListener?.remove()
+                    ordersStatusListener = null
+                    Log.d(TAG, "Todos os pedidos alertados foram resolvidos — listener removido")
+                }
+            }
+    }
+
+    private fun showHeadsUpNotification(context: Context, newOrderIds: Set<String>) {
+        val count = newOrderIds.size
         val title = if (count == 1) "Novo pedido disponível" else "$count novos pedidos disponíveis"
         val message = if (count == 1) {
-            "Abra para visualizar o pedido."
+            "Toque para visualizar ou use os botões abaixo."
         } else {
-            "Abra para visualizar os novos pedidos."
+            "Toque para visualizar ou use os botões abaixo."
         }
 
-        val intent = Intent(context, ProviderOrdersActivity::class.java).apply {
+        // Intent principal: abrir tela de pedidos
+        val viewIntent = Intent(context, ProviderOrdersActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
+        val viewPendingIntent = PendingIntent.getActivity(
+            context, 2101, viewIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            2101,
-            intent,
+        // Intent de rejeitar: envia broadcast para RejectOrderReceiver
+        val rejectIntent = Intent(context, RejectOrderReceiver::class.java).apply {
+            action = RejectOrderReceiver.ACTION_REJECT_ORDER
+            putStringArrayListExtra(RejectOrderReceiver.EXTRA_ORDER_IDS, ArrayList(newOrderIds))
+            // Para single order, também seta o extra simples
+            if (newOrderIds.size == 1) {
+                putExtra(RejectOrderReceiver.EXTRA_ORDER_ID, newOrderIds.first())
+            }
+        }
+        val rejectPendingIntent = PendingIntent.getBroadcast(
+            context, 2102, rejectIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Intent de aceitar (primeiro pedido): abre direto na tela de detalhes
+        val acceptIntent = if (newOrderIds.size == 1) {
+            Intent(context, OrderDetailsActivity::class.java).apply {
+                putExtra("order_id", newOrderIds.first())
+                putExtra("is_provider_view", true)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        } else {
+            // Múltiplos pedidos: abre a lista
+            Intent(context, ProviderOrdersActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+        }
+        val acceptPendingIntent = PendingIntent.getActivity(
+            context, 2103, acceptIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
@@ -309,12 +410,17 @@ object ProviderNewOrderAlertManager {
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
+            .setOngoing(true)  // Não some até ação explícita
+            .setContentIntent(viewPendingIntent)
+            .addAction(R.drawable.ic_check_circle, "Aceitar", acceptPendingIntent)
+            .addAction(R.drawable.ic_close, "Rejeitar", rejectPendingIntent)
             .build()
 
         try {
             NotificationManagerCompat.from(context).notify(ALERT_NOTIFICATION_ID, notification)
+            Log.d(TAG, "Notificação heads-up exibida com ações Aceitar/Rejeitar para $count pedido(s)")
         } catch (e: SecurityException) {
             Log.w(TAG, "Sem permissão para exibir notificação de novo pedido: ${e.message}")
         }
@@ -327,6 +433,11 @@ object ProviderNewOrderAlertManager {
         dispatchHandler.removeCallbacks(dispatchTicker)
         ordersListener?.remove()
         ordersListener = null
+        ordersStatusListener?.remove()
+        ordersStatusListener = null
+        // Para todos os sons contínuos ativos
+        NewOrderSoundHelper.stopSound()
+        alertedOrderIds.clear()
         monitoredProviderId = null
         hasInitialSnapshot = false
         providerServicesNormalized = emptySet()
