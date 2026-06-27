@@ -40,6 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useProvidersBilling, type ProviderBilling } from "@/hooks/use-providers-billing"
 import { adminFetch } from "@/lib/admin-api"
 import { usePermissions } from "@/hooks/use-permissions"
+import { ReceiptUpload } from "@/components/financeiro/receipt-upload"
 
 export default function FaturamentoPage() {
   const { hasPermission } = usePermissions()
@@ -53,6 +54,8 @@ export default function FaturamentoPage() {
   const [paymentMethod, setPaymentMethod] = useState("pix")
   const [processingPayment, setProcessingPayment] = useState(false)
   const [amountError, setAmountError] = useState<string | null>(null)
+  const [completedPaymentId, setCompletedPaymentId] = useState<string | null>(null)
+  const [showReceiptUpload, setShowReceiptUpload] = useState(false)
 
   const { toast } = useToast()
   const { providers, loading, error, warning, refetch, totalEarnings } = useProvidersBilling({
@@ -150,6 +153,8 @@ export default function FaturamentoPage() {
     setPaymentMethod("pix")
     setPaymentDialogOpen(true)
     setAmountError(null)
+    setShowReceiptUpload(false)
+    setCompletedPaymentId(null)
   }
 
   const handleAmountChange = (value: string) => {
@@ -231,13 +236,12 @@ export default function FaturamentoPage() {
 
       toast({
         title: "Pagamento processado",
-        description: `Pagamento de ${formatCurrency(amount)} realizado para ${getProviderDisplayName(selectedProvider)}`,
+        description: `Pagamento de ${formatCurrency(amount)} realizado para ${getProviderDisplayName(selectedProvider)}. Anexe o comprovante abaixo.`,
       })
 
-      setPaymentDialogOpen(false)
-      setSelectedProvider(null)
-      setPaymentAmount("")
-      setPaymentDescription("")
+      // Guardar ID do pagamento e mostrar upload de comprovante
+      setCompletedPaymentId(data?.data?.paymentId || null)
+      setShowReceiptUpload(true)
       await refetch()
     } catch (err) {
       toast({
@@ -521,7 +525,7 @@ export default function FaturamentoPage() {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedProvider ? (
+          {selectedProvider && !showReceiptUpload ? (
             <div className="space-y-6 py-6">
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-foreground">Valor Disponivel</Label>
@@ -609,37 +613,86 @@ export default function FaturamentoPage() {
             </div>
           ) : null}
 
+          {/* Receipt Upload Step */}
+          {showReceiptUpload && completedPaymentId && (
+            <div className="py-6 space-y-4">
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                      Pagamento registrado com sucesso
+                    </p>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5">
+                      Anexe o comprovante (PDF ou print) para guardar no histórico
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <ReceiptUpload
+                paymentId={completedPaymentId}
+                onUploadComplete={() => {
+                  toast({
+                    title: "Comprovante anexado",
+                    description: "O comprovante foi salvo com sucesso no Firebase.",
+                  })
+                }}
+              />
+            </div>
+          )}
+
           <DialogFooter className="pt-4 border-t border-border gap-3 sticky bottom-0 bg-card">
-            <Button
-              variant="outline"
-              onClick={() => setPaymentDialogOpen(false)}
-              disabled={processingPayment}
-              className="flex-1 sm:flex-none bg-muted text-foreground hover:bg-muted/80"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => void handleProcessPayment()}
-              disabled={
-                processingPayment ||
-                !paymentAmount ||
-                !!amountError ||
-                parseFloat((paymentAmount || "0").replace(",", ".")) <= 0
-              }
-              className="bg-green-600 hover:bg-green-700 text-white shadow-lg flex-1 sm:flex-none min-w-[180px]"
-            >
-              {processingPayment ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processando...
-                </>
-              ) : (
-                <>
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Confirmar Pagamento
-                </>
-              )}
-            </Button>
+            {showReceiptUpload ? (
+              <Button
+                variant="default"
+                onClick={() => {
+                  setPaymentDialogOpen(false)
+                  setSelectedProvider(null)
+                  setPaymentAmount("")
+                  setPaymentDescription("")
+                  setShowReceiptUpload(false)
+                  setCompletedPaymentId(null)
+                }}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Concluir
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setPaymentDialogOpen(false)}
+                  disabled={processingPayment}
+                  className="flex-1 sm:flex-none bg-muted text-foreground hover:bg-muted/80"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => void handleProcessPayment()}
+                  disabled={
+                    processingPayment ||
+                    !paymentAmount ||
+                    !!amountError ||
+                    parseFloat((paymentAmount || "0").replace(",", ".")) <= 0
+                  }
+                  className="bg-green-600 hover:bg-green-700 text-white shadow-lg flex-1 sm:flex-none min-w-[180px]"
+                >
+                  {processingPayment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processando...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Confirmar Pagamento
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
