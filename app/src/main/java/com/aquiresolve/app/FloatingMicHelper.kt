@@ -4,12 +4,17 @@ import android.Manifest
 import android.animation.ValueAnimator
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Vibrator
 import android.view.Gravity
 import android.view.View
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,7 +27,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 /**
  * Botão flutuante de microfone — visível em todas as telas do cliente (exceto no
- * chat da Helô). Posicionado no canto inferior-esquerdo, com animação de pulse.
+ * chat da Helô). Posicionado no canto inferior-esquerdo, com animação de pulse,
+ * texto "Pergunte a Helô" e long-press para gravar áudio.
  *
  * Uso na Activity:
  * ```
@@ -41,8 +47,11 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 class FloatingMicHelper {
 
     private var fab: FloatingActionButton? = null
+    private var textLabel: TextView? = null
+    private var container: LinearLayout? = null
     private var pulseAnimator: ValueAnimator? = null
     private var micPermissionLauncher: ActivityResultLauncher<String>? = null
+    private var voiceManager: VoiceInputManager? = null
     private var attached = false
 
     fun attach(activity: AppCompatActivity) {
@@ -55,12 +64,21 @@ class FloatingMicHelper {
             ActivityResultContracts.RequestPermission()
         ) { granted ->
             if (granted) {
-                openHelo(activity)
+                // Depois de conceder permissão pelo long-press, inicia gravação
+                startVoiceRecording(activity)
             } else {
                 Toast.makeText(activity, "Permita o microfone para falar com o Helô.", Toast.LENGTH_SHORT).show()
             }
         }
 
+        // Container horizontal: FAB + texto
+        container = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            id = View.generateViewId()
+        }
+
+        // FAB do microfone
         fab = FloatingActionButton(activity).apply {
             id = View.generateViewId()
             setImageResource(R.drawable.ic_mic)
@@ -72,14 +90,74 @@ class FloatingMicHelper {
             scaleType = ImageView.ScaleType.CENTER
             visibility = View.VISIBLE
 
+            // TAP normal: abre o chat com voz ativa (fluxo existente)
             setOnClickListener {
+                openHelo(activity)
+            }
+
+            // LONG PRESS: grava áudio e abre chat com o texto transcrito
+            setOnLongClickListener {
+                // Vibração sutil para feedback tátil
+                try {
+                    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val manager = activity.getSystemService(android.content.Context.VIBRATOR_MANAGER_SERVICE) as? android.os.VibratorManager
+                        manager?.defaultVibrator
+                    } else {
+                        @Suppress("DEPRECATION")
+                        activity.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? Vibrator
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator?.vibrate(android.os.VibrationEffect.createOneShot(30, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator?.vibrate(30)
+                    }
+                } catch (_: Exception) {}
+
                 if (hasMicPermission(activity)) {
-                    openHelo(activity)
+                    startVoiceRecording(activity)
                 } else {
                     micPermissionLauncher?.launch(Manifest.permission.RECORD_AUDIO)
                 }
+                true // consome o evento
             }
         }
+
+        // Texto "Pergunte a Helô" ao lado do FAB
+        textLabel = TextView(activity).apply {
+            id = View.generateViewId()
+            text = "Pergunte a Helô"
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            maxLines = 1
+            elevation = 6f
+
+            // Fundo semi-transparente com cantos arredondados
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(activity, 20).toFloat()
+                setColor(0xDD1B1B2F.toInt())
+                setStroke(1, 0x30FFFFFF.toInt())
+            }
+            setPadding(
+                dpToPx(activity, 14),
+                dpToPx(activity, 10),
+                dpToPx(activity, 14),
+                dpToPx(activity, 10)
+            )
+            visibility = View.VISIBLE
+        }
+
+        container?.addView(fab)
+        container?.addView(
+            textLabel,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                marginStart = dpToPx(activity, 10)
+            }
+        )
 
         // Adiciona ao decorView para ficar SOBRE a contentView (incluindo BottomNavigation)
         val decorView = activity.window.decorView as FrameLayout
@@ -91,36 +169,101 @@ class FloatingMicHelper {
             // Margem padrão; será ajustada com os insets
             setMargins(dpToPx(activity, 16), 0, 0, dpToPx(activity, 80))
         }
-        decorView.addView(fab, params)
+        decorView.addView(container, params)
 
         // Ajustar margem inferior com base nos insets do sistema (barra de navegação)
         ViewCompat.setOnApplyWindowInsetsListener(decorView) { _, insets ->
             val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-            fab?.updateLayoutParams<FrameLayout.LayoutParams> {
+            container?.updateLayoutParams<FrameLayout.LayoutParams> {
                 bottomMargin = navBarHeight + dpToPx(activity, 80)
             }
             insets
         }
 
-        // Animação de pulse sutil
+        // Animação de pulse sutil no FAB
         startPulse(activity)
 
         attached = true
     }
 
+    /**
+     * Inicia gravação de voz via SpeechRecognizer.
+     * Ao terminar, abre o AssistantChatActivity com o texto transcrito como prefill.
+     */
+    private fun startVoiceRecording(activity: AppCompatActivity) {
+        val lbl = textLabel ?: return
+
+        // Feedback visual: muda o texto enquanto grava
+        val originalText = lbl.text.toString()
+        lbl.text = "🎤 Ouvindo..."
+
+        voiceManager = VoiceInputManager(
+            context = activity,
+            onReadyForSpeech = {
+                activity.runOnUiThread {
+                    lbl.text = "🎤 Fale agora..."
+                }
+            },
+            onPartial = { /* não precisamos de texto parcial aqui */ },
+            onResult = { text ->
+                activity.runOnUiThread {
+                    lbl.text = originalText
+                    openHeloWithPrefill(activity, text)
+                }
+            },
+            onError = { msg ->
+                activity.runOnUiThread {
+                    lbl.text = originalText
+                    if (msg.isNotBlank()) {
+                        Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
+                        // Mesmo com erro, abre o chat (sem prefill)
+                        openHelo(activity)
+                    }
+                    // Se msg vazia = cancelamento silencioso, não abre nada
+                }
+            },
+            onEnd = {
+                activity.runOnUiThread {
+                    lbl.text = originalText
+                }
+            }
+        )
+
+        if (voiceManager?.isAvailable() != true) {
+            voiceManager = null
+            lbl.text = originalText
+            Toast.makeText(activity, "Reconhecimento de voz indisponível.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        voiceManager?.start()
+    }
+
     fun detach() {
         pulseAnimator?.cancel()
         pulseAnimator = null
-        fab?.let { (it.parent as? android.view.ViewGroup)?.removeView(it) }
+        voiceManager?.destroy()
+        voiceManager = null
+        container?.let { (it.parent as? android.view.ViewGroup)?.removeView(it) }
+        container = null
         fab = null
+        textLabel = null
         micPermissionLauncher = null
         attached = false
     }
 
+    /** Abre o chat com voz ativa (tap normal — fluxo existente) */
     private fun openHelo(activity: AppCompatActivity) {
         val intent = Intent(activity, AssistantChatActivity::class.java).apply {
-            // Flag para abrir com voz ativa
             putExtra("start_with_voice", true)
+        }
+        activity.startActivity(intent)
+    }
+
+    /** Abre o chat com texto transcrito como prefill (long-press — novo fluxo) */
+    private fun openHeloWithPrefill(activity: AppCompatActivity, text: String) {
+        val intent = Intent(activity, AssistantChatActivity::class.java).apply {
+            putExtra(AssistantChatActivity.EXTRA_PREFILL, text)
         }
         activity.startActivity(intent)
     }
