@@ -857,6 +857,141 @@ npx vercel deploy --prod --yes
 
 ---
 
+## 13. Dashboard Financeiro (Recharts)
+
+### Estrutura
+
+Seção financeira completa com 4 subpáginas e gráficos interativos via **Recharts**. Todos os dados são reais — vêm de `orders`, `providers`, `order_settlements`, `users` via Admin SDK + `transactions`, `accounts`.
+
+| Página | Rota | Conteúdo |
+|---|---|---|
+| Painel Financeiro | `/dashboard/financeiro` | 8 KPIs (receita total, ticket médio, transações, conversão, comissão, cashback, a pagar, margem), área de receita, rosca de métodos, barras de status, top 10 serviços, últimas transações |
+| Analytics | `/dashboard/financeiro/analytics` | Insights (% PIX, ticket médio, média diária, melhor dia), tendência de receita, ranking visual |
+| Pagamentos | `/dashboard/financeiro/faturamento` | Tabela de prestadores com saldo, diálogo de pagamento 2 passos (confirmar → anexar comprovante) |
+| Relatórios | `/dashboard/financeiro/relatorios` | KPIs, receitas/despesas por categoria, transações, saldos, export CSV |
+
+### API Agregadora
+
+`GET /api/financial/analytics?period=30d` — agrega `orders` + `providers` + `order_settlements` + `users` para produzir todos os KPIs e séries temporais. Períodos: `7d`, `30d`, `90d`, `mes`, `ano`.
+
+### Componentes de Gráfico (Recharts)
+
+| Componente | Arquivo | Loading | Dark Mode |
+|---|---|---|---|
+| `RevenueAreaChart` | `components/charts/revenue-area-chart.tsx` | Skeleton animado | `var(--popover)` |
+| `DonutChart` | `components/charts/donut-chart.tsx` | Skeleton | Legend + tooltip adaptativos |
+| `StatusBarChart` | `components/charts/status-bar-chart.tsx` | Skeleton | Cores por status |
+
+### Hook Client
+
+```typescript
+import { useFinancialAnalytics } from '@/hooks/use-financial-analytics'
+const { totalRevenue, dailyRevenue, paymentMethods, ... } = useFinancialAnalytics('30d')
+```
+
+### Requisitos
+
+- **Permissão:** `financeiro` (rotas API validadas com `requireAdminPermission`)
+- **Dependência:** `recharts` (adiciona ~360 KB no First Load JS)
+- **Formato:** `Intl.NumberFormat('pt-BR')` para BRL
+
+### Pitfalls
+
+- `ResponsiveContainer` do Recharts requer altura explícita no container pai
+- Tooltips precisam de `contentStyle: { backgroundColor: 'var(--popover)' }`
+- npm `node_modules` pode corromper com `ENOTEMPTY` — solução: `rm -rf node_modules package-lock.json && npm install`
+- `lightningcss` native binary às vezes falta — instalar `lightningcss-linux-x64-gnu` e copiar `.node` para `lightningcss/`
+
+**Commit:** `3507bdd`
+
+---
+
+## 14. Comprovante de Pagamento a Prestador
+
+### Fluxo
+
+```
+Admin clica "Pagar R$ X" → preenche valor/método/descrição →
+confirma pagamento (API processa transação atômica, FIFO por pedido) →
+diálogo mostra "Anexe o comprovante" → arrasta ou seleciona PDF/imagem →
+upload Firebase Storage → signed URL 7 dias → Firestore receipts[]
+```
+
+### APIs
+
+| Endpoint | Permissão | Função |
+|---|---|---|
+| `POST /api/financial/providers/payment` | `operarFinanceiro` | Processar pagamento (transação atômica, alocação FIFO) |
+| `GET /api/financial/providers/payment/[id]` | `financeiro` | Detalhes com receipts[] e allocations[] |
+| `POST /api/financial/providers/payment/[id]/receipt` | `operarFinanceiro` | Upload multipart → Storage + Firestore |
+
+### Armazenamento
+
+- **Firebase Storage:** `provider_payments/{paymentId}/comprovantes/{timestamp}_{filename}`
+- **Tipos:** PDF, PNG, JPEG, WebP (máx 10 MB)
+- **URLs:** Signed URLs (7 dias)
+- **Firestore:** documento `provider_payments/{id}` ganha array `receipts[]` + `hasReceipt`
+
+### Componente
+
+`components/financeiro/receipt-upload.tsx` — 5 estados visuais: drop zone, drag over, arquivo selecionado (preview img ou ícone PDF), enviando (loader), sucesso (banner verde + Visualizar).
+
+### Segurança
+
+- API requer `operarFinanceiro`
+- Admin SDK bypassa regras Storage (service account)
+- Validação server-side: tipo MIME, tamanho 10 MB
+- Sanitização de nome: `replace(/[^a-zA-Z0-9._-]/g, '_')`
+
+**Commit:** `b91a301`
+
+---
+
+## 15. Som de Notificação — Chat Cliente↔Prestador
+
+### Problema
+
+O chat de pedido entre cliente e prestador salvava mensagens no Firestore sem enviar push notification. O celular ficava mudo.
+
+### Solução
+
+Pipeline completo: `FirebaseChatManager.sendMessage()` → backend Render (`POST /api/chat-notify`) → FCM com som → Android `FirebaseMessagingService`.
+
+### Backend: `POST /api/chat-notify`
+
+- **Autenticação:** Firebase ID token (igual rotas de pagamento)
+- **Body:** `{ recipientUid, orderId, senderName, message, senderType }`
+- **Lógica:** busca FCM token em `userTokens/{uid}`, envia com `sound=default`, `channelId=messages_channel`, `priority=high`
+- **Arquivo:** `backend/src/routes/chat-notify.routes.js`
+
+### Android: FirebaseChatManager
+
+Método `notifyRecipient()` (chamado após salvar mensagem no Firestore):
+- Identifica destinatário pelo pedido (`assignedProvider` ou `clientId`)
+- Não notifica admin, não notifica remetente
+- Chama backend via OkHttp (timeout 10s)
+- Nunca falha o envio da mensagem se a notificação der erro
+
+### Android: FirebaseMessagingService
+
+- Tipo `chat_message` adicionado ao `isMessageType`
+- Canal `messages_channel` com `IMPORTANCE_HIGH` (som sempre toca, ignora toggle global)
+- Toque na notificação abre `ChatActivity` (redirecionador inteligente → ClientChatActivity ou ProviderChatActivity)
+
+### FCM Payload
+
+```json
+{
+  "notification": { "title": "Nome Remetente", "body": "preview..." },
+  "data": { "type": "chat_message", "order_id": "abc123", "senderType": "client" },
+  "android": { "priority": "high", "notification": { "sound": "default", "channelId": "messages_channel" } }
+}
+```
+
+**Commit:** `cab889d`
+
+---
+
 ## 12. Referências Rápidas
 
 - **Firebase Console:** https://console.firebase.google.com/project/aplicativoservico-143c2
