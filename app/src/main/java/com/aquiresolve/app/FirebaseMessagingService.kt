@@ -86,6 +86,7 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         val isMessageType = type.equals("provider_message", ignoreCase = true)
             || type.equals("central_message", ignoreCase = true)
             || type.equals("chat", ignoreCase = true)
+            || type.equals("chat_message", ignoreCase = true)
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -165,7 +166,13 @@ class FirebaseMessagingService : FirebaseMessagingService() {
         isMessageType: Boolean
     ) {
         // Escolhe qual Activity abrir ao tocar na notificação
-        val intent = if (orderId != null) {
+        val intent = if (type.equals("chat_message", ignoreCase = true)) {
+            // Mensagem de chat cliente↔prestador → abrir ChatActivity com o pedido
+            Intent(this, ChatActivity::class.java).apply {
+                putExtra("order_id", orderId)
+                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            }
+        } else if (orderId != null) {
             Intent(this, OrderDetailsActivity::class.java).apply {
                 putExtra("order_id", orderId)
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP

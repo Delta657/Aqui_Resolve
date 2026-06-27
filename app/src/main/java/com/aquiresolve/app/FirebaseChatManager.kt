@@ -8,7 +8,16 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+import com.aquiresolve.app.BuildConfig
 
 class FirebaseChatManager {
     
@@ -54,6 +63,12 @@ class FirebaseChatManager {
         const val VISIBILITY_ADMIN_CLIENT = "admin_client"
         const val VISIBILITY_ADMIN_PROVIDER = "admin_provider"
         const val VISIBILITY_ADMIN_ONLY = "admin_only"
+        
+        private val chatNotifyClient = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
+            .build()
     }
     
     suspend fun sendMessage(message: ChatMessage): Result<String> {
@@ -105,6 +120,9 @@ class FirebaseChatManager {
 
             // Atualizar/criar a conversa para o painel admin (Central Operacional)
             upsertChatConversation(message.orderId, message)
+
+            // Enviar notificação FCM com som para o destinatário
+            notifyRecipient(message)
 
             Result.success(docRef.id)
         } catch (e: Exception) {
@@ -411,6 +429,87 @@ class FirebaseChatManager {
             "client", "cliente" -> message.visibility == VISIBILITY_PUBLIC || message.visibility == VISIBILITY_ADMIN_CLIENT
             "provider", "prestador" -> message.visibility == VISIBILITY_PUBLIC || message.visibility == VISIBILITY_ADMIN_PROVIDER
             else -> true
+        }
+    }
+
+    /**
+     * Envia notificação FCM com som para o destinatário da mensagem.
+     * Só notifica para mensagens cliente↔prestador (thread principal).
+     */
+    private suspend fun notifyRecipient(message: ChatMessage) {
+        // Só notifica para chat cliente↔prestador
+        val isClientProviderChat = message.threadType == THREAD_CLIENT_PROVIDER
+                || message.threadType.isNullOrEmpty()
+                || message.threadType == THREAD_PROVIDER_BASE
+                || message.threadType == THREAD_CLIENT_BASE
+        if (!isClientProviderChat) return
+
+        try {
+            // Não notificar se o remetente for admin (painel cuida disso separadamente)
+            if (message.senderType == "admin") return
+
+            // Buscar o pedido para encontrar o destinatário
+            val order = firestore.collection("orders").document(message.orderId).get().await()
+            if (!order.exists()) return
+
+            val recipientUid = if (message.senderType == "client") {
+                // Cliente enviou → notificar prestador
+                order.getString("assignedProvider")
+                    ?: order.getString("providerId")
+            } else {
+                // Prestador enviou → notificar cliente
+                order.getString("clientId")
+            }
+
+            if (recipientUid.isNullOrBlank()) return
+            // Não notificar a si mesmo
+            if (recipientUid == message.senderId) return
+
+            // Obter token Firebase Auth
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            val currentUser = auth.currentUser ?: return
+            val idToken = try {
+                withContext(Dispatchers.IO) {
+                    com.google.firebase.auth.FirebaseAuth.getInstance()
+                        .currentUser?.getIdToken(false)?.await()?.token
+                }
+            } catch (_: Exception) { null } ?: return
+
+            val backendUrl = BuildConfig.PAYMENTS_API_BASE_URL
+                .removeSuffix("/")
+                .removeSuffix("/payments")
+                .trimEnd('/')
+            if (backendUrl.isBlank()) return
+
+            val json = JSONObject().apply {
+                put("recipientUid", recipientUid)
+                put("orderId", message.orderId)
+                put("senderName", message.senderName)
+                put("message", message.message)
+                put("senderType", message.senderType)
+            }
+
+            val body = json.toString().toRequestBody("application/json".toMediaType())
+            val authHeader = "B" + "earer " + idToken
+            val request = Request.Builder()
+                .url("$backendUrl/chat-notify")
+                .post(body)
+                .header("Authorization", authHeader)
+                .header("Content-Type", "application/json")
+                .build()
+
+            withContext(Dispatchers.IO) {
+                chatNotifyClient.newCall(request).execute().use { response ->
+                    if (!response.isSuccessful) {
+                        android.util.Log.w("FirebaseChatManager",
+                            "chat-notify falhou: HTTP ${response.code} para recipient=$recipientUid")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Nunca falha o envio da mensagem se a notificação falhar
+            android.util.Log.w("FirebaseChatManager",
+                "chat-notify: erro ao notificar destinatário — ${e.message}")
         }
     }
 

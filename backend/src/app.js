@@ -11,6 +11,7 @@ const cronRoutes = require('./routes/cron.routes');
 const routeRoutes = require('./routes/route.routes');
 const aiRoutes = require('./routes/ai.routes');
 const aiChatRoutes = require('./routes/ai-chat.routes');
+const chatNotifyRoutes = require('./routes/chat-notify.routes');
 const { notFoundHandler, errorHandler } = require('./middlewares/error-handler');
 
 const paymentLimiter = rateLimit({
@@ -88,6 +89,7 @@ function createApp({ config }) {
   app.use('/api/route', routeRoutes);
   app.use('/api/ai', aiLimiter, aiRoutes);
   app.use('/api/ai', aiLimiter, aiChatRoutes);
+  app.use('/api/chat-notify', chatNotifyRoutes);
   app.use('/api/cron', cronRoutes);
 
   app.use(notFoundHandler);
