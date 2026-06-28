@@ -106,6 +106,24 @@ export async function POST(request: NextRequest) {
     if (isNew) {
       assertAdminPermission(actor, 'criarBanners')
       if (active) assertAdminPermission(actor, 'publicarBanners')
+    } else {
+      const currentSnap = await db.collection(COLLECTION).doc(id).get()
+      if (!currentSnap.exists) {
+        return NextResponse.json({ success: false, error: 'Banner não encontrado' }, { status: 404 })
+      }
+      const current = currentSnap.data() ?? {}
+      const contentChanged =
+        String(current.title ?? '') !== payload.title ||
+        String(current.subtitle ?? '') !== payload.subtitle ||
+        String(current.imageUrl ?? current.image ?? current.url ?? '') !== payload.imageUrl ||
+        normalizeActionType(String(current.actionType ?? 'none')) !== payload.actionType ||
+        String(current.actionValue ?? '') !== payload.actionValue ||
+        String(current.backgroundColor ?? '') !== payload.backgroundColor ||
+        Number(current.displayOrder ?? current.order ?? current.sortOrder ?? 0) !== payload.displayOrder
+      const activeChanged = Boolean(current.active ?? current.isActive ?? current.enabled ?? true) !== active
+
+      if (contentChanged || !activeChanged) assertAdminPermission(actor, 'editarBanners')
+      if (activeChanged) assertAdminPermission(actor, 'publicarBanners')
     }
 
     const docPayload = isNew

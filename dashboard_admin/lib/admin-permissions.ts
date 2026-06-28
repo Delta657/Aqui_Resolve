@@ -164,6 +164,7 @@ export function hasAnyAdminPermission(
 
 const PATH_PERMISSIONS: Array<{ prefix: string; permission: AdminPermission }> = [
   { prefix: "/master", permission: "gerenciarAdministradores" },
+  { prefix: "/dashboard/configuracoes/banners-prestador", permission: "visualizarBanners" },
   { prefix: "/dashboard/configuracoes/banners", permission: "visualizarBanners" },
   { prefix: "/dashboard/configuracoes/parceiros", permission: "gerenciarParceiros" },
   { prefix: "/dashboard/configuracoes/aquicash", permission: "gerenciarAquicash" },

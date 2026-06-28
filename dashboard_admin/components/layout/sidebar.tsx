@@ -117,6 +117,7 @@ const navigation = [
     children: [
       { name: "Geral", href: "/dashboard/configuracoes", icon: Settings, permission: "configuracoes" },
       { name: "Banners da Home", href: "/dashboard/configuracoes/banners", icon: ImageIcon, permission: "visualizarBanners" },
+      { name: "Banners do Prestador", href: "/dashboard/configuracoes/banners-prestador", icon: Wrench, permission: "visualizarBanners" },
       { name: "Parceiros AquiResolve", href: "/dashboard/configuracoes/parceiros", icon: Handshake, permission: "gerenciarParceiros" },
     ],
   },

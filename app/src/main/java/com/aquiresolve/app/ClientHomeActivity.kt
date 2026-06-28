@@ -49,6 +49,7 @@ class ClientHomeActivity : AppCompatActivity() {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
     private val centralChatRepo = CentralChatRepository()
+    private val cashbackManager = CashbackManager()
     private var centralUnreadListener: ListenerRegistration? = null
     private val floatingMic = FloatingMicHelper()
 
@@ -836,6 +837,16 @@ class ClientHomeActivity : AppCompatActivity() {
         val uid = auth.currentUser?.uid ?: return
         lifecycleScope.launch {
             try {
+                // Na fase de lançamento (launch) o benefício é desconto direto no
+                // carrinho — o saldo de cashback nunca é creditado e ficaria preso em
+                // "R$ 0,00". Nesse caso escondemos o símbolo para não confundir o cliente.
+                val config = cashbackManager.getConfig()
+                if (config.isLaunchPhase) {
+                    binding.cardCashback.visibility = View.GONE
+                    return@launch
+                }
+                binding.cardCashback.visibility = View.VISIBLE
+
                 val snap = db.collection("users").document(uid).get().await()
                 val balance = snap.getDouble("cashbackBalance") ?: 0.0
                 binding.tvCashbackBalance.text = String.format(java.util.Locale("pt", "BR"), "R$ %.2f", balance)
