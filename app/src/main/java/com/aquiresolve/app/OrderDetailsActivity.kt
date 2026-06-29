@@ -360,12 +360,32 @@ class OrderDetailsActivity : AppCompatActivity() {
             binding.tvCancelledBy.text = "Por: $cancelledByText"
             binding.tvCancellationReason.text = order.cancellationReason?.ifEmpty { "Sem motivo informado" } ?: "Sem motivo informado"
             
-            // Mostrar informações de reembolso se cancelado pelo cliente e aguardando reembolso
-            if (order.cancelledBy == "client" && order.refundStatus == "pending") {
-                binding.cardRefundInfo.visibility = View.VISIBLE
-                binding.tvRefundInfo.text = "💳 O valor pago será reembolsado em até 24 horas.\n\nVocê receberá uma notificação quando o reembolso for processado."
-            } else {
-                binding.cardRefundInfo.visibility = View.GONE
+            // Estado do reembolso (qualquer refundStatus — não só cancelamento do cliente).
+            // Prazos alinhados à Política: PIX até 5 dias úteis; cartão 1 ou 2 faturas.
+            when (order.refundStatus?.lowercase(Locale("pt", "BR"))) {
+                "pending" -> {
+                    binding.cardRefundInfo.visibility = View.VISIBLE
+                    binding.tvRefundInfo.text = "💳 Reembolso solicitado.\n\nO valor será estornado pelo mesmo meio de pagamento — PIX em até 5 dias úteis; cartão em 1 ou 2 faturas. Você será avisado quando for concluído."
+                }
+                "processing" -> {
+                    binding.cardRefundInfo.visibility = View.VISIBLE
+                    binding.tvRefundInfo.text = "💳 Reembolso em processamento.\n\nVocê será avisado quando for concluído."
+                }
+                "completed" -> {
+                    binding.cardRefundInfo.visibility = View.VISIBLE
+                    binding.tvRefundInfo.text = "✅ Reembolso concluído.\n\nO valor foi estornado pelo mesmo meio de pagamento. O prazo de compensação depende da sua instituição (PIX até 5 dias úteis; cartão 1 ou 2 faturas)."
+                }
+                "partial" -> {
+                    binding.cardRefundInfo.visibility = View.VISIBLE
+                    binding.tvRefundInfo.text = "✅ Reembolso parcial concluído.\n\nParte do valor foi estornada. Em caso de dúvida, fale com o suporte."
+                }
+                "failed" -> {
+                    binding.cardRefundInfo.visibility = View.VISIBLE
+                    binding.tvRefundInfo.text = "⚠️ Não foi possível concluir o reembolso automaticamente.\n\nPor favor, entre em contato com o suporte."
+                }
+                else -> {
+                    binding.cardRefundInfo.visibility = View.GONE
+                }
             }
         } else {
             binding.cardCancellationInfo.visibility = View.GONE
@@ -1098,7 +1118,7 @@ class OrderDetailsActivity : AppCompatActivity() {
                     
                     // Mostrar mensagem de sucesso com informação sobre reembolso
                     val successMessage = if (orderWasPaid(order)) {
-                        "Seu pedido foi cancelado com sucesso!\n\n💳 O valor pago será reembolsado na sua conta em até 24 horas.\n\nVocê receberá uma notificação quando o reembolso for processado."
+                        "Seu pedido foi cancelado com sucesso!\n\n💳 O valor pago será reembolsado pelo mesmo meio de pagamento (PIX em até 5 dias úteis; cartão em 1 ou 2 faturas). Você será avisado quando o reembolso for concluído."
                     } else {
                         "Seu pedido foi cancelado com sucesso!"
                     }

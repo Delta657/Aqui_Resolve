@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminFirestore, adminApp } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
 import { adminAuthorizationResponse, requireAdminPermission } from '@/lib/server/admin-authorization'
+import { resolveUserFcmToken } from '@/lib/server/fcm-token'
 
 // POST /api/notifications/send — envia notificação FCM para um usuário ou grupo
 export async function POST(request: NextRequest) {
@@ -64,8 +65,7 @@ export async function POST(request: NextRequest) {
     const targetIds = userId ? [userId] : userIds || []
     for (const uid of targetIds) {
       try {
-        const tokenSnap = await db.collection('userTokens').doc(uid).get()
-        const fcmToken = tokenSnap.data()?.token || tokenSnap.data()?.fcmToken
+        const fcmToken = await resolveUserFcmToken(db, uid)
         if (fcmToken) {
           resolvedTokens.push(fcmToken)
         }

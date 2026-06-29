@@ -4,6 +4,7 @@ import { PagarmeWebhook } from '@/types/pagarme'
 import { PagarmeFirebaseSync } from '@/lib/services/pagarme-firebase-sync'
 import { getAdminFirestore, adminApp } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
+import { resolveUserFcmToken } from '@/lib/server/fcm-token'
 
 /**
  * Notifica um usuário (FCM + persistência) — best-effort, nunca lança.
@@ -16,8 +17,7 @@ async function notify(
   type: string
 ) {
   try {
-    const tokenSnap = await db.collection('userTokens').doc(userId).get()
-    const fcmToken = tokenSnap.data()?.token || tokenSnap.data()?.fcmToken
+    const fcmToken = await resolveUserFcmToken(db, userId)
     if (fcmToken && adminApp) {
       await admin
         .messaging(adminApp)

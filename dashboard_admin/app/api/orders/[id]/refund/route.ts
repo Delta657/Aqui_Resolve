@@ -3,6 +3,7 @@ import { getAdminFirestore, adminApp } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
 import { PagarmeService } from '@/lib/services/pagarme-service'
 import { adminAuthorizationResponse, requireAdminPermission } from '@/lib/server/admin-authorization'
+import { resolveUserFcmToken } from '@/lib/server/fcm-token'
 
 async function notify(
   db: admin.firestore.Firestore,
@@ -12,8 +13,7 @@ async function notify(
   type: string
 ) {
   try {
-    const tokenSnap = await db.collection('userTokens').doc(userId).get()
-    const fcmToken = tokenSnap.data()?.token || tokenSnap.data()?.fcmToken
+    const fcmToken = await resolveUserFcmToken(db, userId)
     if (fcmToken && adminApp) {
       await admin
         .messaging(adminApp)

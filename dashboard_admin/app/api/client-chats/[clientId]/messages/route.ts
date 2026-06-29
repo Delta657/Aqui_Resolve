@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminFirestore, adminApp } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
 import { adminAuthorizationResponse, requireAdminPermission } from '@/lib/server/admin-authorization'
+import { resolveUserFcmToken } from '@/lib/server/fcm-token'
 
 const TRUNCATE_PREVIEW = 120
 
@@ -114,8 +115,7 @@ export async function POST(request: NextRequest, ctx: RouteCtx) {
     // FCM (best-effort) — não falha o request se não houver token
     try {
       if (adminApp) {
-        const tokenSnap = await db.collection('userTokens').doc(clientId).get()
-        const fcmToken = tokenSnap.data()?.token || tokenSnap.data()?.fcmToken
+        const fcmToken = await resolveUserFcmToken(db, clientId)
         if (fcmToken) {
           await admin.messaging(adminApp).send({
             token: fcmToken,

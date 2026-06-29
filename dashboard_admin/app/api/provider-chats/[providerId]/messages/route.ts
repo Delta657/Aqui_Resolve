@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminFirestore, adminApp } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
 import { adminAuthorizationResponse, requireAdminPermission } from '@/lib/server/admin-authorization'
+import { resolveUserFcmToken } from '@/lib/server/fcm-token'
 
 // Chat Base ↔ Prestador (coleção `provider_chats/{providerId}` + subcoleção `messages`).
 // Espelha /api/client-chats/[clientId]/messages, mas resolve o nome em `providers` e usa os
@@ -124,8 +125,7 @@ export async function POST(request: NextRequest, ctx: RouteCtx) {
     // FCM (best-effort) — não falha o request se não houver token
     try {
       if (adminApp) {
-        const tokenSnap = await db.collection('userTokens').doc(providerId).get()
-        const fcmToken = tokenSnap.data()?.token || tokenSnap.data()?.fcmToken
+        const fcmToken = await resolveUserFcmToken(db, providerId)
         if (fcmToken) {
           await admin.messaging(adminApp).send({
             token: fcmToken,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminFirestore, adminApp } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
 import { adminAuthorizationResponse, requireAdminPermission } from '@/lib/server/admin-authorization'
+import { resolveUserFcmToken } from '@/lib/server/fcm-token'
 
 // Broadcast Base → Prestadores (espelha /api/client-chats/broadcast).
 // Resolve a audiência na coleção `providers`, grava em `provider_chats` + sino + FCM.
@@ -29,8 +30,7 @@ async function resolveAudience(
     if (!userIds || userIds.length === 0) return []
     const out: ProviderUser[] = []
     for (const uid of userIds) {
-      const tokenSnap = await db.collection('userTokens').doc(uid).get()
-      out.push({ uid, fcmToken: tokenSnap.data()?.token ?? tokenSnap.data()?.fcmToken })
+      out.push({ uid, fcmToken: (await resolveUserFcmToken(db, uid)) ?? undefined })
     }
     return out
   }
@@ -44,8 +44,7 @@ async function resolveAudience(
 
   const result: ProviderUser[] = []
   for (const doc of providers) {
-    const tokenSnap = await db.collection('userTokens').doc(doc.id).get()
-    result.push({ uid: doc.id, fcmToken: tokenSnap.data()?.token ?? tokenSnap.data()?.fcmToken })
+    result.push({ uid: doc.id, fcmToken: (await resolveUserFcmToken(db, doc.id)) ?? undefined })
   }
   return result
 }

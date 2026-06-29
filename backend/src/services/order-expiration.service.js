@@ -14,6 +14,7 @@
 const admin = require('firebase-admin');
 const { initializeFirebase } = require('../config/firebase');
 const logger = require('../utils/logger');
+const { resolveUserFcmToken } = require('../utils/fcm-token');
 
 const EXPIRATION_TIMEOUT_MS = 90 * 60 * 1000; // 1h30 em ms
 const ORDER_STATUSES_TO_CHECK = ['distributing', 'pending', 'DISTRIBUTING', 'PENDING'];
@@ -159,16 +160,9 @@ async function expireOrders() {
 async function sendPushNotification(db, userId, data) {
   try {
     // Buscar token FCM do usuário
-    const tokenDoc = await db.collection('userTokens').doc(userId).get();
-
-    if (!tokenDoc.exists) {
-      logger.warn('Token FCM não encontrado para usuário', { userId });
-      return;
-    }
-
-    const fcmToken = tokenDoc.data().fcmToken;
+    const fcmToken = await resolveUserFcmToken(db, userId);
     if (!fcmToken || fcmToken.startsWith('disabled_token_')) {
-      logger.warn('Token FCM inválido para usuário', { userId });
+      logger.warn('Token FCM não encontrado/inválido para usuário', { userId });
       return;
     }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminFirestore, adminApp } from '@/lib/firebase-admin'
 import * as admin from 'firebase-admin'
 import { adminAuthorizationResponse, requireAdminPermission } from '@/lib/server/admin-authorization'
+import { resolveUserFcmToken } from '@/lib/server/fcm-token'
 
 const BATCH_LIMIT = 400 // Firestore batch limit é 500; deixamos margem
 const TRUNCATE_PREVIEW = 120
@@ -26,8 +27,7 @@ async function resolveAudience(
     if (!userIds || userIds.length === 0) return []
     const out: ClientUser[] = []
     for (const uid of userIds) {
-      const tokenSnap = await db.collection('userTokens').doc(uid).get()
-      out.push({ uid, fcmToken: tokenSnap.data()?.token ?? tokenSnap.data()?.fcmToken })
+      out.push({ uid, fcmToken: (await resolveUserFcmToken(db, uid)) ?? undefined })
     }
     return out
   }
@@ -43,8 +43,7 @@ async function resolveAudience(
   // resolve tokens em batch
   const result: ClientUser[] = []
   for (const doc of clients) {
-    const tokenSnap = await db.collection('userTokens').doc(doc.id).get()
-    result.push({ uid: doc.id, fcmToken: tokenSnap.data()?.token ?? tokenSnap.data()?.fcmToken })
+    result.push({ uid: doc.id, fcmToken: (await resolveUserFcmToken(db, doc.id)) ?? undefined })
   }
   return result
 }

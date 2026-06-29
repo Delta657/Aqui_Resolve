@@ -124,6 +124,13 @@ service cloud.firestore {
               'status', 'cancelledAt', 'cancelledBy', 'cancellationReason',
               'updatedAt', 'refundStatus', 'refundRequestedAt'
             ])
+            // O cliente só pode sinalizar reembolso (refundStatus) se o pedido FOI pago.
+            // Bloqueia marcar reembolso pendente num pedido sem cobrança (abuso). O app
+            // legítimo já só envia refundStatus quando o pagamento estava confirmado.
+            && (
+              !('refundStatus' in request.resource.data.diff(resource.data).affectedKeys())
+              || resource.data.get('paymentStatus', '').lower() in ['paid', 'captured', 'approved', 'confirmed']
+            )
           )
           || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'clientCompletionConfirmed', 'status', 'completedAt',

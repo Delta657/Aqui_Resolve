@@ -3,6 +3,7 @@ const admin = require('firebase-admin');
 
 const { authenticateRequest } = require('../middlewares/auth');
 const logger = require('../utils/logger');
+const { resolveUserFcmToken } = require('../utils/fcm-token');
 
 const router = express.Router();
 
@@ -37,15 +38,9 @@ router.post('/', async (req, res) => {
 
     // Buscar FCM token do destinatário
     const db = admin.firestore();
-    const tokenSnap = await db.collection('userTokens').doc(recipientUid).get();
-
-    if (!tokenSnap.exists) {
-      logger.info('chat-notify: destinatário sem token FCM', { recipientUid });
-      return res.status(200).json({ ok: true, sent: false, reason: 'no_fcm_token' });
-    }
-
-    const token = tokenSnap.data()?.token || tokenSnap.data()?.fcmToken;
+    const token = await resolveUserFcmToken(db, recipientUid);
     if (!token) {
+      logger.info('chat-notify: destinatário sem token FCM', { recipientUid });
       return res.status(200).json({ ok: true, sent: false, reason: 'no_fcm_token' });
     }
 
