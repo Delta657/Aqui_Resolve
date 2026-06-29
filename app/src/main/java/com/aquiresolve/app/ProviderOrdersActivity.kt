@@ -208,8 +208,10 @@ class ProviderOrdersActivity : AppCompatActivity() {
                     .whereIn("status", listOf(
                         OrderData.STATUS_DISTRIBUTING,
                         OrderData.STATUS_PENDING,
+                        OrderData.STATUS_AVAILABLE,
                         OrderData.STATUS_DISTRIBUTING.uppercase(),
-                        OrderData.STATUS_PENDING.uppercase()
+                        OrderData.STATUS_PENDING.uppercase(),
+                        OrderData.STATUS_AVAILABLE.uppercase()
                     ))
                     .get()
                     .await()
@@ -231,7 +233,7 @@ class ProviderOrdersActivity : AppCompatActivity() {
                     } catch (e: Exception) { null }
                 }
                 val filteredAvailableOrders = availableOrders.filter { order ->
-                    ServiceNicheCatalog.matchesProviderServices(providerServicesNormalized, order)
+                    shouldIncludeAvailableOrderForProvider(order, currentUser.uid)
                 }
 
                 // Merge e dedup por id
@@ -404,7 +406,8 @@ class ProviderOrdersActivity : AppCompatActivity() {
                             val availableSnap = db.collection("orders")
                                 .whereIn("status", listOf(
                                     OrderData.STATUS_DISTRIBUTING,
-                                    OrderData.STATUS_PENDING
+                                    OrderData.STATUS_PENDING,
+                                    OrderData.STATUS_AVAILABLE
                                 ))
                                 .get()
                                 .await()
@@ -413,7 +416,7 @@ class ProviderOrdersActivity : AppCompatActivity() {
                                 try { doc.toObject(OrderData::class.java)?.copy(id = doc.id) } catch (_: Exception) { null }
                             }
                             val filteredAvailable = available.filter { order ->
-                                ServiceNicheCatalog.matchesProviderServices(providerServicesNormalized, order)
+                                shouldIncludeAvailableOrderForProvider(order, currentUser.uid)
                             }
 
                             allOrders = (currentAssigned + filteredAvailable).distinctBy { it.id }
@@ -428,8 +431,10 @@ class ProviderOrdersActivity : AppCompatActivity() {
                     .whereIn("status", listOf(
                         OrderData.STATUS_DISTRIBUTING,
                         OrderData.STATUS_PENDING,
+                        OrderData.STATUS_AVAILABLE,
                         OrderData.STATUS_DISTRIBUTING.uppercase(),
-                        OrderData.STATUS_PENDING.uppercase()
+                        OrderData.STATUS_PENDING.uppercase(),
+                        OrderData.STATUS_AVAILABLE.uppercase()
                     ))
                     .addSnapshotListener { availSnap, availErr ->
                         if (availErr != null) {
@@ -449,7 +454,7 @@ class ProviderOrdersActivity : AppCompatActivity() {
                                 try { doc.toObject(OrderData::class.java)?.copy(id = doc.id) } catch (_: Exception) { null }
                             } ?: emptyList()
                             val filteredAvailable = available.filter { order ->
-                                ServiceNicheCatalog.matchesProviderServices(providerServicesNormalized, order)
+                                shouldIncludeAvailableOrderForProvider(order, currentUser.uid)
                             }
 
                             // Detectar novos pedidos disponíveis por diferença de IDs
@@ -515,6 +520,11 @@ class ProviderOrdersActivity : AppCompatActivity() {
             android.util.Log.e("ProviderOrders", "Erro ao carregar serviços do prestador: ${e.message}")
             emptyList()
         }
+    }
+
+    private fun shouldIncludeAvailableOrderForProvider(order: OrderData, providerId: String): Boolean {
+        if (order.rejectedBy.contains(providerId)) return false
+        return ServiceNicheCatalog.matchesProviderServices(providerServicesNormalized, order)
     }
 
     /**

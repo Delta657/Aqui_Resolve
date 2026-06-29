@@ -73,6 +73,7 @@ todos os fluxos) veja o [`CLAUDE.md`](../CLAUDE.md).
 | Doc | Sobre |
 |---|---|
 | [CORRECAO_CHAT_PRESTADOR_E_CONTA_ATIVA_2026-06-28.md](CORRECAO_CHAT_PRESTADOR_E_CONTA_ATIVA_2026-06-28.md) | Mensagem da Central caía na conta de cliente + reabrir na conta ativa |
+| [CORRECAO_ACEITE_PEDIDO_CHECKLIST_STORAGE_2026-06-28.md](CORRECAO_ACEITE_PEDIDO_CHECKLIST_STORAGE_2026-06-28.md) | Aceite real pela notificação + status `available` + upload de fotos da OS |
 | [CORRECAO_REEMBOLSO_2026-06-28.md](CORRECAO_REEMBOLSO_2026-06-28.md) | Notificação de reembolso (token correto) + estados no app |
 | [CORRECAO_CONFIGURACOES_PRIVACIDADE_2026-06-28.md](CORRECAO_CONFIGURACOES_PRIVACIDADE_2026-06-28.md) | Abas de configuração (cliente/prestador) |
 | [CORRECOES_PRESTADOR_2026-06-28.md](CORRECOES_PRESTADOR_2026-06-28.md) · [MELHORIAS_PAINEL_2026-06-28.md](MELHORIAS_PAINEL_2026-06-28.md) | Melhorias do prestador e do painel |

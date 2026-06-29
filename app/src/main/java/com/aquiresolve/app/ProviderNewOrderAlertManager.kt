@@ -424,23 +424,29 @@ object ProviderNewOrderAlertManager {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Intent de aceitar (primeiro pedido): abre direto na tela de detalhes
+        // Pedido único: o botão aceita de fato. Múltiplos: abre a lista para escolha explícita.
         val acceptIntent = if (newOrderIds.size == 1) {
-            Intent(context, OrderDetailsActivity::class.java).apply {
-                putExtra("order_id", newOrderIds.first())
-                putExtra("is_provider_view", true)
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            Intent(context, AcceptOrderReceiver::class.java).apply {
+                action = AcceptOrderReceiver.ACTION_ACCEPT_ORDER
+                putExtra(AcceptOrderReceiver.EXTRA_ORDER_ID, newOrderIds.first())
             }
         } else {
-            // Múltiplos pedidos: abre a lista
             Intent(context, ProviderOrdersActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
         }
-        val acceptPendingIntent = PendingIntent.getActivity(
-            context, 2103, acceptIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val acceptPendingIntent = if (newOrderIds.size == 1) {
+            PendingIntent.getBroadcast(
+                context, 2103, acceptIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        } else {
+            PendingIntent.getActivity(
+                context, 2103, acceptIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+        }
+        val acceptActionTitle = if (newOrderIds.size == 1) "Aceitar" else "Ver pedidos"
 
         val notification = NotificationCompat.Builder(context, NotificationManager.CHANNEL_ORDERS)
             .setSmallIcon(R.drawable.ic_notifications)
@@ -451,7 +457,7 @@ object ProviderNewOrderAlertManager {
             .setAutoCancel(true)
             .setOngoing(true)  // Não some até ação explícita
             .setContentIntent(viewPendingIntent)
-            .addAction(R.drawable.ic_check_circle, "Aceitar", acceptPendingIntent)
+            .addAction(R.drawable.ic_check_circle, acceptActionTitle, acceptPendingIntent)
             .addAction(R.drawable.ic_close, "Rejeitar", rejectPendingIntent)
             .build()
 

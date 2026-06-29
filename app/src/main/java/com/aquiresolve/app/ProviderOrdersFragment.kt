@@ -165,7 +165,7 @@ class ProviderOrdersFragment : Fragment() {
                 // Guincho só aparece para guincheiros dentro do raio de dispatch atual
                 // (10 km + 5 km a cada 4 min). Demais serviços não são afetados.
                 ordersList.addAll(allOrdersList.filter {
-                    (it.status == "pending" || it.status == "available" || it.status == "distributing") &&
+                    (it.status == OrderData.STATUS_PENDING || it.status == OrderData.STATUS_AVAILABLE || it.status == OrderData.STATUS_DISTRIBUTING) &&
                         TowingDispatch.canOfferToProvider(it, providerLocation)
                 })
             }
@@ -258,7 +258,7 @@ class ProviderOrdersFragment : Fragment() {
                 
                 // Buscar pedidos que correspondem aos serviços do prestador
                 val query = firestore.collection("orders")
-                    .whereIn("status", listOf("pending", "available", "distributing", "assigned", "in_progress", "completed"))
+                    .whereIn("status", listOf(OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE, OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_ASSIGNED, OrderData.STATUS_IN_PROGRESS, OrderData.STATUS_COMPLETED))
                     .orderBy("createdAt", Query.Direction.DESCENDING)
                     .limit(100)
                 
@@ -412,7 +412,7 @@ class ProviderOrdersFragment : Fragment() {
                 
                 // Buscar pedidos com todos os status relevantes
                 val query = firestore.collection("orders")
-                    .whereIn("status", listOf("pending", "available", "distributing", "assigned", "in_progress", "completed"))
+                    .whereIn("status", listOf(OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE, OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_ASSIGNED, OrderData.STATUS_IN_PROGRESS, OrderData.STATUS_COMPLETED))
                     .orderBy("createdAt", Query.Direction.DESCENDING)
                     .limit(100)
                 
@@ -580,7 +580,7 @@ class ProviderOrdersFragment : Fragment() {
             when (which) {
                 0 -> loadOrders() // Todos
                 1 -> filterOrdersByStatus("pending")
-                2 -> filterOrdersByStatus("accepted")
+                2 -> filterAcceptedOrders()
                 3 -> filterOrdersByStatus("rejected")
                 4 -> {
                     if (providerServices.isEmpty()) {
@@ -648,6 +648,23 @@ class ProviderOrdersFragment : Fragment() {
             }
         }
     }
+
+    private fun filterAcceptedOrders() {
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+        if (currentUserId == null) {
+            showToast("❌ Usuário não autenticado")
+            return
+        }
+
+        ordersList.clear()
+        ordersList.addAll(allOrdersList.filter {
+            it.assignedProvider == currentUserId &&
+                (it.status == OrderData.STATUS_ASSIGNED || it.status == OrderData.STATUS_IN_PROGRESS)
+        })
+        ordersAdapter.notifyDataSetChanged()
+        updateEmptyState()
+        updateStatistics()
+    }
     
     /**
      * Mostra diálogo para filtrar por serviço específico
@@ -680,7 +697,7 @@ class ProviderOrdersFragment : Fragment() {
         lifecycleScope.launch {
             try {
                 val query = firestore.collection("orders")
-                    .whereIn("status", listOf("pending", "available", "distributing"))
+                    .whereIn("status", listOf(OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE, OrderData.STATUS_DISTRIBUTING))
                     .orderBy("createdAt", Query.Direction.DESCENDING)
                     .limit(50)
                 
@@ -774,7 +791,7 @@ class ProviderOrdersFragment : Fragment() {
      * Ordena pedidos por status
      */
     private fun sortOrdersByStatus() {
-        val statusOrder = listOf("pending", "available", "distributing", "accepted", "rejected", "completed")
+        val statusOrder = listOf(OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE, OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_ASSIGNED, OrderData.STATUS_IN_PROGRESS, "rejected", OrderData.STATUS_COMPLETED)
         ordersList.sortBy { statusOrder.indexOf(it.status) }
         ordersAdapter.notifyDataSetChanged()
         showToast("📊 Pedidos ordenados por status")
@@ -851,14 +868,14 @@ class ProviderOrdersFragment : Fragment() {
      */
     private fun updateStatistics() {
         val total = ordersList.size
-        val accepted = ordersList.count { it.status == "accepted" }
-        val pending = ordersList.count { it.status == "pending" || it.status == "available" || it.status == "distributing" }
+        val accepted = ordersList.count { it.status == OrderData.STATUS_ASSIGNED || it.status == OrderData.STATUS_IN_PROGRESS }
+        val pending = ordersList.count { it.status == OrderData.STATUS_PENDING || it.status == OrderData.STATUS_AVAILABLE || it.status == OrderData.STATUS_DISTRIBUTING }
         val rejected = ordersList.count { it.status == "rejected" }
         val completed = ordersList.count { it.status == "completed" }
         
         // Calcular valor total dos pedidos aceitos
         val totalValue = ordersList
-            .filter { it.status == "accepted" || it.status == "completed" }
+            .filter { it.status == OrderData.STATUS_ASSIGNED || it.status == OrderData.STATUS_IN_PROGRESS || it.status == OrderData.STATUS_COMPLETED }
             .sumOf { it.estimatedPrice }
         
         // Atualizar textos
@@ -927,7 +944,7 @@ class ProviderOrdersFragment : Fragment() {
             
             // Configurar novo listener
             ordersListener = firestore.collection("orders")
-                .whereIn("status", listOf("pending", "available", "distributing", "assigned", "in_progress", "completed"))
+                .whereIn("status", listOf(OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE, OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_ASSIGNED, OrderData.STATUS_IN_PROGRESS, OrderData.STATUS_COMPLETED))
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .limit(50)
                 .addSnapshotListener { snapshot, error ->

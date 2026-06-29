@@ -136,6 +136,11 @@ service firebase.storage {
       allow write: if signedInCanModifyImage(10 * 1024 * 1024);
     }
 
+    match /checklists/{orderId}/{phase}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if signedInCanModifyImage(10 * 1024 * 1024);
+    }
+
     match /Pedidos/{orderId}/{fileName} {
       allow read: if isSignedIn();
       allow write: if signedInCanModifyImage(10 * 1024 * 1024);

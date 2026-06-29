@@ -149,8 +149,9 @@ class OrdersTabFragment : Fragment() {
                 val filtered = allOrders.filter { 
                     val status = it.status.lowercase()
                     status == OrderData.STATUS_AWAITING_PAYMENT ||
-                    status == OrderData.STATUS_DISTRIBUTING || 
-                    status == OrderData.STATUS_PENDING 
+                    status == OrderData.STATUS_DISTRIBUTING ||
+                    status == OrderData.STATUS_PENDING ||
+                    status == OrderData.STATUS_AVAILABLE
                 }
                 android.util.Log.d("OrdersTabFragment", "🟡 Filtro DISTRIBUTING: ${filtered.size} pedidos")
                 android.util.Log.d("OrdersTabFragment", "📋 Status filtrados: ${filtered.map { it.status }}")
@@ -214,7 +215,7 @@ class OrdersTabFragment : Fragment() {
     private fun onPrimaryActionClick(order: OrderData) {
         if (isProviderContext) {
             when (order.status) {
-                OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING -> acceptOrder(order)
+                OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE -> acceptOrder(order)
                 OrderData.STATUS_ASSIGNED, OrderData.STATUS_IN_PROGRESS -> {
                     // Verificar se o chat pode ser acessado (5 minutos após aceitação)
                     val (canAccess, message) = com.aquiresolve.app.utils.ChatAccessHelper.canAccessChat(order)
@@ -388,4 +389,3 @@ class OrdersTabFragment : Fragment() {
         CANCELLED       // Cancelados
     }
 }
-

@@ -363,6 +363,14 @@
                 <action android:name="com.aquiresolve.app.REJECT_ORDER" />
             </intent-filter>
         </receiver>
+
+        <receiver
+            android:name=".AcceptOrderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.aquiresolve.app.ACCEPT_ORDER" />
+            </intent-filter>
+        </receiver>
         
         <!-- FileProvider para compartilhar arquivos -->
         <provider

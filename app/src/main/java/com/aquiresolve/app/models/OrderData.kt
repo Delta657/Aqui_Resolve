@@ -154,6 +154,7 @@ data class OrderData(
         const val STATUS_AWAITING_PAYMENT = "awaiting_payment"
         const val STATUS_DISTRIBUTING = "distributing" // Em distribuição (status inicial)
         const val STATUS_PENDING = "pending" // Aguardando resposta do prestador
+        const val STATUS_AVAILABLE = "available" // Disponível para aceite do prestador (legado/compat)
         const val STATUS_ASSIGNED = "assigned" // Atribuído a um prestador
         const val STATUS_IN_PROGRESS = "in_progress" // Em andamento
         const val STATUS_COMPLETED = "completed" // Concluído

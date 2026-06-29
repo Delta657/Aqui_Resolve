@@ -485,6 +485,7 @@ class OrderDetailsActivity : AppCompatActivity() {
             OrderData.STATUS_CANCELLED -> "CANCELADO" to R.drawable.status_cancelled_background
             OrderData.STATUS_EXPIRED -> "EXPIRADO" to R.drawable.status_cancelled_background
             OrderData.STATUS_DISTRIBUTING -> "EM DISTRIBUIÇÃO" to R.drawable.status_pending_background
+            OrderData.STATUS_AVAILABLE -> "DISPONÍVEL" to R.drawable.status_pending_background
             else -> "PENDENTE" to R.drawable.status_pending_background
         }
         
@@ -531,7 +532,7 @@ class OrderDetailsActivity : AppCompatActivity() {
     private fun setActionButtons(order: OrderData) {
         val (primaryText, secondaryText) = if (isProviderView) {
             when (order.status) {
-                OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING -> "Aceitar Pedido" to "Ver Detalhes"
+                OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE -> "Aceitar Pedido" to "Ver Detalhes"
                 OrderData.STATUS_ASSIGNED -> "Iniciar OS" to "Chat"
                 OrderData.STATUS_IN_PROGRESS -> {
                     val checklist = osChecklist
@@ -594,7 +595,7 @@ class OrderDetailsActivity : AppCompatActivity() {
         // Configurar visibilidade e estado dos botões
         if (isProviderView) {
             when (order.status) {
-                OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING -> {
+                OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE -> {
                     binding.btnPrimaryAction.isEnabled = true
                     binding.btnSecondaryAction.isEnabled = true
                 }
@@ -663,7 +664,7 @@ class OrderDetailsActivity : AppCompatActivity() {
         order?.let { order ->
             if (isProviderView) {
                 when (order.status) {
-                    OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING -> acceptOrderAsProvider(order)
+                    OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE -> acceptOrderAsProvider(order)
                     OrderData.STATUS_ASSIGNED -> {
                         // Iniciar OS (checklist)
                         startOsFlow(order)
@@ -846,7 +847,7 @@ class OrderDetailsActivity : AppCompatActivity() {
                     OrderData.STATUS_ASSIGNED, OrderData.STATUS_IN_PROGRESS -> {
                         openChat()
                     }
-                    OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING -> {
+                    OrderData.STATUS_DISTRIBUTING, OrderData.STATUS_PENDING, OrderData.STATUS_AVAILABLE -> {
                         binding.contentLayout.smoothScrollTo(0, 0)
                     }
                     else -> {}
