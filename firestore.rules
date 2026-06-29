@@ -58,9 +58,12 @@ service cloud.firestore {
     }
 
     function orderDeleteAllowed() {
+      // Só o DONO do pedido (cliente) ou um admin podem excluir. Antes, o prestador
+      // atribuído (assignedProvider) também podia — o que deixava um prestador apagar
+      // o pedido do cliente (perda de dados de terceiros, ex.: ao excluir a conta).
+      // Prestador encerra pedido via status=cancelled, nunca via delete.
       return isAdmin() || (isSignedIn() && (
         resource.data.clientId == request.auth.uid ||
-        resource.data.assignedProvider == request.auth.uid ||
         resource.data.clienteId == request.auth.uid
       ));
     }

@@ -135,6 +135,9 @@ class PrivacySettingsActivity : AppCompatActivity() {
         binding.switchNotifications.isChecked = settings.notificationsEnabled
         binding.switchDataSharing.isChecked = settings.dataSharingEnabled
         isBindingSettings = false
+        // Aplica a preferência de compartilhamento de dados (coleta do Analytics)
+        // conforme o que está salvo — garante coerência entre o toggle e o efeito real.
+        privacyManager.applyDataSharingPreference(settings.dataSharingEnabled)
         // Removidos: localização e perfil público
     }
 
@@ -180,20 +183,17 @@ class PrivacySettingsActivity : AppCompatActivity() {
             try {
                 binding.btnExportData.isEnabled = false
                 binding.btnExportData.text = "Exportando..."
-                showToast("📤 Iniciando exportação de dados...")
-                
+                showToast("📤 Gerando seus dados...")
+
                 val result = privacyManager.exportUserData()
-                
+
                 if (result.isSuccess) {
-                    val exportId = result.getOrNull()
-                    showToast("✅ Dados exportados com sucesso! ID: ${exportId?.takeLast(8)}")
-                    
-                    // Mostrar diálogo com informações da exportação
-                    showExportSuccessDialog(exportId ?: "")
+                    val json = result.getOrNull().orEmpty()
+                    shareExportFile(json)
                 } else {
                     showToast("❌ Erro ao exportar dados: ${result.exceptionOrNull()?.message}")
                 }
-                
+
             } catch (e: Exception) {
                 showToast("❌ Erro ao exportar dados: ${e.message}")
             } finally {
@@ -203,53 +203,52 @@ class PrivacySettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun showExportSuccessDialog(exportId: String) {
-        AlertDialog.Builder(this)
-            .setTitle("✅ Exportação Concluída")
-            .setMessage("""
-                Seus dados foram exportados com sucesso!
-                
-                ID da Exportação: ${exportId.takeLast(8).uppercase()}
-                Data: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale("pt", "BR")).format(java.util.Date())}
-                
-                Os dados incluem:
-                • Informações do perfil
-                • Configurações de privacidade
-                • Histórico de pedidos
-                • Dados de uso do app
-                
-                Os dados ficam disponíveis por 30 dias para download.
-            """.trimIndent())
-            .setPositiveButton("Entendi") { _, _ -> }
-            .setNeutralButton("Ver Detalhes") { _, _ ->
-                showExportDetailsDialog(exportId)
-            }
-            .show()
-    }
+    /**
+     * Salva o JSON exportado em um arquivo no cache e abre o menu de compartilhar
+     * (download real via FileProvider). Substitui o antigo diálogo que prometia um
+     * download inexistente.
+     */
+    private fun shareExportFile(json: String) {
+        try {
+            val file = java.io.File(cacheDir, "aquiresolve_meus_dados.json")
+            file.writeText(json)
 
-    private fun showExportDetailsDialog(exportId: String) {
-        AlertDialog.Builder(this)
-            .setTitle("📋 Detalhes da Exportação")
-            .setMessage("""
-                ID: ${exportId.uppercase()}
-                Status: Disponível
-                Tamanho: Aproximadamente 2-5 MB
-                Formato: JSON estruturado
-                Validade: 30 dias
-                
-                Para solicitar uma nova exportação, aguarde pelo menos 24 horas.
-            """.trimIndent())
-            .setPositiveButton("Fechar") { _, _ -> }
-            .show()
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                this, "$packageName.fileprovider", file
+            )
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "Meus dados - AquiResolve")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            startActivity(Intent.createChooser(shareIntent, "Exportar meus dados"))
+            showToast("✅ Dados prontos. Escolha onde salvar ou enviar.")
+        } catch (e: Exception) {
+            showToast("❌ Erro ao gerar arquivo: ${e.message}")
+        }
     }
 
     private fun showDeleteAccountDialog() {
-        val editText = android.widget.EditText(this).apply {
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(48, 24, 48, 0)
+        }
+        val etConfirm = android.widget.EditText(this).apply {
             hint = "Digite EXCLUIR para confirmar"
             setTextColor(resources.getColor(com.aquiresolve.app.R.color.text_primary, null))
             setHintTextColor(resources.getColor(com.aquiresolve.app.R.color.text_secondary, null))
-            setPadding(48, 32, 48, 16)
         }
+        val etPassword = android.widget.EditText(this).apply {
+            hint = "Sua senha"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            setTextColor(resources.getColor(com.aquiresolve.app.R.color.text_primary, null))
+            setHintTextColor(resources.getColor(com.aquiresolve.app.R.color.text_secondary, null))
+        }
+        container.addView(etConfirm)
+        container.addView(etPassword)
 
         AlertDialog.Builder(this)
             .setTitle("🗑️ Excluir Conta")
@@ -259,23 +258,24 @@ class PrivacySettingsActivity : AppCompatActivity() {
                 ⚠️ ATENÇÃO: Esta ação é IRREVERSÍVEL!
 
                 Serão excluídos permanentemente:
-                • Todos os seus dados pessoais
-                • Histórico de pedidos
+                • Seus dados pessoais e de perfil
+                • Seus pedidos (como cliente)
                 • Configurações de privacidade
-                • Dados de uso do aplicativo
 
-                Se você tem pedidos em andamento, eles serão cancelados automaticamente.
-
-                Digite "EXCLUIR" para confirmar:
+                Por segurança, confirme com sua SENHA.
+                Digite "EXCLUIR" e sua senha:
             """.trimIndent())
-            .setView(editText)
+            .setView(container)
             .setPositiveButton("Excluir Conta") { _, _ ->
-                val confirmationText = editText.text.toString().trim()
+                val confirmationText = etConfirm.text.toString().trim()
+                val password = etPassword.text.toString()
 
-                if (confirmationText == "EXCLUIR") {
-                    deleteUserAccount()
-                } else {
-                    showToast("❌ Confirmação incorreta. Digite 'EXCLUIR' para confirmar.")
+                when {
+                    confirmationText != "EXCLUIR" ->
+                        showToast("❌ Confirmação incorreta. Digite 'EXCLUIR' para confirmar.")
+                    password.isBlank() ->
+                        showToast("❌ Informe sua senha para confirmar a exclusão.")
+                    else -> deleteUserAccount(password)
                 }
             }
             .setNegativeButton("Cancelar", null)
@@ -283,14 +283,14 @@ class PrivacySettingsActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun deleteUserAccount() {
+    private fun deleteUserAccount(password: String) {
         lifecycleScope.launch {
             try {
                 binding.btnDeleteAccount.isEnabled = false
                 binding.btnDeleteAccount.text = "Excluindo..."
                 showToast("🗑️ Excluindo conta e todos os dados...")
-                
-                val result = privacyManager.deleteUserAccount()
+
+                val result = privacyManager.deleteUserAccount(password)
                 
                 if (result.isSuccess) {
                     showToast("✅ Conta excluída com sucesso")
