@@ -274,9 +274,13 @@ class DetailedOrdersAdapter(
                         binding.btnSecondaryAction.text = "Ver Detalhes"
                     }
                     "in_progress" -> {
-                        binding.btnPrimaryAction.text = "Acompanhar"
+                        // O botão primário abre o CHAT (onPrimaryActionClick) e o
+                        // secundário abre os detalhes/acompanhamento (onOrderClick).
+                        // Os rótulos seguem essa ordem — antes estavam invertidos
+                        // ("Acompanhar" abria o chat e "Chat" abria o acompanhar).
+                        binding.btnPrimaryAction.text = "Chat"
                         binding.btnPrimaryAction.setBackgroundColor(ContextCompat.getColor(context, R.color.primary_color))
-                        binding.btnSecondaryAction.text = "Chat"
+                        binding.btnSecondaryAction.text = "Acompanhar"
                     }
                     "completed" -> {
                         binding.btnPrimaryAction.text = "Avaliar"

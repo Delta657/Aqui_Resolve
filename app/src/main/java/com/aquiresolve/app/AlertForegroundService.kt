@@ -28,8 +28,13 @@ class AlertForegroundService : Service() {
         fun start(context: android.content.Context) {
             if (isRunning) return
             val intent = Intent(context, AlertForegroundService::class.java)
-            context.startForegroundService(intent)
-            Log.d(TAG, "Foreground service iniciado")
+            try {
+                context.startForegroundService(intent)
+                Log.d(TAG, "Foreground service iniciado")
+            } catch (e: Exception) {
+                // Não propaga: o alerta sonoro não pode depender do FGS subir.
+                Log.e(TAG, "Falha ao agendar foreground service: ${e.message}", e)
+            }
         }
 
         fun stop(context: android.content.Context) {
@@ -73,9 +78,25 @@ class AlertForegroundService : Service() {
             .setContentIntent(pendingIntent)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
-        isRunning = true
-        Log.d(TAG, "Service iniciado em foreground")
+        // Em API 29+ passamos o tipo explicitamente (dataSync). Envolto em try/catch:
+        // se o sistema recusar o FGS (ex.: permissão/limite), NÃO derrubamos o processo —
+        // o som contínuo do NewOrderSoundHelper segue tocando mesmo sem o FGS.
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+            isRunning = true
+            Log.d(TAG, "Service iniciado em foreground")
+        } catch (e: Exception) {
+            isRunning = false
+            Log.e(TAG, "Falha ao iniciar foreground service (som continua sem FGS): ${e.message}", e)
+        }
 
         return START_STICKY
     }

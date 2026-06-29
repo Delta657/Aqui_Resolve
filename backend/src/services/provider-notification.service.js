@@ -1,5 +1,11 @@
 const admin = require('firebase-admin');
 const logger = require('../utils/logger');
+const { resolveUserFcmToken } = require('../utils/fcm-token');
+const {
+  extractOrderNiche,
+  isProviderEligible,
+  buildOrderFcmMessage,
+} = require('../utils/provider-notification-logic');
 
 /**
  * Serviço de notificação de novos pedidos para prestadores.
@@ -83,12 +89,7 @@ class ProviderNotificationService {
     // "sem nicho" e NENHUM prestador era notificado por push (som com app fechado nunca
     // disparava p/ serviços comuns). A correspondência é com providers.services
     // (array de nichos), então `serviceName` é o campo certo.
-    const niche = (
-      order.serviceCategory ||
-      order.service_category_name ||
-      order.serviceName ||
-      ''
-    ).trim();
+    const niche = extractOrderNiche(order);
     if (!niche) {
       logger.warn('Pedido sem nicho, ignorando notificação', { orderId: order.id });
       return;
@@ -108,18 +109,11 @@ class ProviderNotificationService {
     for (const doc of providersSnap.docs) {
       const provider = doc.data();
 
-      // Verifica se está aprovado
-      const status = (provider.verificationStatus || '').toLowerCase();
-      const isApproved = ['approved', 'verified', 'aprovado', 'verificado'].includes(status)
-        || provider.isVerified === true || provider.verified === true;
-      if (!isApproved) continue;
+      // Aprovado + disponível (lógica pura testada)
+      if (!isProviderEligible(provider)) continue;
 
-      // Verifica se está disponível
-      if (provider.isAvailable === false) continue;
-
-      // Busca token FCM
-      const tokenDoc = await this.db.collection('fcm_tokens').doc(doc.id).get();
-      const token = tokenDoc.exists ? tokenDoc.data().token : null;
+      // Token FCM (fcm_tokens → users.fcmToken → fallback), não só fcm_tokens.
+      const token = await resolveUserFcmToken(this.db, doc.id);
       if (token) tokens.push(token);
     }
 
@@ -137,26 +131,9 @@ class ProviderNotificationService {
       return;
     }
 
-    // IMPORTANTE: mensagem DATA-ONLY (sem o bloco `notification` de topo).
-    // Com `notification`, um app morto/background recebe a notificação pela
-    // bandeja do sistema e o onMessageReceived do app NÃO roda — então o
-    // alerta sonoro contínuo (AlertForegroundService + NewOrderSoundHelper)
-    // nunca dispara, e o prestador só ouve som com o app aberto.
-    // Data-only + priority high acorda o app e chama onMessageReceived mesmo
-    // com o app fechado; o app monta a própria notificação a partir de
-    // data.title/data.body e inicia o som contínuo.
-    const message = {
-      data: {
-        type: 'order',
-        order_id: order.id,
-        niche: niche,
-        title: 'Novo pedido disponível',
-        body: `Pedido de ${niche} aguardando prestador!`,
-      },
-      android: {
-        priority: 'high',
-      },
-    };
+    // Mensagem DATA-ONLY + priority high (ver provider-notification-logic):
+    // acorda o app mesmo fechado e dispara o som contínuo via onMessageReceived.
+    const message = buildOrderFcmMessage(order, niche);
 
     try {
       const response = await admin.messaging().sendEachForMulticast({

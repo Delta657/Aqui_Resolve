@@ -201,8 +201,8 @@ object ProviderNewOrderAlertManager {
                                 Log.w(TAG, "Erro ao converter pedido ${document.id}: ${e.message}")
                                 null
                             } ?: return@forEach
-                            // Pular pedidos que este prestador já rejeitou
-                            if (order.rejectedBy.contains(userId)) return@forEach
+                            // Pular pedidos que este prestador já rejeitou (rejeição por-prestador)
+                            if (com.aquiresolve.app.utils.OrderAlertLogic.wasRejectedBy(order.rejectedBy, userId)) return@forEach
                             if (matchesProviderService(order)) lastMatchingOrders[document.id] = order
                         }
 
@@ -251,7 +251,8 @@ object ProviderNewOrderAlertManager {
             return
         }
 
-        val newIds = availableIds - knownAvailableOrderIds
+        val newIds = com.aquiresolve.app.utils.OrderAlertLogic
+            .computeNewAlertIds(availableIds, knownAvailableOrderIds)
         knownAvailableOrderIds.clear()
         knownAvailableOrderIds.addAll(availableIds)
 
@@ -364,17 +365,9 @@ object ProviderNewOrderAlertManager {
                     val status = doc.getString("status") ?: return@forEach
                     val assigned = doc.getString("assignedProvider")
 
-                    // Para o som se o pedido foi aceito por alguém
-                    // ou se o status não é mais distributing/pending
-                    val isAccepted = status == OrderData.STATUS_ASSIGNED && !assigned.isNullOrBlank()
-                    val isNoLongerAvailable = status != OrderData.STATUS_DISTRIBUTING
-                        && status != OrderData.STATUS_PENDING
-                        && status != "available"
-                        && status != OrderData.STATUS_DISTRIBUTING.uppercase(Locale.ROOT)
-                        && status != OrderData.STATUS_PENDING.uppercase(Locale.ROOT)
-                        && status != "AVAILABLE"
-
-                    if (isAccepted || isNoLongerAvailable) {
+                    // Para o som se o pedido foi aceito por alguém (assigned) ou se saiu
+                    // de "disponível" por qualquer motivo. (lógica pura testada)
+                    if (com.aquiresolve.app.utils.OrderAlertLogic.shouldStopSound(status, assigned)) {
                         Log.d(TAG, "Pedido $orderId mudou para '$status' — parando som")
                         NewOrderSoundHelper.stopSound(orderId)
                         alertedOrderIds.remove(orderId)

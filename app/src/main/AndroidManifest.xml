@@ -19,6 +19,10 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- Android 14+ (API 34): obrigatória para o AlertForegroundService (type=dataSync)
+         que mantém o processo vivo enquanto toca o alerta sonoro de novo pedido.
+         Sem ela, startForeground lança SecurityException e o som nunca dispara. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- Necessário no Android 11+ (API 30) para enxergar o serviço de reconhecimento de voz -->
     <queries>
