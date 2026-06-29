@@ -501,8 +501,9 @@ class FirebaseAuthManager(private val context: Context) {
             remove("user_profile_image")
             remove("user_last_username_edit")
             remove("is_logged_in")
+            remove("active_role")
         }.apply()
-        
+
         android.util.Log.d("FirebaseAuthManager", "🧹 Todos os dados locais removidos")
     }
     
@@ -524,6 +525,20 @@ class FirebaseAuthManager(private val context: Context) {
     fun isLoggedInLocally(): Boolean {
         return prefs.getBoolean("is_logged_in", false)
     }
+
+    /**
+     * Persiste o "papel ativo" (cliente/prestador) com que o usuário está usando o app
+     * AGORA. É gravado ao entrar na home de cada papel (e em toda troca de conta), e
+     * usado pelo [checkAutoLogin] para reabrir o app na MESMA conta em que foi fechado —
+     * mesmo que `users/{uid}.userType` venha vazio/desatualizado do Firestore.
+     */
+    fun setActiveRole(role: String) {
+        if (role != USER_TYPE_CLIENT && role != USER_TYPE_PROVIDER) return
+        prefs.edit().putString("active_role", role).apply()
+    }
+
+    /** Papel ativo persistido, ou null se nunca definido. */
+    fun getActiveRole(): String? = prefs.getString("active_role", null)
 
     /**
      * Atualiza SOMENTE o cache local de dados do usuário (SharedPreferences)

@@ -92,6 +92,11 @@
             android:theme="@style/Theme.LoginApp"
             android:windowSoftInputMode="adjustResize" />
         <activity
+            android:name=".ProviderCentralChatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LoginApp"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".PersonalDataActivity"
             android:exported="false"
             android:theme="@style/Theme.LoginApp" />

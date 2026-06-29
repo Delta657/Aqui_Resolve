@@ -221,8 +221,9 @@ class HomeActivity : AppCompatActivity() {
     private fun checkChatNotification() {
         val openProviderChat = intent.getBooleanExtra("open_provider_chat", false)
         if (openProviderChat) {
-            // Prestador tocou na notificação: abre o chat com a Central
-            startActivity(Intent(this, ClientCentralChatActivity::class.java))
+            // Prestador tocou na notificação: abre o chat do PRESTADOR com a Central
+            // (`provider_chats`), não a Central do cliente.
+            startActivity(Intent(this, ProviderCentralChatActivity::class.java))
         }
     }
 
@@ -291,6 +292,8 @@ class HomeActivity : AppCompatActivity() {
         // Verificar se há dados de prestador
         val provider = LocalAuthManager.getCurrentProviderData()
         if (provider != null) {
+            // Persiste o papel ativo p/ reabrir como prestador na próxima vez.
+            FirebaseAuthManager(this).setActiveRole(FirebaseAuthManager.USER_TYPE_PROVIDER)
             // Navegar diretamente para o dashboard do prestador
             val intent = Intent(this, ProviderDashboardActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK

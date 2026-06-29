@@ -91,6 +91,9 @@ class ClientHomeActivity : AppCompatActivity() {
         setContentView(binding.root)
         authManager = FirebaseAuthManager(this)
 
+        // Marca o papel ativo p/ reabrir o app na conta de CLIENTE na próxima vez.
+        authManager.setActiveRole(FirebaseAuthManager.USER_TYPE_CLIENT)
+
         setupWindowInsets()
         setupUI()
         setupClickListeners()

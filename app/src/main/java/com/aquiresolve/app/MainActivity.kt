@@ -104,25 +104,44 @@ class MainActivity : AppCompatActivity() {
                             authManager.cacheUserDataLocally(refreshed)
                         }
 
-                        // Navegar para a tela apropriada baseada no tipo de usuário
-                        val typeToUse = refreshed?.userType ?: userData.userType
-                        when (typeToUse) {
-                            FirebaseAuthManager.USER_TYPE_CLIENT -> {
-                                android.util.Log.d("MainActivity", "🚀 Navegando para ClientHomeActivity")
-                                val intent = Intent(this@MainActivity, ClientHomeActivity::class.java)
-                                startActivity(intent)
-                                finish()
+                        // Decide a conta a abrir com prioridade robusta para reabrir o app
+                        // na MESMA conta em que foi fechado:
+                        //   1) papel ativo persistido (active_role) — gravado a CADA entrada
+                        //      em uma home, então reflete a última conta realmente usada
+                        //   2) userType do Firestore (atualizado nas trocas canônicas)
+                        //   3) userType do cache local
+                        //   4) existência de perfil de prestador (último recurso)
+                        // Itens só contam se NÃO vierem em branco (antes, um userType vazio
+                        // caía na HomeActivity genérica = "abria na conta de cliente").
+                        val activeRole = authManager.getActiveRole()?.takeIf { it.isNotBlank() }
+                        val refreshedType = refreshed?.userType?.takeIf { it.isNotBlank() }
+                        val localType = userData.userType.takeIf { it.isNotBlank() }
+                        var typeToUse = activeRole ?: refreshedType ?: localType
+
+                        if (typeToUse.isNullOrBlank()) {
+                            // Tipo desconhecido: tenta deduzir pela existência do perfil de prestador
+                            val hasProvider = try {
+                                FirebaseProviderManager().hasProviderProfile(userData.uid)
+                            } catch (_: Exception) { false }
+                            typeToUse = if (hasProvider) {
+                                FirebaseAuthManager.USER_TYPE_PROVIDER
+                            } else {
+                                FirebaseAuthManager.USER_TYPE_CLIENT
                             }
+                        }
+
+                        when (typeToUse) {
                             FirebaseAuthManager.USER_TYPE_PROVIDER -> {
                                 android.util.Log.d("MainActivity", "🚀 Navegando para ProviderHomeActivity")
+                                authManager.setActiveRole(FirebaseAuthManager.USER_TYPE_PROVIDER)
                                 val intent = Intent(this@MainActivity, ProviderHomeActivity::class.java)
                                 startActivity(intent)
                                 finish()
                             }
                             else -> {
-                                android.util.Log.d("MainActivity", "🚀 Navegando para HomeActivity (tipo desconhecido)")
-                                // Tipo desconhecido, ir para tela genérica
-                                val intent = Intent(this@MainActivity, HomeActivity::class.java)
+                                android.util.Log.d("MainActivity", "🚀 Navegando para ClientHomeActivity")
+                                authManager.setActiveRole(FirebaseAuthManager.USER_TYPE_CLIENT)
+                                val intent = Intent(this@MainActivity, ClientHomeActivity::class.java)
                                 startActivity(intent)
                                 finish()
                             }
@@ -352,12 +371,27 @@ class MainActivity : AppCompatActivity() {
                     val displayName = userData?.username ?: userData?.email ?: "Usuário"
                     
                     showSuccessMessage("✅ Login realizado com sucesso! Bem-vindo, $displayName!")
-                    
-                    // Navegar para a tela principal baseada no tipo de usuário
-                    val intent = when (userData?.userType) {
-                        "provider" -> Intent(this@MainActivity, ProviderHomeActivity::class.java)
-                        "client" -> Intent(this@MainActivity, ClientHomeActivity::class.java)
-                        else -> Intent(this@MainActivity, HomeActivity::class.java) // Fallback
+
+                    // Navegar para a tela principal baseada no tipo de usuário. Se vier
+                    // em branco, deduz pelo perfil de prestador (evita mandar prestador
+                    // para a home de cliente). A home grava o active_role para as próximas
+                    // aberturas reabrirem na mesma conta.
+                    var loginType = userData?.userType?.takeIf { it.isNotBlank() }
+                    if (loginType == null) {
+                        val uid = userData?.uid
+                        val hasProvider = if (uid != null) {
+                            try { FirebaseProviderManager().hasProviderProfile(uid) } catch (_: Exception) { false }
+                        } else false
+                        loginType = if (hasProvider) {
+                            FirebaseAuthManager.USER_TYPE_PROVIDER
+                        } else {
+                            FirebaseAuthManager.USER_TYPE_CLIENT
+                        }
+                    }
+                    val intent = if (loginType == FirebaseAuthManager.USER_TYPE_PROVIDER) {
+                        Intent(this@MainActivity, ProviderHomeActivity::class.java)
+                    } else {
+                        Intent(this@MainActivity, ClientHomeActivity::class.java)
                     }
                     startActivity(intent)
                     finish()

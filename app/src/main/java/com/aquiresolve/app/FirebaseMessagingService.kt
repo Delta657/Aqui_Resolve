@@ -215,10 +215,13 @@ class FirebaseMessagingService : FirebaseMessagingService() {
                     Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
         } else if (type.equals("provider_message", ignoreCase = true)) {
-            // Abrir chat do prestador (ProviderChatActivity ou HomeActivity como fallback)
-            Intent(this, HomeActivity::class.java).apply {
-                putExtra("open_provider_chat", true)
-                flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            // Mensagem da Central PARA O PRESTADOR → abre o chat do prestador
+            // (`provider_chats`). Antes abria a Central do CLIENTE, então o prestador
+            // "recebia na conta de cliente".
+            Intent(this, ProviderCentralChatActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
         } else if (type.equals("central_message", ignoreCase = true)) {
             // Abrir chat do cliente com a Central

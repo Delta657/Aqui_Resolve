@@ -85,6 +85,10 @@ class ProviderHomeActivity : AppCompatActivity() {
     private var bannerAutoScroll: Runnable? = null
     private var bannerCount = 0
 
+    // Central AquiResolve (chat Base ↔ Prestador): badge de não lidas
+    private val centralChatRepository = CentralChatRepository(isProvider = true)
+    private var centralChatUnreadListener: com.google.firebase.firestore.ListenerRegistration? = null
+
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
@@ -103,11 +107,35 @@ class ProviderHomeActivity : AppCompatActivity() {
         setContentView(binding.root)
         authManager = FirebaseAuthManager(this)
 
+        // Marca o papel ativo p/ reabrir o app na conta de PRESTADOR na próxima vez.
+        authManager.setActiveRole(FirebaseAuthManager.USER_TYPE_PROVIDER)
+
         setupWindowInsets()
         setupUI()
         setupClickListeners()
         setupBannerCarousel()
+        setupCentralChatBadge()
         loadProviderData()
+    }
+
+    /**
+     * Observa o contador `unreadByProvider` do chat com a Central e mostra um badge
+     * no ícone de chat do topo. Marca como lido ao abrir [ProviderCentralChatActivity].
+     */
+    private fun setupCentralChatBadge() {
+        val uid = auth.currentUser?.uid ?: return
+        centralChatUnreadListener?.remove()
+        centralChatUnreadListener = centralChatRepository.observeUnreadByClient(uid) { count ->
+            runOnUiThread {
+                val badge = binding.tvCentralChatBadge
+                if (count > 0) {
+                    badge.text = if (count > 99) "99+" else count.toString()
+                    badge.visibility = View.VISIBLE
+                } else {
+                    badge.visibility = View.GONE
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -133,6 +161,8 @@ class ProviderHomeActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         stopBannerAutoScroll()
+        centralChatUnreadListener?.remove()
+        centralChatUnreadListener = null
     }
 
     /**
@@ -286,6 +316,11 @@ class ProviderHomeActivity : AppCompatActivity() {
                 }
                 else -> false
             }
+        }
+
+        // Central AquiResolve (chat Base ↔ Prestador)
+        binding.btnCentralChat.setOnClickListener {
+            startActivity(Intent(this, ProviderCentralChatActivity::class.java))
         }
 
         // Botao de notificacoes

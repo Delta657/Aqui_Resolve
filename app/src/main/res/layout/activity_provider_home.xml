@@ -81,6 +81,38 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Central AquiResolve (chat com o suporte/base) -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp">
+
+                    <ImageButton
+                        android:id="@+id/btnCentralChat"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_chat"
+                        app:tint="@android:color/white"
+                        android:contentDescription="Central AquiResolve" />
+
+                    <TextView
+                        android:id="@+id/tvCentralChatBadge"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="top|end"
+                        android:layout_marginTop="6dp"
+                        android:layout_marginEnd="4dp"
+                        android:background="@drawable/badge_background"
+                        android:gravity="center"
+                        android:text="0"
+                        android:textColor="@android:color/white"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
+
+                </FrameLayout>
+
                 <!-- Botão de notificações -->
                 <ImageButton
                     android:id="@+id/btnNotifications"

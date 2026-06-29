@@ -11,28 +11,37 @@ import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.tasks.await
 
 /**
- * Acesso ao chat Base ↔ Cliente (Central AquiResolve).
+ * Acesso ao chat Base ↔ Cliente/Prestador (Central AquiResolve).
  *
- * As regras Firestore permitem:
- *  - read em `client_chats/{uid}` e na subcoleção `messages` apenas se `isOwner(uid)`
- *  - create de mensagem apenas com `senderType='client'` e `senderId == auth.uid`
+ * O mesmo repositório atende as duas pontas conforme [isProvider]:
+ *  - cliente  → coleção `client_chats/{uid}`,   senderType='client',   contador `unreadByClient`
+ *  - prestador→ coleção `provider_chats/{uid}`,  senderType='provider', contador `unreadByProvider`
+ *
+ * As regras Firestore permitem em ambos:
+ *  - read no doc e na subcoleção `messages` apenas se `isOwner(uid)`
+ *  - create de mensagem apenas com o senderType da própria ponta e `senderId == auth.uid`
  *
  * A atualização da metadata (last*, contadores) é responsabilidade do painel
  * via Admin SDK; o app não escreve no doc do chat, só na subcoleção messages.
  */
-class CentralChatRepository {
+class CentralChatRepository(private val isProvider: Boolean = false) {
 
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
+    private val chatsCollection = if (isProvider) "provider_chats" else "client_chats"
+    private val senderType = if (isProvider) "provider" else "client"
+    private val unreadField = if (isProvider) "unreadByProvider" else "unreadByClient"
+    private val readRole = if (isProvider) "provider" else "client"
+    private val readApiPath = if (isProvider) "provider-chats" else "client-chats"
+
     companion object {
         private const val TAG = "CentralChatRepo"
-        private const val CHATS_COLLECTION = "client_chats"
         private const val MESSAGES_SUBCOLLECTION = "messages"
     }
 
     private fun chatRef(clientId: String) =
-        db.collection(CHATS_COLLECTION).document(clientId)
+        db.collection(chatsCollection).document(clientId)
 
     /**
      * Listener em tempo real das mensagens do cliente, em ordem ascendente.
@@ -57,7 +66,7 @@ class CentralChatRepository {
                         CentralChatMessage(
                             id = doc.id,
                             text = doc.getString("text") ?: "",
-                            senderType = doc.getString("senderType") ?: "client",
+                            senderType = doc.getString("senderType") ?: senderType,
                             senderId = doc.getString("senderId") ?: "",
                             senderName = doc.getString("senderName") ?: "",
                             type = doc.getString("type") ?: "text",
@@ -77,8 +86,8 @@ class CentralChatRepository {
     }
 
     /**
-     * Cria uma mensagem do próprio cliente. Respeita as regras Firestore:
-     * `senderType='client'`, `senderId == auth.uid`.
+     * Cria uma mensagem da própria ponta (cliente ou prestador). Respeita as regras
+     * Firestore: `senderType` da ponta correta e `senderId == auth.uid`.
      */
     suspend fun sendClientMessage(
         clientId: String,
@@ -86,7 +95,7 @@ class CentralChatRepository {
         senderName: String
     ): Result<String> {
         if (auth.currentUser?.uid != clientId) {
-            return Result.failure(IllegalStateException("Cliente não autenticado"))
+            return Result.failure(IllegalStateException("Sessão não autenticada"))
         }
         val trimmed = text.trim()
         if (trimmed.isEmpty()) {
@@ -105,11 +114,12 @@ class CentralChatRepository {
             msgRef.set(
                 mapOf(
                     "text" to trimmed,
-                    "senderType" to "client",
+                    "senderType" to senderType,
                     "senderId" to clientId,
                     "senderName" to senderName,
                     "type" to CentralChatMessage.TYPE_TEXT,
                     "readByClient" to true,
+                    "readByProvider" to true,
                     "readByAdmin" to false,
                     "createdAt" to FieldValue.serverTimestamp()
                 )
@@ -123,8 +133,8 @@ class CentralChatRepository {
     }
 
     /**
-     * Conta unread do cliente — observa o doc do chat (campo `unreadByClient`).
-     * Devolve [ListenerRegistration] para uso no badge da home.
+     * Conta unread da ponta — observa o doc do chat (campo `unreadByClient` ou
+     * `unreadByProvider`). Devolve [ListenerRegistration] para uso no badge da home.
      */
     fun observeUnreadByClient(
         clientId: String,
@@ -132,11 +142,11 @@ class CentralChatRepository {
     ): ListenerRegistration {
         return chatRef(clientId).addSnapshotListener { snap, error ->
             if (error != null) {
-                Log.w(TAG, "Listener unreadByClient erro: ${error.message}")
+                Log.w(TAG, "Listener $unreadField erro: ${error.message}")
                 onUpdate(0)
                 return@addSnapshotListener
             }
-            val count = (snap?.getLong("unreadByClient") ?: 0L).toInt()
+            val count = (snap?.getLong(unreadField) ?: 0L).toInt()
             onUpdate(count)
         }
     }
@@ -153,7 +163,7 @@ class CentralChatRepository {
                 ?: return
             val client = okhttp3.OkHttpClient()
             val req = okhttp3.Request.Builder()
-                .url("$url/api/client-chats/$clientId/read?role=client")
+                .url("$url/api/$readApiPath/$clientId/read?role=$readRole")
                 .patch(okhttp3.RequestBody.create(null, ByteArray(0)))
                 .build()
             client.newCall(req).execute().use { /* ignora corpo */ }
