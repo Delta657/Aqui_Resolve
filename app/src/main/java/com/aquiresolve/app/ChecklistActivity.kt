@@ -93,15 +93,7 @@ class ChecklistActivity : AppCompatActivity() {
      * o resumo do que ainda falta preencher antes de avançar.
      */
     private fun setupPendingSummaryWatchers() {
-        val serviceBoxes = listOf(
-            binding.cbServiceElectric, binding.cbServicePlumber, binding.cbServiceClog,
-            binding.cbServiceCheckup, binding.cbServiceWaterTankCleaning,
-            binding.cbServiceGutterCleaning, binding.cbServiceGreaseTrapCleaning,
-            binding.cbServiceLocksmith, binding.cbServiceFanInstallation
-        )
-        serviceBoxes.forEach { it.setOnCheckedChangeListener { _, _ -> updatePendingSummary() } }
         binding.cbDeclarationAccepted.setOnCheckedChangeListener { _, _ -> updatePendingSummary() }
-        binding.rgProblemResolution.setOnCheckedChangeListener { _, _ -> updatePendingSummary() }
         binding.cbMaterialsUsed.setOnCheckedChangeListener { _, checked ->
             binding.tilMaterialsDescription.visibility = if (checked) android.view.View.VISIBLE else android.view.View.GONE
             if (!checked) {
@@ -128,11 +120,9 @@ class ChecklistActivity : AppCompatActivity() {
      */
     private fun updatePendingSummary() {
         val pending = mutableListOf<String>()
-        if (collectServiceDescriptions().isEmpty()) pending.add("• Descrição do serviço (marque ao menos uma)")
         if (binding.etExecutionDescription.text?.toString()?.trim().isNullOrEmpty()) {
             pending.add("• Descrição detalhada do serviço realizado")
         }
-        if (binding.rgProblemResolution.checkedRadioButtonId == -1) pending.add("• Indicar se o problema foi solucionado")
         if (binding.cbMaterialsUsed.isChecked && binding.etMaterialsDescription.text?.toString()?.trim().isNullOrEmpty()) {
             pending.add("• Descrever os materiais/suprimentos usados")
         }
@@ -182,19 +172,9 @@ class ChecklistActivity : AppCompatActivity() {
     }
 
     private fun validateStep1(): Boolean {
-        if (collectServiceDescriptions().isEmpty()) {
-            Toast.makeText(this, "Selecione pelo menos uma descrição do serviço", Toast.LENGTH_LONG).show()
-            return false
-        }
-
         if (binding.etExecutionDescription.text?.toString()?.trim().isNullOrEmpty()) {
             Toast.makeText(this, "Preencha a descrição detalhada do serviço realizado", Toast.LENGTH_LONG).show()
             binding.etExecutionDescription.error = "Campo obrigatório"
-            return false
-        }
-
-        if (binding.rgProblemResolution.checkedRadioButtonId == -1) {
-            Toast.makeText(this, "Selecione se o problema foi solucionado", Toast.LENGTH_LONG).show()
             return false
         }
 
@@ -233,28 +213,13 @@ class ChecklistActivity : AppCompatActivity() {
         )
     }
 
-    private fun collectServiceDescriptions(): List<String> {
-        val descriptions = mutableListOf<String>()
-        if (binding.cbServiceElectric.isChecked) descriptions.add("Elétrico")
-        if (binding.cbServicePlumber.isChecked) descriptions.add("Encanador")
-        if (binding.cbServiceClog.isChecked) descriptions.add("Desentupimento")
-        if (binding.cbServiceCheckup.isChecked) descriptions.add("Check-Up")
-        if (binding.cbServiceWaterTankCleaning.isChecked) descriptions.add("Limpeza de Caixa d'água")
-        if (binding.cbServiceGutterCleaning.isChecked) descriptions.add("Limpeza de Calhas e Rufos")
-        if (binding.cbServiceGreaseTrapCleaning.isChecked) descriptions.add("Limpeza de Caixa de Gordura")
-        if (binding.cbServiceLocksmith.isChecked) descriptions.add("Chaveiro")
-        if (binding.cbServiceFanInstallation.isChecked) descriptions.add("Instalação de ventilador")
-        return descriptions
-    }
+    // Campos "Descrição do Serviço" (checkboxes de nicho) e "O problema foi
+    // solucionado?" (radio) foram removidos do checklist. Mantemos os métodos
+    // retornando vazio para preservar o contrato de gravação (Firestore/OS/PDF/painel)
+    // sem reescrever o modelo nem a assinatura do manager.
+    private fun collectServiceDescriptions(): List<String> = emptyList()
 
-    private fun getProblemResolution(): String {
-        return when (binding.rgProblemResolution.checkedRadioButtonId) {
-            R.id.rbResolved -> "resolved"
-            R.id.rbReturnNeeded -> "return_needed"
-            R.id.rbNotResolved -> "not_resolved"
-            else -> ""
-        }
-    }
+    private fun getProblemResolution(): String = ""
 
     private fun saveChecklist() {
         lifecycleScope.launch {
@@ -394,25 +359,8 @@ class ChecklistActivity : AppCompatActivity() {
         binding.cbCleanAfterService.isChecked = checklist.cleanAfterService == true
         binding.cbDeclarationAccepted.isChecked = checklist.declarationAccepted == true
 
-        val descriptions = checklist.serviceDescription.toSet()
-        binding.cbServiceElectric.isChecked = "Elétrico" in descriptions
-        binding.cbServicePlumber.isChecked = "Encanador" in descriptions
-        binding.cbServiceClog.isChecked = "Desentupimento" in descriptions
-        binding.cbServiceCheckup.isChecked = "Check-Up" in descriptions
-        binding.cbServiceWaterTankCleaning.isChecked = "Limpeza de Caixa d'água" in descriptions
-        binding.cbServiceGutterCleaning.isChecked = "Limpeza de Calhas e Rufos" in descriptions
-        binding.cbServiceGreaseTrapCleaning.isChecked = "Limpeza de Caixa de Gordura" in descriptions
-        binding.cbServiceLocksmith.isChecked = "Chaveiro" in descriptions
-        binding.cbServiceFanInstallation.isChecked = "Instalação de ventilador" in descriptions
-
         binding.etPreExistingDamages.setText(checklist.preExistingDamages)
         binding.etExecutionDescription.setText(checklist.executionDescription)
         binding.etObservations.setText(checklist.observations)
-
-        when (checklist.problemResolution) {
-            "resolved" -> binding.rgProblemResolution.check(R.id.rbResolved)
-            "return_needed" -> binding.rgProblemResolution.check(R.id.rbReturnNeeded)
-            "not_resolved" -> binding.rgProblemResolution.check(R.id.rbNotResolved)
-        }
     }
 }
