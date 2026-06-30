@@ -436,10 +436,14 @@ class ProviderHomeActivity : AppCompatActivity() {
      */
     private fun updateVerificationBanner(status: String, rejectionReason: String?) {
         when (status.lowercase()) {
-            "approved" -> {
+            // Aceita todos os sinônimos de "aprovado" usados no histórico do banco
+            // (mesma normalização de ProviderVerificationManager.getVerificationStatus).
+            // Sem isso, prestadores gravados como "verificado"/"verified" apareciam
+            // eternamente "em análise" mesmo já verificados.
+            "approved", "aprovado", "verified", "verificado" -> {
                 binding.cardVerificationBanner.visibility = android.view.View.GONE
             }
-            "rejected" -> {
+            "rejected", "rejeitado" -> {
                 binding.cardVerificationBanner.visibility = android.view.View.VISIBLE
                 binding.cardVerificationBanner.setCardBackgroundColor(
                     ContextCompat.getColor(this, android.R.color.holo_red_light).let {

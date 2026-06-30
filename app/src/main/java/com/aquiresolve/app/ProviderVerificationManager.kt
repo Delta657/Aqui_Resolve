@@ -557,7 +557,10 @@ class ProviderVerificationManager {
                 .document(providerId)
                 .update(
                     mapOf(
-                        "verificationStatus" to "verified",
+                        // Valor canônico único do sistema (igual ao painel /api/providers/[id]/verify).
+                        // Antes gravava "verified", divergindo do painel ("approved") e do legado ("verificado").
+                        "verificationStatus" to "approved",
+                        "isVerified" to true,
                         "updatedAt" to Date(),
                         "reviewedBy" to adminId,
                         "notes" to notes
