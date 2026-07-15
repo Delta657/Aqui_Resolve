@@ -79,6 +79,10 @@
 |---|--------|-----|
 | 20 | `providerId` ASC, `createdAt` DESC | `FirebaseServiceManager.getProviderReviews()` |
 
+### Coleção: `provider_specialty_requests`
+
+Não há índice composto obrigatório para o fluxo atual. O app consulta por `providerId` e ordena em memória por `createdAt`; a API admin consulta por `status` e também ordena em memória. Não usar `where + orderBy` nessa coleção sem adicionar o índice correspondente em `firestore.indexes.json` e fazer deploy.
+
 ---
 
 ## Deploy via CLI
@@ -98,4 +102,4 @@ Após criar os índices:
 
 ---
 
-**Última atualização:** 16/05/2026 — Após merge dos commits de localização, estabilidade e limpeza
+**Última atualização:** 25/06/2026 — Documentado fluxo de especialidades sem índice composto

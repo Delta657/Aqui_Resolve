@@ -55,7 +55,10 @@ export async function GET(request: NextRequest) {
         const orderSnap = await db.collection('orders').doc(orderId).get()
         const order = orderSnap.exists ? (orderSnap.data() as Record<string, unknown>) : {}
 
-        const providerId = readString(checklist, 'providerId') || readString(order, 'assignedProviderId')
+        const providerId =
+          readString(checklist, 'providerId') ||
+          readString(order, 'assignedProvider') ||
+          readString(order, 'assignedProviderId')
         const clientId = readString(order, 'clientId') || readString(order, 'userId') || readString(order, 'clientUid')
         const status = readString(checklist, 'status')
         const photosBefore = readStringArray(checklist, 'photosBefore')
