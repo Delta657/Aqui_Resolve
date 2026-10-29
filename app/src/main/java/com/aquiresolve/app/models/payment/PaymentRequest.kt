@@ -38,9 +38,14 @@ data class CreditCardPaymentMethod(
  * Dados do cartão de crédito para pagamento
  */
 data class CreditCardData(
+    // Legado: cartão aberto (só quando não há chave pública para tokenizar).
     @SerializedName("card")
-    val card: CardData,
-    
+    val card: CardData? = null,
+
+    // Token gerado direto na Pagar.me (CardTokenizer) — número/CVV não passam pelo backend.
+    @SerializedName("card_token")
+    val cardToken: String? = null,
+
     @SerializedName("billing_address")
     val billingAddress: BillingAddress
 )
@@ -94,7 +99,30 @@ data class PaymentResponse(
     val gatewayResponse: GatewayResponse? = null,
     
     @SerializedName("customer")
-    val customer: CustomerResponse? = null
+    val customer: CustomerResponse? = null,
+
+    // Core API v5: o motivo da recusa vem dentro de charges[].last_transaction.
+    @SerializedName("charges")
+    val charges: List<CardChargeInfo>? = null
+)
+
+data class CardChargeInfo(
+    @SerializedName("status")
+    val status: String? = null,
+
+    @SerializedName("last_transaction")
+    val lastTransaction: CardTransactionInfo? = null
+)
+
+data class CardTransactionInfo(
+    @SerializedName("status")
+    val status: String? = null,
+
+    @SerializedName("acquirer_message")
+    val acquirerMessage: String? = null,
+
+    @SerializedName("gateway_response")
+    val gatewayResponse: GatewayResponse? = null
 )
 
 /**

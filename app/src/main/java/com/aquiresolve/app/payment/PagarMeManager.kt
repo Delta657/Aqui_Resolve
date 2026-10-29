@@ -30,6 +30,7 @@ class PagarMeManager(private val context: Context) {
 
     private val apiService: PagarMeApiService
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val cardTokenizer = CardTokenizer()
 
     init {
         // Configurar cliente HTTP
@@ -171,11 +172,23 @@ class PagarMeManager(private val context: Context) {
                 country = billingAddress.country
             )
             
-            // Criar dados do cartão para pagamento (estrutura v5)
-            val creditCardData = com.aquiresolve.app.models.payment.CreditCardData(
-                card = cardData,
-                billingAddress = billing
-            )
+            // Com chave pública configurada, o cartão é tokenizado direto na
+            // Pagar.me e o backend recebe só o card_token (sem número/CVV).
+            val creditCardData = if (cardTokenizer.isEnabled) {
+                when (val tokenResult = cardTokenizer.tokenize(cardData)) {
+                    is CardTokenizer.Result.Success -> com.aquiresolve.app.models.payment.CreditCardData(
+                        cardToken = tokenResult.token,
+                        billingAddress = billing
+                    )
+                    is CardTokenizer.Result.Error -> return PaymentResult.Error(tokenResult.message)
+                }
+            } else {
+                Log.w(TAG, "PAGARME_PUBLIC_KEY ausente: enviando cartão sem tokenização (legado)")
+                com.aquiresolve.app.models.payment.CreditCardData(
+                    card = cardData,
+                    billingAddress = billing
+                )
+            }
             
             // Criar método de pagamento (estrutura v5)
             val creditCardPaymentMethod = com.aquiresolve.app.models.payment.CreditCardPaymentMethod(
@@ -225,7 +238,10 @@ class PagarMeManager(private val context: Context) {
                         }
                         else -> {
                             Log.w(TAG, "Pagamento recusado")
-                            val errorMessage = paymentResponse.gatewayResponse?.errors?.firstOrNull()?.message
+                            val lastTransaction = paymentResponse.charges?.firstOrNull()?.lastTransaction
+                            val errorMessage = lastTransaction?.acquirerMessage?.takeIf { it.isNotBlank() }
+                                ?: lastTransaction?.gatewayResponse?.errors?.firstOrNull()?.message
+                                ?: paymentResponse.gatewayResponse?.errors?.firstOrNull()?.message
                                 ?: "Pagamento não foi aprovado"
                             PaymentResult.Error(errorMessage)
                         }
@@ -236,8 +252,9 @@ class PagarMeManager(private val context: Context) {
                 }
             } else {
                 Log.e(TAG, "Erro na requisição de pagamento: ${response.code()}")
-                
-                val errorMessage = when (response.code()) {
+
+                val apiErrorMessage = extractApiErrorMessage(response.errorBody())
+                val errorMessage = apiErrorMessage ?: when (response.code()) {
                     400 -> "Dados do pagamento inválidos"
                     401 -> "Erro de autenticação com gateway de pagamento"
                     402 -> "Pagamento recusado"

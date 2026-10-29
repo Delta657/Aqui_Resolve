@@ -68,6 +68,12 @@ function loadEnv() {
     pagarmeWebhookSecret:
       getEnv('PAGARME_WEBHOOK_SECRET', { required: false, defaultValue: '' }) ||
       getEnv('PAYMENT_WEBHOOK_SECRET', { required: false, defaultValue: '' }),
+    // true = recusa cartão com número aberto (só aceita card_token). Ligar quando
+    // nenhum APK antigo (pré-tokenização) estiver mais em uso.
+    pagarmeRequireCardToken: parseBoolean(
+      getEnv('PAGARME_REQUIRE_CARD_TOKEN', { required: false, defaultValue: 'false' }),
+      false
+    ),
     firebaseProjectId: getEnv('FIREBASE_PROJECT_ID', { required: false, defaultValue: '' }),
     firebaseClientEmail: getEnv('FIREBASE_CLIENT_EMAIL', { required: false, defaultValue: '' }),
     firebasePrivateKey: (getEnv('FIREBASE_PRIVATE_KEY', { required: false, defaultValue: '' }) || '').replace(/\\n/g, '\n'),

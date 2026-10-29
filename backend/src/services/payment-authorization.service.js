@@ -2,8 +2,12 @@ const crypto = require('crypto');
 
 const HttpError = require('../utils/http-error');
 const { initializeFirebase } = require('../config/firebase');
+const { loadEnv } = require('../config/env');
 
 const CART_CHECKOUT_CODE = 'cart_checkout';
+// Texto da fatura do cartão do cliente (Pagar.me aceita até 13 caracteres).
+const DEFAULT_STATEMENT_DESCRIPTOR = 'AQUIRESOLVE';
+const STATEMENT_DESCRIPTOR_MAX_LENGTH = 13;
 const ORDER_STATUS_AWAITING_PAYMENT = 'awaiting_payment';
 const ORDER_STATUS_DRAFT = 'draft';
 const PAYMENT_STATUS_PAID = 'paid';
@@ -173,6 +177,18 @@ function sanitizeCard(card, billingAddress) {
   return sanitizedCard;
 }
 
+// Cartão tokenizado no app (POST /core/v5/tokens com a chave pública): o
+// número/CVV nunca passam por este servidor. O endereço de cobrança não é
+// tokenizado, então segue em card.billing_address junto do card_token.
+function sanitizeTokenizedCard(rawCreditCard, billingAddress) {
+  const rawCard =
+    rawCreditCard.card && typeof rawCreditCard.card === 'object' && !Array.isArray(rawCreditCard.card)
+      ? rawCreditCard.card
+      : {};
+  const normalizedBillingAddress = sanitizeAddress(rawCard.billing_address || rawCard.billingAddress, billingAddress);
+  return normalizedBillingAddress ? { billing_address: normalizedBillingAddress } : undefined;
+}
+
 function sanitizeCreditCardPayment(payment) {
   const rawCreditCard = payment.credit_card || payment.creditCard;
   if (!rawCreditCard || typeof rawCreditCard !== 'object' || Array.isArray(rawCreditCard)) {
@@ -180,12 +196,30 @@ function sanitizeCreditCardPayment(payment) {
   }
 
   const billingAddress = sanitizeAddress(rawCreditCard.billing_address || rawCreditCard.billingAddress);
+  const cardToken = normalizeString(rawCreditCard.card_token || rawCreditCard.cardToken);
+
+  if (!cardToken && loadEnv().pagarmeRequireCardToken) {
+    throw new HttpError(422, 'Atualize o aplicativo para pagar com cartao', {
+      code: 'CARD_TOKEN_REQUIRED'
+    });
+  }
+
   const sanitizedCreditCard = {
     ...rawCreditCard,
     installments: Number(rawCreditCard.installments || 1),
-    card: sanitizeCard(rawCreditCard.card, billingAddress)
+    statement_descriptor:
+      trimGatewayText(rawCreditCard.statement_descriptor, STATEMENT_DESCRIPTOR_MAX_LENGTH) ||
+      DEFAULT_STATEMENT_DESCRIPTOR,
+    card: cardToken
+      ? sanitizeTokenizedCard(rawCreditCard, billingAddress)
+      : sanitizeCard(rawCreditCard.card, billingAddress)
   };
 
+  if (cardToken) {
+    sanitizedCreditCard.card_token = cardToken;
+  }
+
+  delete sanitizedCreditCard.cardToken;
   delete sanitizedCreditCard.billing_address;
   delete sanitizedCreditCard.billingAddress;
 
@@ -513,5 +547,6 @@ async function authorizePaymentPayload({ payload, uid }) {
 }
 
 module.exports = {
-  authorizePaymentPayload
+  authorizePaymentPayload,
+  preparePaymentsForGateway
 };

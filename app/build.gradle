@@ -115,13 +115,16 @@ android {
         applicationId "com.aquiresolve.app"
         minSdk 24
         targetSdk 35
-        versionCode 20260709
-        versionName "1.3.2"
+        versionCode 20261029
+        versionName "1.3.3"
         
         // Configuração do servidor para cada build type
         buildConfigField "String", "PAYMENTS_API_BASE_URL", "\"https://aquiresolve.onrender.com/api/payments/\""
         // URL base do painel admin (Next.js) — chamado para marcar chat central como lido
         buildConfigField "String", "PANEL_BASE_URL", "\"https://aquiresolve-dashboard.vercel.app\""
+        // Chave PÚBLICA da Pagar.me (pk_...) para tokenizar o cartão no aparelho.
+        // Pública por natureza (pode ir no APK). Vazia = fluxo legado sem token.
+        buildConfigField "String", "PAGARME_PUBLIC_KEY", "\"${project.findProperty('PAGARME_PUBLIC_KEY') ?: ''}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
