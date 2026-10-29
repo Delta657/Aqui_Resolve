@@ -92,7 +92,7 @@ tasks.named("preBuild").configure {
 
 android {
     namespace 'com.aquiresolve.app'
-    compileSdk 35
+    compileSdk 36
 
     configurations.all {
         resolutionStrategy {
@@ -114,7 +114,7 @@ android {
     defaultConfig {
         applicationId "com.aquiresolve.app"
         minSdk 24
-        targetSdk 35
+        targetSdk 36
         versionCode 20261029
         versionName "1.3.3"
         
