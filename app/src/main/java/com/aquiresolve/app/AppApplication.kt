@@ -16,6 +16,8 @@ class AppApplication : Application() {
         // Insets globais para o edge-to-edge forçado do Android 15+ (targetSdk 35):
         // impede que as barras do sistema cubram topo/rodapé de qualquer tela.
         EdgeToEdgeInsets.install(this)
+        // Aviso de versão nova (Play Store) / atualização obrigatória (app_config/app_version).
+        AppUpdateChecker.install(this)
         try {
             FirebaseConfig.initialize(this)
             NotificationManager.createNotificationChannels(this)
